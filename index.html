@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hot 200</title>
+<style>
+:root {
+  --bg:       #0d0d12;
+  --bg2:      #14141c;
+  --bg3:      #1c1c28;
+  --card:     #181824;
+  --border:   #26263a;
+  --text:     #e6e6f0;
+  --text2:    #8888aa;
+  --accent:   #f06bab;
+  --accent2:  #ff9cd3;
+  --green:    #4ade80;
+  --red:      #f87171;
+  --yellow:   #fbbf24;
+  --tag-bg:   rgba(240,107,171,0.12);
+  --tag-text: #ff9cd3;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, #14141f 0%, #10101a 100%);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px);
+}
+.header-inner {
+  max-width: 1400px; margin: 0 auto;
+  padding: 15px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo h1 {
+  font-size: 18px; font-weight: 700;
+  color: var(--accent);
+}
+.logo .subtitle { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.header-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.update-badge {
+  background: var(--bg3); padding: 6px 14px; border-radius: 20px;
+  font-size: 13px; color: var(--text2);
+  display: flex; align-items: center; gap: 6px;
+}
+.update-badge .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Stats bar ── */
+.stats-bar {
+  max-width: 1400px; margin: 18px auto 0; padding: 0 24px;
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.stat-chip {
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 7px 14px; border-radius: 10px;
+  font-size: 13px; color: var(--text2);
+  display: flex; align-items: center; gap: 5px;
+}
+.stat-chip .val { color: var(--text); font-weight: 600; }
+
+/* ── Controls ── */
+.controls {
+  max-width: 1400px; margin: 14px auto; padding: 0 24px;
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+}
+.search-box { flex: 1; min-width: 200px; max-width: 340px; position: relative; }
+.search-box input {
+  width: 100%; padding: 9px 13px 9px 36px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 14px;
+  outline: none; transition: border-color .2s;
+}
+.search-box input:focus { border-color: var(--accent); }
+.search-box input::placeholder { color: var(--text2); }
+.search-box .icon {
+  position: absolute; left: 11px; top: 50%;
+  transform: translateY(-50%); color: var(--text2); font-size: 14px;
+}
+.filter-btn {
+  padding: 8px 15px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text2); font-size: 13px;
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--accent); color: var(--text); }
+.filter-btn.active { background: rgba(240,107,171,0.15); border-color: var(--accent); color: var(--accent); }
+.filter-btn.new-btn .new-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--yellow); color: #000; font-size: 11px;
+  font-weight: 700; margin-left: 6px; line-height: 1;
+}
+.filter-btn.new-btn.active { background: rgba(251,191,36,.18); border-color: var(--yellow); color: var(--yellow); }
+.filter-btn.new-btn:hover  { border-color: var(--yellow); color: var(--yellow); }
+.filter-btn.new-btn.no-new { opacity: .5; cursor: default; }
+.history-select {
+  padding: 8px 12px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-size: 13px;
+  outline: none; cursor: pointer;
+}
+
+/* ── New entries banner ── */
+.new-banner { max-width: 1400px; margin: 0 auto; padding: 0 24px; display: none; }
+.new-banner.show { display: block; }
+.new-banner-inner {
+  background: linear-gradient(135deg, rgba(251,191,36,.10) 0%, rgba(240,107,171,.06) 100%);
+  border: 1px solid rgba(251,191,36,.25); border-radius: 12px;
+  padding: 13px 18px; display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+}
+.new-banner-icon { font-size: 20px; }
+.new-banner-text { font-size: 14px; color: var(--yellow); font-weight: 600; }
+.new-banner-text span { color: var(--text2); font-weight: 400; margin-left: 8px; font-size: 13px; }
+
+/* ── Book list ── */
+.book-list { max-width: 1400px; margin: 14px auto; padding: 0 24px 40px; }
+.book-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 17px 20px; margin-bottom: 9px;
+  display: flex; gap: 15px; align-items: stretch;
+  transition: all .2s; cursor: default; color: inherit;
+}
+.book-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(240,107,171,.10);
+}
+.book-card.is-new {
+  border-color: rgba(251,191,36,.30);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(251,191,36,.04) 100%);
+}
+.book-card.is-new:hover { border-color: var(--yellow); box-shadow: 0 4px 20px rgba(251,191,36,.10); }
+
+/* Rank */
+.rank-col {
+  flex-shrink: 0; width: 50px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.rank-num { font-size: 24px; font-weight: 800; line-height: 1; }
+.rank-1 { color: #ffd700; text-shadow: 0 0 12px rgba(255,215,0,.3); }
+.rank-2 { color: #c0c0c0; text-shadow: 0 0 12px rgba(192,192,192,.2); }
+.rank-3 { color: #cd7f32; text-shadow: 0 0 12px rgba(205,127,50,.2); }
+.rank-other { color: var(--text2); }
+.rank-change { font-size: 11px; margin-top: 4px; font-weight: 600; }
+.rank-up   { color: var(--green); }
+.rank-down { color: var(--red); }
+.rank-same { color: var(--text2); }
+.rank-new  {
+  color: var(--yellow); font-size: 10px; font-weight: 700;
+  background: rgba(251,191,36,.15); padding: 1px 6px; border-radius: 4px;
+}
+
+/* Cover */
+.cover-col { flex-shrink: 0; width: 20px; }
+.cover-img {
+  width: 20px; border-radius: 7px;
+  object-fit: cover; background: var(--bg3); border: 1px solid var(--border);
+}
+
+/* Info */
+.info-col {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.book-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-id    { font-size: 11px; color: var(--text2); margin-bottom: 6px; font-family: monospace; }
+.book-meta  { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; flex-wrap: wrap; }
+.author-name { font-size: 13px; color: var(--text2); }
+.status-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+.status-ongoing   { background: rgba(74,222,128,.12); color: var(--green); }
+.status-completed { background: rgba(153,153,179,.12); color: var(--text2); }
+.tag-list { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--tag-bg); color: var(--tag-text); }
+
+/* Synopsis */
+.abstract-col {
+  flex: 0 0 360px; max-width: 360px;
+  display: flex; align-items: center;
+  border-left: 1px solid var(--border);
+  padding-left: 18px; margin-left: 4px;
+}
+.abstract-text {
+  font-size: 13px; color: var(--text2); line-height: 1.65;
+  display: -webkit-box; -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* Loading / empty */
+.loading { text-align: center; padding: 60px 0; color: var(--text2); }
+.loading .spinner {
+  width: 38px; height: 38px;
+  border: 3px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .8s linear infinite;
+  margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 60px 0; color: var(--text2); }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) { .abstract-col { flex: 0 0 260px; max-width: 260px; } }
+@media (max-width: 768px) {
+  .header-inner, .stats-bar, .controls, .book-list, .new-banner { padding-left: 16px; padding-right: 16px; }
+  .book-card { padding: 13px; gap: 11px; flex-wrap: wrap; }
+  .rank-col { width: 38px; } .rank-num { font-size: 19px; }
+  .cover-col { width: 54px; } .cover-img { width: 54px; height: 72px; }
+  .abstract-col {
+    flex: 0 0 100%; max-width: 100%;
+    border-left: none; border-top: 1px solid var(--border);
+    padding-left: 0; padding-top: 11px; margin-left: 0; margin-top: 4px;
+  }
+}
+@media (max-width: 480px) { .cover-col { display: none; } .header-meta { width: 100%; } }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div>
+        <h1>Female Hot 200</h1>
+        <div class="subtitle">Daily Rankings</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div class="update-badge">
+        <span class="dot"></span>
+        <span id="updateTime">Loading...</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="controls">
+  <div class="search-box">
+    <span class="icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Search title, author, or genre...">
+  </div>
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn new-btn" data-filter="new" id="newFilterBtn">
+    🆕 New Today <span class="new-count" id="newCount">0</span>
+  </button>
+  <button class="filter-btn" data-filter="ongoing">Ongoing</button>
+  <button class="filter-btn" data-filter="completed">Completed</button>
+  <select class="history-select" id="historySelect">
+    <option value="">📅 History</option>
+  </select>
+</div>
+
+<div class="new-banner" id="newBanner">
+  <div class="new-banner-inner">
+    <span class="new-banner-icon">🔥</span>
+    <div class="new-banner-text">
+      <span id="newBannerCount">0</span> new entries today
+      <span>· click above to filter</span>
+    </div>
+  </div>
+</div>
+
+<div class="book-list" id="bookList">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div>Loading...</div>
+  </div>
+</div>
+
+<script>
+let allBooks = [];
+let currentFilter = 'all';
+let currentSearch = '';
+
+async function loadData(date) {
+  const url = date ? `data/history/${date}.json` : 'data/latest.json';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) { return null; }
+}
+
+async function loadHistoryIndex() {
+  try {
+    const res = await fetch('data/history_index.json');
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+function renderStats(data) {
+  const bar = document.getElementById('statsBar');
+  if (!data) { bar.innerHTML = ''; return; }
+  const statusCount = { Ongoing: 0, Completed: 0 };
+  const categories = {};
+  let newCount = 0;
+  for (const b of data.books) {
+    if (b.status === 'Ongoing') statusCount.Ongoing++;
+    else if (b.status === 'Completed') statusCount.Completed++;
+    for (const t of (b.tags || [])) categories[t] = (categories[t] || 0) + 1;
+    if (b.rank_change === 'new') newCount++;
+  }
+  const topCats = Object.entries(categories).sort((a,b) => b[1]-a[1]).slice(0,5);
+  bar.innerHTML = `
+    <div class="stat-chip">📚 Total <span class="val">${data.total_count}</span></div>
+    <div class="stat-chip">📖 Ongoing <span class="val">${statusCount.Ongoing}</span></div>
+    <div class="stat-chip">✅ Completed <span class="val">${statusCount.Completed}</span></div>
+    ${topCats.map(([n,c]) => `<div class="stat-chip">${n} <span class="val">${c}</span></div>`).join('')}
+  `;
+  updateNewCount(newCount);
+}
+
+function updateNewCount(count) {
+  document.getElementById('newCount').textContent = count;
+  document.getElementById('newBannerCount').textContent = count;
+  const btn = document.getElementById('newFilterBtn');
+  const banner = document.getElementById('newBanner');
+  if (count > 0) { btn.classList.remove('no-new'); banner.classList.add('show'); }
+  else           { btn.classList.add('no-new');    banner.classList.remove('show'); }
+}
+
+function renderRankChange(change) {
+  if (change === 'new') return `<div class="rank-change rank-new">NEW</div>`;
+  if (change === 0)     return `<div class="rank-change rank-same">—</div>`;
+  if (change > 0)       return `<div class="rank-change rank-up">▲${change}</div>`;
+  if (change < 0)       return `<div class="rank-change rank-down">▼${Math.abs(change)}</div>`;
+  return '';
+}
+
+function renderBookCard(book) {
+  const rankClass  = book.rank <= 3 ? `rank-${book.rank}` : 'rank-other';
+  const statusClass = book.status === 'Ongoing' ? 'status-ongoing' : 'status-completed';
+  const isNew = book.rank_change === 'new';
+  let coverSrc = book.thumb_url || '';
+  if (coverSrc.startsWith('http://')) coverSrc = coverSrc.replace('http://', 'https://');
+  const placeholder = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='70' height='93'><rect width='70' height='93' fill='%231c1c28'/><text x='35' y='50' text-anchor='middle' fill='%23666' font-size='22'>📖</text></svg>`;
+  return `
+    <div class="book-card ${isNew ? 'is-new' : ''}">
+      <div class="rank-col">
+        <div class="rank-num ${rankClass}">${book.rank}</div>
+        ${renderRankChange(book.rank_change)}
+      </div>
+      <div class="cover-col">
+        <img class="cover-img" src="${coverSrc}" alt="" loading="lazy" onerror="this.src='${placeholder}'">
+      </div>
+      <div class="info-col">
+        <div class="book-title">${escHtml(book.book_name)}</div>
+        <div class="book-id">${escHtml(book.book_id)}</div>
+        <div class="book-meta">
+          <span class="author-name">✍ ${escHtml(book.author)}</span>
+          <span class="status-badge ${statusClass}">${book.status}</span>
+        </div>
+        <div class="tag-list">
+          ${(book.tags||[]).map(t => `<span class="tag">${escHtml(t)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="abstract-col">
+        <div class="abstract-text">${escHtml(book.abstract)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderBookList(books) {
+  const container = document.getElementById('bookList');
+  if (!books || books.length === 0) {
+    container.innerHTML = `<div class="empty-state">${
+      currentFilter === 'new' ? 'No new entries today' : 'No results'
+    }</div>`;
+    return;
+  }
+  container.innerHTML = books.map(renderBookCard).join('');
+}
+
+function applyFilters() {
+  let filtered = [...allBooks];
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    filtered = filtered.filter(b =>
+      b.book_name.toLowerCase().includes(q) ||
+      b.author.toLowerCase().includes(q) ||
+      (b.tags||[]).some(t => t.toLowerCase().includes(q)) ||
+      (b.abstract||'').toLowerCase().includes(q)
+    );
+  }
+  switch (currentFilter) {
+    case 'ongoing':   filtered = filtered.filter(b => b.status === 'Ongoing');   break;
+    case 'completed': filtered = filtered.filter(b => b.status === 'Completed'); break;
+    case 'new':       filtered = filtered.filter(b => b.rank_change === 'new');  break;
+  }
+  const banner = document.getElementById('newBanner');
+  if (currentFilter === 'all') {
+    allBooks.filter(b => b.rank_change === 'new').length > 0
+      ? banner.classList.add('show') : banner.classList.remove('show');
+  } else {
+    banner.classList.remove('show');
+  }
+  renderBookList(filtered);
+}
+
+function bindEvents() {
+  document.getElementById('searchInput').addEventListener('input', e => {
+    currentSearch = e.target.value.trim();
+    applyFilters();
+  });
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('no-new')) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      applyFilters();
+    });
+  });
+  document.getElementById('historySelect').addEventListener('change', async e => {
+    const date = e.target.value;
+    if (!date) return;
+    const data = await loadData(date);
+    if (data) {
+      allBooks = data.books;
+      document.getElementById('updateTime').textContent = `Data from ${data.update_time}`;
+      renderStats(data);
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-filter="all"]').classList.add('active');
+      currentFilter = 'all';
+      applyFilters();
+    }
+  });
+}
+
+async function init() {
+  bindEvents();
+  const [data, historyIndex] = await Promise.all([loadData(), loadHistoryIndex()]);
+  if (data) {
+    allBooks = data.books;
+    document.getElementById('updateTime').textContent = `Updated ${data.update_time}`;
+    renderStats(data);
+    applyFilters();
+  } else {
+    document.getElementById('bookList').innerHTML = '<div class="empty-state">No data available.</div>';
+  }
+  const select = document.getElementById('historySelect');
+  for (const date of historyIndex) {
+    const opt = document.createElement('option');
+    opt.value = date; opt.textContent = date;
+    select.appendChild(opt);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
