@@ -155,7 +155,22 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .modal-status.ok { color:var(--green); }
 .modal-status.err { color:var(--red); }
 
-/* Toast */
+/* Submit bar */
+.submit-bar {
+  display: none; position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg2); border: 1px solid var(--accent);
+  border-radius: 12px; padding: 12px 20px;
+  display: none; align-items: center; justify-content: space-between;
+  gap: 20px; font-size: 13px; color: var(--text);
+  box-shadow: 0 4px 24px rgba(240,107,171,.2);
+  z-index: 200; min-width: 280px;
+}
+.submit-bar.show { display: flex; }
+.submit-confirm { padding: 7px 18px; background: var(--accent); border: none; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.submit-confirm:hover { opacity: .85; }
+.submit-cancel  { padding: 7px 14px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text2); font-size: 13px; cursor: pointer; }
+.submit-cancel:hover { border-color: var(--red); color: var(--red); }
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--bg2); border:1px solid var(--border); padding:9px 18px; border-radius:10px; font-size:12px; opacity:0; transition:all .3s; z-index:2000; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .toast.ok  { border-color:var(--green); color:var(--green); }
@@ -246,6 +261,15 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <div class="loading"><div class="spinner"></div><div>Loading...</div></div>
 </div>
 
+<!-- Submit bar -->
+<div class="submit-bar" id="submitBar">
+  <span><span id="submitCount">0</span> books marked as read</span>
+  <div style="display:flex;gap:8px">
+    <button onclick="cancelReads()" class="submit-cancel">Cancel</button>
+    <button onclick="submitReads()" id="submitBtn" class="submit-confirm">Submit</button>
+  </div>
+</div>
+
 <script>
 // ── State ──
 let allBooks    = [];
@@ -323,7 +347,40 @@ async function removeReadId(id) {
   await saveReadList();
 }
 
-// ── Read list API ──
+function updateSubmitBar() {
+  const bar = document.getElementById('submitBar');
+  const count = document.getElementById('submitCount');
+  if (pendingReads.size > 0) {
+    bar.classList.add('show');
+    count.textContent = pendingReads.size;
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+async function submitReads() {
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = '⏳ Saving...'; btn.style.pointerEvents = 'none';
+  for (const id of pendingReads) readSet.add(id);
+  pendingReads.clear();
+  renderReadChips();
+  await saveReadList();
+  // fade out marked cards
+  allBooks = allBooks.filter(b => !readSet.has(b.book_id));
+  applyFilters();
+  updateSubmitBar();
+  btn.textContent = 'Submit'; btn.style.pointerEvents = '';
+}
+
+function cancelReads() {
+  // restore buttons
+  pendingReads.forEach(id => {
+    const btn = document.querySelector(`[onclick*="'${id}'"]`);
+    if (btn) { btn.textContent = '✓ Mark read'; btn.classList.remove('marking'); }
+  });
+  pendingReads.clear();
+  updateSubmitBar();
+}
 async function loadReadList() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) return;
@@ -358,21 +415,14 @@ async function saveReadList() {
 }
 
 // ── Mark read from card ──
+let pendingReads = new Set(); // marked but not yet saved
+
 async function markRead(bookId, btn) {
-  if (readSet.has(bookId)) return;
+  if (readSet.has(bookId) || pendingReads.has(bookId)) return;
+  pendingReads.add(bookId);
+  btn.textContent = '✓ Marked';
   btn.classList.add('marking');
-  btn.textContent = '...';
-  readSet.add(bookId);
-  renderReadChips();
-  await saveReadList();
-  // remove card with fade
-  const card = btn.closest('.book-card');
-  card.style.transition = 'opacity .4s, transform .4s';
-  card.style.opacity = '0'; card.style.transform = 'translateX(20px)';
-  setTimeout(() => {
-    allBooks = allBooks.filter(b => b.book_id !== bookId);
-    applyFilters();
-  }, 400);
+  updateSubmitBar();
 }
 
 // ── Trigger scrape ──
