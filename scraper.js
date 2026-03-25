@@ -267,10 +267,10 @@ async function main() {
     try { prevData = JSON.parse(fs.readFileSync(latestPath, 'utf-8')); } catch(e) {}
   }
 
-  if (!prevData) {
-    console.log('No previous data — skipping. Run again tomorrow.');
-    process.exit(0);
-  }
+ // if (!prevData) {
+   // console.log('No previous data — skipping. Run again tomorrow.');
+    //process.exit(0);
+  //}
 
   const readSet = loadReadSet();
   console.log(`  read list: ${readSet.size} books`);
