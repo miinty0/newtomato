@@ -9,15 +9,12 @@ const HEADERS     = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 };
-const POOL_SIZE       = 3000;  
-const RECOMMEND_COUNT = 20;   
+const POOL_SIZE       = 3000;
+const RECOMMEND_COUNT = 20;
 const PAGE_SIZE       = 18;
 const GENDER          = 0;
 const REQUEST_DELAY   = 600;
-const JITTER          = 300;  
-const MIN_NEW_ENTRIES = 5;
-const MAX_ATTEMPTS    = 3;
-const RETRY_DELAY_MS  = 30 * 60 * 1000;
+const JITTER          = 300;
 
 const BASE = 'fanqienovel.com';
 const API  = `https://${BASE}/api`;
@@ -62,11 +59,11 @@ function loadReadSet() {
   catch(e) { return new Set(); }
 }
 
-// ========== Step 2: Ranking list  ==========
+// ========== Step 2: Ranking list ==========
 async function fetchHotRankList() {
   const allBooks = [];
-  const MAX_PAGES  = 350;  
-  const MAX_RETRY  = 3;
+  const MAX_PAGES = 350;
+  const MAX_RETRY = 3;
 
   for (let page = 0; page < MAX_PAGES; page++) {
     if (allBooks.length >= POOL_SIZE) break;
@@ -79,7 +76,7 @@ async function fetchHotRankList() {
     let ok = false;
     for (let t = 1; t <= MAX_RETRY; t++) {
       try {
-        const res  = await httpGet(`${API}/author/library/book_list/v0/?${params}`, { Accept: 'application/json' });
+        const res = await httpGet(`${API}/author/library/book_list/v0/?${params}`, { Accept: 'application/json' });
         if (res.status === 429 || res.status >= 500) {
           const wait = res.status === 429 ? 60000 : 10000 * t;
           console.log(`  page ${page+1} HTTP ${res.status} — waiting ${wait/1000}s`);
@@ -103,7 +100,7 @@ async function fetchHotRankList() {
   return allBooks.slice(0, POOL_SIZE);
 }
 
-// ========== Step 3: Top book list  ==========
+// ========== Step 3: Top book list ==========
 async function fetchTopBookList() {
   try {
     const res  = await httpGet(`${API}/author/misc/top_book_list/v1/`, { Accept: 'application/json' });
@@ -126,25 +123,22 @@ async function fetchTopBookList() {
 // ========== Step 4: Parse detail page ==========
 function parseDetailPage(html) {
   const info = {};
-  const tm = html.match(/<title>(.*?)<\/title>/);
-  if (tm) { const nm = tm[1].match(/^(.+?)(?:完整版|全文|_)/); if (nm) info.book_name = nm[1].trim(); }
-  const dm = html.match(/<meta\s+name="description"\s+content="([^"]*)"/);
-  if (dm) info.description = dm[1].replace(/^番茄小说提供.*?番茄小说网[。.]?\s*/, '').trim();
-  const km = html.match(/<meta\s+name="keywords"\s+content="([^"]*)"/);
-  if (km) { const am = km[1].match(/,([^,]+?)小说/); if (am && !/免费|阅读|章节|下载/.test(am[1])) info.author = am[1].trim(); }
-  const ldm = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
-  if (ldm) {
+  const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*\r?\n/);
+  if (stateMatch) {
     try {
-      const ld = JSON.parse(ldm[1]);
-      if (!info.author && ld.author?.[0]?.name) info.author = ld.author[0].name;
-      if (ld.image?.[0]) info.hdImage = ld.image[0];
+      const page = JSON.parse(stateMatch[1])?.page;
+      if (page) {
+        if (page.bookName)   info.book_name   = page.bookName;
+        if (page.authorName) info.author      = page.authorName;
+        if (page.abstract)   info.description = page.abstract;
+        if (page.thumbUrl)   info.hdImage     = page.thumbUrl;
+        if (page.categoryV2) {
+          try {
+            info.tags = JSON.parse(page.categoryV2).map(c => c.Name).filter(Boolean);
+          } catch(e) {}
+        }
+      }
     } catch(e) {}
-  }
-  const labelBlock = html.match(/<div class="info-label">([\s\S]*?)<\/div>/);
-  if (labelBlock) {
-    const tags = []; const re = /<span class="info-label-grey">([^<]+)<\/span>/g; let m;
-    while ((m = re.exec(labelBlock[1])) !== null) tags.push(m[1].trim());
-    if (tags.length) info.tags = tags;
   }
   return info;
 }
@@ -163,7 +157,7 @@ function saveCache(cache) {
 }
 
 // ========== scrapeOnce ==========
-async function scrapeOnce(prevData, readSet, seenBookIds){
+async function scrapeOnce(prevData, readSet, seenBookIds) {
   const [hotRankList, topBookMap] = await Promise.all([
     fetchHotRankList(),
     fetchTopBookList(),
@@ -179,8 +173,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds){
   const candidates = hotRankList.filter(b => !readSet.has(String(b.book_id)));
   console.log(`  pool: ${hotRankList.length} | unread candidates: ${candidates.length}`);
 
-  // Take top RECOMMEND_COUNT unread, fetch their details
-  const top   = candidates.slice(0, RECOMMEND_COUNT);
+  const top = candidates.slice(0, RECOMMEND_COUNT);
   const cache = loadCache();
   const books = [];
   let cacheUpdated = false;
@@ -195,17 +188,33 @@ async function scrapeOnce(prevData, readSet, seenBookIds){
     const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
     const isCompleted    = statusLabel === 'Completed';
 
+    // Tính rankChange trước để dùng được ở cả prevBook và path thường
+    const rankChange = !seenBookIds.has(bookId) ? 'new'
+      : (bookId in prevMap) ? prevMap[bookId] - hotRank
+      : 0;
+
+    // Nếu đã có trong prevData thì chỉ update rank, không fetch lại
+    const prevBook = prevData?.books?.find(b => b.book_id === bookId);
+    if (prevBook) {
+      books.push({
+        ...prevBook,
+        hot_rank: hotRank,
+        last_chapter_time: rawBook.last_chapter_time ?? prevBook.last_chapter_time,
+        rank_change: rankChange,
+      });
+      console.log(`  [${i+1}/${top.length}] prev hit: ${bookId}`);
+      continue;
+    }
+
     let detailInfo = {};
 
     if (isCompleted && cache[bookId]) {
-      // use cached detail — skip HTTP request
       detailInfo = cache[bookId];
       console.log(`  [${i+1}/${top.length}] cache hit: ${bookId}`);
     } else {
       try {
         const res = await httpGet(`${PAGE}/${bookId}`);
         detailInfo = parseDetailPage(res.data);
-        // save to cache if completed
         if (isCompleted && Object.keys(detailInfo).length > 0) {
           cache[bookId] = detailInfo;
           cacheUpdated = true;
@@ -221,11 +230,6 @@ async function scrapeOnce(prevData, readSet, seenBookIds){
     const thumbUrl        = detailInfo.hdImage || topInfo.thumb_url || rawBook.thumb_url || '';
     const tags            = detailInfo.tags?.length > 0 ? detailInfo.tags : (category ? [category] : []);
     const lastChapterTime = rawBook.last_chapter_time ?? null;
-
-    let rankChange;
-    if (!seenBookIds.has(bookId)) rankChange = 'new';
-else if (bookId in prevMap) rankChange = prevMap[bookId] - hotRank;
-else rankChange = 0;
 
     books.push({
       hot_rank: hotRank,
@@ -264,48 +268,29 @@ async function main() {
   const latestPath = path.join(DATA_DIR, 'latest.json');
 
   let prevData = null;
-if (fs.existsSync(latestPath)) {
-  try { prevData = JSON.parse(fs.readFileSync(latestPath, 'utf-8')); } catch(e) {}
-}
-
-// Build seen set từ tất cả history
-const seenBookIds = new Set();
-const histDir = path.join(DATA_DIR, 'history');
-if (fs.existsSync(histDir)) {
-  for (const file of fs.readdirSync(histDir)) {
-    if (!file.endsWith('.json')) continue;
-    try {
-      const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
-      for (const b of h.books || []) seenBookIds.add(b.book_id);
-    } catch(e) {}
+  if (fs.existsSync(latestPath)) {
+    try { prevData = JSON.parse(fs.readFileSync(latestPath, 'utf-8')); } catch(e) {}
   }
-}
 
- // if (!prevData) {
-   // console.log('No previous data — skipping. Run again tomorrow.');
-    //process.exit(0);
-  //}
+  // Build seen set từ tất cả history
+  const seenBookIds = new Set();
+  const histDir = path.join(DATA_DIR, 'history');
+  if (fs.existsSync(histDir)) {
+    for (const file of fs.readdirSync(histDir)) {
+      if (!file.endsWith('.json')) continue;
+      try {
+        const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
+        for (const b of h.books || []) seenBookIds.add(b.book_id);
+      } catch(e) {}
+    }
+  }
 
   const readSet = loadReadSet();
   console.log(`  read list: ${readSet.size} books`);
 
-  let result = null;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    console.log(`\nAttempt ${attempt}/${MAX_ATTEMPTS}`);
-result = await scrapeOnce(prevData, readSet, seenBookIds);
-    if (result.newCount >= MIN_NEW_ENTRIES) {
-      console.log(`✓ ${result.newCount} new entries — saving`);
-      break;
-    }
-    console.log(`✗ Only ${result.newCount} new (need ${MIN_NEW_ENTRIES})`);
-    if (attempt < MAX_ATTEMPTS) {
-      console.log(`  Waiting ${RETRY_DELAY_MS / 60000} min...`);
-      await sleep(RETRY_DELAY_MS);
-    } else {
-      console.log('Max attempts reached — not saving.');
-      process.exit(0);
-    }
-  }
+  console.log('\nRunning...');
+  const result = await scrapeOnce(prevData, readSet, seenBookIds);
+  console.log(`✓ ${result.newCount} new entries — saving`);
 
   const { books, newCount } = result;
   const saveNow = getNowBJT();
@@ -323,7 +308,7 @@ result = await scrapeOnce(prevData, readSet, seenBookIds);
 
   const idxPath = path.join(DATA_DIR, 'history_index.json');
   let idx = [];
-  if (fs.existsSync(idxPath)) { try { idx = JSON.parse(fs.readFileSync(idxPath, 'utf-8')); } catch(e){} }
+  if (fs.existsSync(idxPath)) { try { idx = JSON.parse(fs.readFileSync(idxPath, 'utf-8')); } catch(e) {} }
   const today = fmtDate(saveNow);
   if (!idx.includes(today)) idx.unshift(today);
   idx = idx.slice(0, 90);
