@@ -163,7 +163,7 @@ function saveCache(cache) {
 }
 
 // ========== scrapeOnce ==========
-async function scrapeOnce(prevData, readSet) {
+async function scrapeOnce(prevData, readSet, seenBookIds){
   const [hotRankList, topBookMap] = await Promise.all([
     fetchHotRankList(),
     fetchTopBookList(),
@@ -223,8 +223,9 @@ async function scrapeOnce(prevData, readSet) {
     const lastChapterTime = rawBook.last_chapter_time ?? null;
 
     let rankChange;
-    if (bookId in prevMap) rankChange = prevMap[bookId] - hotRank;
-    else rankChange = 'new';
+    if (!seenBookIds.has(bookId)) rankChange = 'new';
+else if (bookId in prevMap) rankChange = prevMap[bookId] - hotRank;
+else rankChange = 0;
 
     books.push({
       hot_rank: hotRank,
@@ -263,9 +264,22 @@ async function main() {
   const latestPath = path.join(DATA_DIR, 'latest.json');
 
   let prevData = null;
-  if (fs.existsSync(latestPath)) {
-    try { prevData = JSON.parse(fs.readFileSync(latestPath, 'utf-8')); } catch(e) {}
+if (fs.existsSync(latestPath)) {
+  try { prevData = JSON.parse(fs.readFileSync(latestPath, 'utf-8')); } catch(e) {}
+}
+
+// Build seen set từ tất cả history
+const seenBookIds = new Set();
+const histDir = path.join(DATA_DIR, 'history');
+if (fs.existsSync(histDir)) {
+  for (const file of fs.readdirSync(histDir)) {
+    if (!file.endsWith('.json')) continue;
+    try {
+      const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
+      for (const b of h.books || []) seenBookIds.add(b.book_id);
+    } catch(e) {}
   }
+}
 
  // if (!prevData) {
    // console.log('No previous data — skipping. Run again tomorrow.');
@@ -278,7 +292,7 @@ async function main() {
   let result = null;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     console.log(`\nAttempt ${attempt}/${MAX_ATTEMPTS}`);
-    result = await scrapeOnce(prevData, readSet);
+result = await scrapeOnce(prevData, readSet, seenBookIds);
     if (result.newCount >= MIN_NEW_ENTRIES) {
       console.log(`✓ ${result.newCount} new entries — saving`);
       break;
