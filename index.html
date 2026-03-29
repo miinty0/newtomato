@@ -85,12 +85,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .rank-new { color:var(--yellow); font-size:9px; font-weight:700; background:rgba(251,191,36,.15); padding:1px 5px; border-radius:4px; }
 
 /* Cover */
-.cover-col { flex-shrink:0; width:68px; }
-.cover-img { width:68px; height:90px; border-radius:7px; object-fit:cover; background:var(--bg3); border:1px solid var(--border); }
-
+.cover-img { border-radius:7px; background:var(--bg3); border:1px solid var(--border); }
 /* Info */
 .info-col { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
-.book-title { font-size:15px; font-weight:700; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.book-title { font-size:15px; font-weight:700; margin-bottom:4px; }
 .book-id { font-size:10px; color:var(--text2); margin-bottom:5px; font-family:monospace; }
 .book-meta { display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
 .author-name { font-size:12px; color:var(--text2); }
@@ -186,7 +184,7 @@ a.book-title:hover { color: var(--accent); }
   .abstract-col { flex:0 0 100%; max-width:100%; border-left:none; border-top:1px solid var(--border); padding-left:0; padding-top:10px; margin-left:0; margin-top:4px; }
   .mark-read-btn { width:100%; }
 }
-@media (max-width:480px) { .cover-col { display:none; } .header-right { width:100%; } }
+@media (max-width:480px) { .cover-img { display:none; } .header-right { width:100%; } }
 </style>
 </head>
 <body>
@@ -524,32 +522,33 @@ function renderBookCard(book) {
   const ph = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='68' height='90'><rect width='68' height='90' fill='%231c1c28'/><text x='34' y='48' text-anchor='middle' fill='%23666' font-size='20'>📖</text></svg>`;
   const chapterDate = fmtTimestamp(book.last_chapter_time);
   return `
-    <div class="book-card ${isNew?'is-new':''}">
-      <div class="rank-col">
-        <div class="rank-num ${rankClass}">${book.hot_rank}</div>
-        <div class="rank-label">HOT</div>
-        ${renderRankChange(book.rank_change)}
-      </div>
-      <div class="cover-col">
-<img class="cover-img" src="${cover}" alt="" loading="lazy" 
-     referrerpolicy="no-referrer"
-     onerror="this.src='${ph}'">
-      </div>
-      <div class="info-col">
-<div class="book-title" style="cursor:pointer" onclick="window.open('https://fanqienovel.com/page/${book.book_id}','_blank')">${esc(book.book_name)}</div>        <div class="book-id">${esc(book.book_id)}</div>
-        <div class="book-meta">
-          <span class="author-name">✍ ${esc(book.author)}</span>
-          <span class="status-badge ${statusClass}">${book.status}</span>
-          ${chapterDate ? `<span class="chapter-time">📅 ${chapterDate}</span>` : ''}
+  return `
+  <div class="book-card ${isNew?'is-new':''}">
+    <div class="rank-col">
+      <div class="rank-num ${rankClass}">${book.hot_rank}</div>
+      <div class="rank-label">HOT</div>
+      ${renderRankChange(book.rank_change)}
+    </div>
+    <div class="info-col">
+      <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:8px">
+        <img class="cover-img" src="${cover}" alt="" loading="lazy" onerror="this.src='${ph}'" style="flex-shrink:0">
+        <div>
+          <div class="book-title" style="cursor:pointer" onclick="window.open('https://fanqienovel.com/page/${book.book_id}','_blank')">${esc(book.book_name)}</div>
+          <div class="book-id">${esc(book.book_id)}</div>
+          <div class="book-meta">
+            <span class="author-name">✍ ${esc(book.author)}</span>
+            <span class="status-badge ${statusClass}">${book.status}</span>
+            ${chapterDate ? `<span class="chapter-time">📅 ${chapterDate}</span>` : ''}
+          </div>
+          <div class="tag-list">${(book.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
         </div>
-        <div class="tag-list">${(book.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
       </div>
-      <div class="abstract-col">
-        <div class="abstract-text">${esc(book.abstract)}</div>
-      </div>
-      <button class="mark-read-btn" onclick="markRead('${esc(book.book_id)}',this)">✓ Mark read</button>
-    </div>`;
-}
+    </div>
+    <div class="abstract-col">
+      <div class="abstract-text">${esc(book.abstract)}</div>
+    </div>
+    <button class="mark-read-btn" onclick="markRead('${esc(book.book_id)}',this)">✓ Mark read</button>
+  </div>`;
 
 function esc(s) { if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
