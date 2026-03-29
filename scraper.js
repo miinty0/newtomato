@@ -287,7 +287,21 @@ async function main() {
 
   const readSet = loadReadSet();
   console.log(`  read list: ${readSet.size} books`);
-
+// Xóa cache của các book đã read
+if (readSet.size > 0) {
+  const cache = loadCache();
+  let cacheChanged = false;
+  for (const id of readSet) {
+    if (cache[id]) {
+      delete cache[id];
+      cacheChanged = true;
+    }
+  }
+  if (cacheChanged) {
+    saveCache(cache);
+    console.log(`  cache cleaned for read books`);
+  }
+}
   console.log('\nRunning...');
   const result = await scrapeOnce(prevData, readSet, seenBookIds);
   console.log(`✓ ${result.newCount} new entries — saving`);
