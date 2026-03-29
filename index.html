@@ -392,9 +392,8 @@ async function loadReadList() {
     });
     if (res.ok) {
       const info = await res.json();
-      const arr  = JSON.parse(atob(info.content));
-      readSet = new Set(arr);
-      renderReadChips();
+      readSet = new Set(JSON.parse(atob(info.content)));
+      allBooks = allBooks.filter(b => !readSet.has(b.book_id));
     }
   } catch(e) {}
 }
@@ -622,17 +621,19 @@ function bindEvents() {
 // ── Init ──
 async function init() {
   bindEvents();
-  const [data, idx] = await Promise.all([loadData(), loadHistoryIndex(), loadReadList()]);
+  const [data, idx] = await Promise.all([loadData(), loadHistoryIndex()]);
   historyDates = idx;
   if (data) {
     allBooks = data.books;
     document.getElementById('updateTime').textContent = `Updated ${data.update_time}`;
-    renderStats(data); applyFilters();
+    renderStats(data);
   } else {
     document.getElementById('bookList').innerHTML = '<div class="empty-state">😢 No data yet.</div>';
   }
   rebuildHistoryDropdown(historyDates);
+  await loadReadList();
   renderReadChips();
+  applyFilters();
 }
 
 init();
