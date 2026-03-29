@@ -104,8 +104,8 @@ a.book-title { color: inherit; text-decoration: none; cursor: pointer; }
 a.book-title:hover { color: var(--accent); }
   
 /* Abstract */
-.abstract-col { flex:0 0 340px; max-width:340px; display:flex; align-items:center; border-left:1px solid var(--border); padding-left:16px; margin-left:4px; }
-.abstract-text { font-size:12px; color:var(--text2); line-height:1.65; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+.abstract-col { flex:1 1 340px; max-width:500px; ... }
+.abstract-text { font-size:12px; color:var(--text2); line-height:1.65; white-space: pre-line; }
 
 /* Mark read button */
 .mark-read-btn { flex-shrink:0; align-self:center; padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg2); color:var(--text2); font-size:11px; cursor:pointer; transition:all .2s; white-space:nowrap; }
@@ -537,8 +537,7 @@ function renderBookCard(book) {
      onerror="this.src='${ph}'">
       </div>
       <div class="info-col">
-<a class="book-title" href="#" onclick="window.open(atob('${b64}'),'_blank');return false;">${esc(book.book_name)}</a>
-        <div class="book-id">${esc(book.book_id)}</div>
+<div class="book-title" style="cursor:pointer" onclick="window.open('https://fanqienovel.com/page/${book.book_id}','_blank')">${esc(book.book_name)}</div>        <div class="book-id">${esc(book.book_id)}</div>
         <div class="book-meta">
           <span class="author-name">✍ ${esc(book.author)}</span>
           <span class="status-badge ${statusClass}">${book.status}</span>
