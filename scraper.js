@@ -20,6 +20,20 @@ const BASE = 'fanqienovel.com';
 const API  = `https://${BASE}/api`;
 const PAGE = `https://${BASE}/page`;
 
+// ========== CLI args ==========
+function parseArgs() {
+  const args = process.argv.slice(2);
+  let categoryId = -1;
+  for (let i = 0; i < args.length; i++) {
+    if ((args[i] === '--category' || args[i] === '-c') && args[i + 1] !== undefined) {
+      const parsed = parseInt(args[i + 1], 10);
+      if (!isNaN(parsed)) categoryId = parsed;
+      i++;
+    }
+  }
+  return { categoryId, isCategoryRun: categoryId !== -1 };
+}
+
 // ========== Utilities ==========
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function jitteredDelay() { return sleep(REQUEST_DELAY + Math.floor(Math.random() * JITTER)); }
@@ -60,7 +74,7 @@ function loadReadSet() {
 }
 
 // ========== Step 2: Ranking list ==========
-async function fetchHotRankList() {
+async function fetchHotRankList(categoryId = -1) {
   const allBooks = [];
   const MAX_PAGES = 350;
   const MAX_RETRY = 3;
@@ -69,7 +83,7 @@ async function fetchHotRankList() {
     if (allBooks.length >= POOL_SIZE) break;
     const params = new URLSearchParams({
       page_count: PAGE_SIZE, page_index: page,
-      gender: GENDER, category_id: -1,
+      gender: GENDER, category_id: categoryId,
       creation_status: -1, word_count: -1,
       book_type: -1, sort: 0,
     });
@@ -157,9 +171,9 @@ function saveCache(cache) {
 }
 
 // ========== scrapeOnce ==========
-async function scrapeOnce(prevData, readSet, seenBookIds) {
+async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   const [hotRankList, topBookMap] = await Promise.all([
-    fetchHotRankList(),
+    fetchHotRankList(categoryId),
     fetchTopBookList(),
   ]);
 
@@ -188,12 +202,10 @@ async function scrapeOnce(prevData, readSet, seenBookIds) {
     const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
     const isCompleted    = statusLabel === 'Completed';
 
-    // Tính rankChange trước để dùng được ở cả prevBook và path thường
     const rankChange = !seenBookIds.has(bookId) ? 'new'
       : (bookId in prevMap) ? prevMap[bookId] - hotRank
       : 0;
 
-    // Nếu đã có trong prevData thì chỉ update rank, không fetch lại
     const prevBook = prevData?.books?.find(b => b.book_id === bookId);
     if (prevBook) {
       books.push({
@@ -257,53 +269,67 @@ async function scrapeOnce(prevData, readSet, seenBookIds) {
 
 // ========== Main ==========
 async function main() {
+  const { categoryId, isCategoryRun } = parseArgs();
   const now = getNowBJT();
+
   console.log('='.repeat(50));
   console.log(`run: ${fmtDateTime(now)}`);
+  console.log(isCategoryRun
+    ? `mode: CATEGORY run (category_id=${categoryId})`
+    : `mode: DAILY run (all categories)`);
   console.log('='.repeat(50));
 
   ensureDir(DATA_DIR);
   ensureDir(path.join(DATA_DIR, 'history'));
 
-  const latestPath = path.join(DATA_DIR, 'latest.json');
+  // Category runs → data/category_<id>.json
+  // Daily runs    → data/latest.json
+  const outputPath = isCategoryRun
+    ? path.join(DATA_DIR, `category_${categoryId}.json`)
+    : path.join(DATA_DIR, 'latest.json');
 
   let prevData = null;
-  if (fs.existsSync(latestPath)) {
-    try { prevData = JSON.parse(fs.readFileSync(latestPath, 'utf-8')); } catch(e) {}
+  if (fs.existsSync(outputPath)) {
+    try { prevData = JSON.parse(fs.readFileSync(outputPath, 'utf-8')); } catch(e) {}
   }
 
-  // Build seen set từ tất cả history
+  // Seen-book tracking:
+  //   Daily run    → scan all history snapshots
+  //   Category run → just the previous category file
   const seenBookIds = new Set();
-  const histDir = path.join(DATA_DIR, 'history');
-  if (fs.existsSync(histDir)) {
-    for (const file of fs.readdirSync(histDir)) {
-      if (!file.endsWith('.json')) continue;
-      try {
-        const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
-        for (const b of h.books || []) seenBookIds.add(b.book_id);
-      } catch(e) {}
+  if (isCategoryRun) {
+    for (const b of prevData?.books || []) seenBookIds.add(b.book_id);
+  } else {
+    const histDir = path.join(DATA_DIR, 'history');
+    if (fs.existsSync(histDir)) {
+      for (const file of fs.readdirSync(histDir)) {
+        if (!file.endsWith('.json')) continue;
+        try {
+          const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
+          for (const b of h.books || []) seenBookIds.add(b.book_id);
+        } catch(e) {}
+      }
     }
   }
 
   const readSet = loadReadSet();
   console.log(`  read list: ${readSet.size} books`);
-// Xóa cache của các book đã read
-if (readSet.size > 0) {
-  const cache = loadCache();
-  let cacheChanged = false;
-  for (const id of readSet) {
-    if (cache[id]) {
-      delete cache[id];
-      cacheChanged = true;
+
+  // Clean cache of already-read books
+  if (readSet.size > 0) {
+    const cache = loadCache();
+    let cacheChanged = false;
+    for (const id of readSet) {
+      if (cache[id]) { delete cache[id]; cacheChanged = true; }
+    }
+    if (cacheChanged) {
+      saveCache(cache);
+      console.log(`  cache cleaned for read books`);
     }
   }
-  if (cacheChanged) {
-    saveCache(cache);
-    console.log(`  cache cleaned for read books`);
-  }
-}
+
   console.log('\nRunning...');
-  const result = await scrapeOnce(prevData, readSet, seenBookIds);
+  const result = await scrapeOnce(prevData, readSet, seenBookIds, categoryId);
   console.log(`✓ ${result.newCount} new entries — saving`);
 
   const { books, newCount } = result;
@@ -312,23 +338,30 @@ if (readSet.size > 0) {
   const data = {
     update_time:  fmtDateTime(saveNow),
     update_date:  fmtDate(saveNow),
+    category_id:  categoryId,   // -1 = all categories; otherwise specific category
     total_count:  books.length,
     books,
   };
 
-  fs.writeFileSync(latestPath, JSON.stringify(data, null, 2), 'utf-8');
-  const histPath = path.join(DATA_DIR, 'history', `${fmtDate(saveNow)}.json`);
-  fs.writeFileSync(histPath, JSON.stringify(data, null, 2), 'utf-8');
+  // Always write primary output
+  fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf-8');
 
-  const idxPath = path.join(DATA_DIR, 'history_index.json');
-  let idx = [];
-  if (fs.existsSync(idxPath)) { try { idx = JSON.parse(fs.readFileSync(idxPath, 'utf-8')); } catch(e) {} }
-  const today = fmtDate(saveNow);
-  if (!idx.includes(today)) idx.unshift(today);
-  idx = idx.slice(0, 90);
-  fs.writeFileSync(idxPath, JSON.stringify(idx, null, 2), 'utf-8');
+  // Daily run only: write history snapshot + update index
+  if (!isCategoryRun) {
+    const histPath = path.join(DATA_DIR, 'history', `${fmtDate(saveNow)}.json`);
+    fs.writeFileSync(histPath, JSON.stringify(data, null, 2), 'utf-8');
+
+    const idxPath = path.join(DATA_DIR, 'history_index.json');
+    let idx = [];
+    if (fs.existsSync(idxPath)) { try { idx = JSON.parse(fs.readFileSync(idxPath, 'utf-8')); } catch(e) {} }
+    const today = fmtDate(saveNow);
+    if (!idx.includes(today)) idx.unshift(today);
+    idx = idx.slice(0, 90);
+    fs.writeFileSync(idxPath, JSON.stringify(idx, null, 2), 'utf-8');
+  }
 
   console.log(`\nDone — ${books.length} recommendations, ${newCount} new entries.`);
+  if (isCategoryRun) console.log(`Output → ${outputPath}`);
 }
 
 main().catch(() => {
