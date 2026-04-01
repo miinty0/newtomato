@@ -176,6 +176,33 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .toast.ok  { border-color:var(--green); color:var(--green); }
 .toast.err { border-color:var(--red);   color:var(--red); }
 
+/* Tab nav */
+.tab-nav { max-width:1200px; margin:14px auto 0; padding:0 24px; display:flex; gap:6px; border-bottom:1px solid var(--border); }
+.tab-btn { padding:8px 18px; font-size:13px; font-weight:600; color:var(--text2); background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; transition:all .2s; white-space:nowrap; margin-bottom:-1px; }
+.tab-btn:hover { color:var(--text); }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Tab panels */
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* Category panel */
+.cat-bar { max-width:1200px; margin:14px auto 0; padding:0 24px; display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+.cat-search-wrap { flex:1; min-width:200px; max-width:340px; position:relative; }
+.cat-search-input { width:100%; padding:8px 12px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; outline:none; transition:border-color .2s; }
+.cat-search-input:focus { border-color:var(--accent); }
+.cat-search-input::placeholder { color:var(--text2); }
+.cat-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--bg2); border:1px solid var(--border); border-radius:10px; max-height:240px; overflow-y:auto; z-index:300; display:none; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.cat-dropdown.open { display:block; }
+.cat-option { padding:8px 12px; font-size:13px; color:var(--text); cursor:pointer; transition:background .15s; }
+.cat-option:hover, .cat-option.highlighted { background:var(--bg3); color:var(--accent); }
+.cat-option .match { color:var(--accent); font-weight:600; }
+.cat-option-empty { padding:8px 12px; font-size:12px; color:var(--text2); }
+.cat-scrape-btn { padding:8px 18px; background:var(--accent); border:none; border-radius:10px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .2s; white-space:nowrap; }
+.cat-scrape-btn:hover { opacity:.85; }
+.cat-scrape-btn:disabled { opacity:.45; cursor:not-allowed; }
+.cat-update-badge { background:var(--bg3); padding:5px 13px; border-radius:20px; font-size:12px; color:var(--text2); }
+
 /* Responsive */
 @media (max-width:900px) { .abstract-col { flex:0 0 220px; max-width:220px; } }
 @media (max-width:700px) {
@@ -222,7 +249,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   </div>
 </header>
 
-<!-- Read list panel -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('daily')">📋 For You</button>
+  <button class="tab-btn" onclick="switchTab('category')">🏷 Category</button>
+</nav>
+
+<!-- ═══════════════ DAILY TAB ═══════════════ -->
+<div class="tab-panel active" id="tab-daily">
 <div class="read-panel">
   <div class="read-panel-inner">
     <div class="read-panel-header" onclick="toggleReadPanel()">
@@ -270,8 +303,166 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   </div>
 </div>
 
+</div><!-- /tab-daily -->
+
+<!-- ═══════════════ CATEGORY TAB ═══════════════ -->
+<div class="tab-panel" id="tab-category">
+
+  <div class="cat-bar">
+    <div class="cat-search-wrap">
+      <input class="cat-search-input" id="catSearchInput" placeholder="Type to find category..." autocomplete="off" spellcheck="false">
+      <div class="cat-dropdown" id="catDropdown"></div>
+    </div>
+    <button class="cat-scrape-btn" id="catScrapeBtn" onclick="triggerCategoryScrape()">▶ Scrape</button>
+    <span class="cat-update-badge" id="catUpdateBadge" style="display:none"></span>
+  </div>
+
+  <div class="book-list" id="catBookList">
+    <div class="empty-state" style="padding:60px 0">Select a category above to view results.</div>
+  </div>
+
+</div><!-- /tab-category -->
+
 <script>
-// ── State ──
+// CATEGORY LIST
+const CATEGORIES = [
+  { id: 24,  name: '快穿' },
+  { id: 702, name: '双洁' },
+  // { id: 123, name: '穿越' },
+  // { id: 456, name: '系统' },
+];
+
+// Tab switching
+let currentTab = 'daily';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['daily','category'][i] === tab));
+  document.getElementById('tab-daily').classList.toggle('active', tab === 'daily');
+  document.getElementById('tab-category').classList.toggle('active', tab === 'category');
+}
+
+// Category typeahead
+let selectedCategoryId = null;
+let highlightedIndex   = -1;
+
+// Strip diacritics
+function removeDiacritics(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function buildCategorySelect() {
+  const input    = document.getElementById('catSearchInput');
+  const dropdown = document.getElementById('catDropdown');
+
+  function getFiltered(q) {
+    if (!q) return CATEGORIES;
+    const norm = removeDiacritics(q);
+    return CATEGORIES.filter(c => removeDiacritics(c.name).includes(norm));
+  }
+
+  function highlightMatch(text, q) {
+    if (!q) return esc(text);
+    const normText = removeDiacritics(text);
+    const normQ    = removeDiacritics(q);
+    const idx      = normText.indexOf(normQ);
+    if (idx === -1) return esc(text);
+    return esc(text.slice(0, idx))
+      + `<span class="match">${esc(text.slice(idx, idx + q.length))}</span>`
+      + esc(text.slice(idx + q.length));
+  }
+
+  function renderDropdown(q) {
+    const results = getFiltered(q);
+    highlightedIndex = -1;
+    if (results.length === 0) {
+      dropdown.innerHTML = `<div class="cat-option-empty">No match</div>`;
+    } else {
+      dropdown.innerHTML = results.map((c, i) =>
+        `<div class="cat-option" data-id="${c.id}" data-idx="${i}">${highlightMatch(c.name, q)}</div>`
+      ).join('');
+      dropdown.querySelectorAll('.cat-option').forEach(el => {
+        el.addEventListener('mousedown', e => {
+          e.preventDefault(); 
+          selectCategory(Number(el.dataset.id), CATEGORIES.find(c => c.id == el.dataset.id).name);
+        });
+      });
+    }
+    dropdown.classList.add('open');
+  }
+
+  function selectCategory(id, name) {
+    selectedCategoryId = id;
+    input.value = name;
+    dropdown.classList.remove('open');
+    loadCategoryData(id);
+  }
+
+  input.addEventListener('input', () => renderDropdown(input.value.trim()));
+  input.addEventListener('focus', () => renderDropdown(input.value.trim()));
+  input.addEventListener('blur',  () => setTimeout(() => dropdown.classList.remove('open'), 150));
+
+  input.addEventListener('keydown', e => {
+    const opts = dropdown.querySelectorAll('.cat-option');
+    if (!opts.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightedIndex = Math.min(highlightedIndex + 1, opts.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightedIndex = Math.max(highlightedIndex - 1, 0);
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      e.preventDefault();
+      const el = opts[highlightedIndex];
+      selectCategory(Number(el.dataset.id), CATEGORIES.find(c => c.id == el.dataset.id).name);
+      return;
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open'); return;
+    } else { return; }
+    opts.forEach((o, i) => o.classList.toggle('highlighted', i === highlightedIndex));
+    opts[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+async function loadCategoryData(categoryId) {
+  if (!categoryId) return;
+  const list  = document.getElementById('catBookList');
+  const badge = document.getElementById('catUpdateBadge');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
+  badge.style.display = 'none';
+  try {
+    const res = await fetch(`data/category_${categoryId}.json`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    badge.textContent = `Updated ${data.update_time}`;
+    badge.style.display = '';
+    list.innerHTML = (data.books?.length)
+      ? data.books.map(renderBookCard).join('')
+      : '<div class="empty-state">No results yet — try scraping this category.</div>';
+  } catch(e) {
+    list.innerHTML = '<div class="empty-state">No data yet — hit Scrape to fetch this category.</div>';
+  }
+}
+
+async function triggerCategoryScrape() {
+  const token = getToken(), repo = getRepo();
+  if (!token || !repo) { openTokenModal(); return; }
+  if (!selectedCategoryId) { toast('Pick a category first', 'err'); return; }
+  const btn = document.getElementById('catScrapeBtn');
+  btn.textContent = '⏳...'; btn.disabled = true;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/scrape.yml/dispatches`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main', inputs: { category_id: String(selectedCategoryId) } }),
+    });
+    res.status === 204
+      ? toast('✓ Triggered — results ready in ~1 min', 'ok')
+      : toast(`✗ Failed (${res.status})`, 'err');
+  } catch(e) { toast('✗ Network error', 'err'); }
+  btn.textContent = '▶ Scrape'; btn.disabled = false;
+}
+
+// State
 let allBooks    = [];
 let currentFilter = 'all';
 let currentSearch = '';
@@ -279,7 +470,7 @@ let historyDates  = [];
 let readSet       = new Set();
 let readPanelOpen = false;
 
-// ── Token ──
+// Token
 const getToken = () => localStorage.getItem('gh_token') || '';
 const getRepo  = () => localStorage.getItem('gh_repo')  || '';
 
@@ -305,14 +496,14 @@ function clearToken() {
 }
 function setModalStatus(m, t) { const el = document.getElementById('tokenStatus'); el.textContent = m; el.className = 'modal-status ' + (t||''); }
 
-// ── Toast ──
+// Toast
 function toast(msg, type='ok') {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = `toast show ${type}`;
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// ── Read panel ──
+// Read panel
 function toggleReadPanel() {
   readPanelOpen = !readPanelOpen;
   document.getElementById('readPanelBody').classList.toggle('open', readPanelOpen);
@@ -367,6 +558,12 @@ async function submitReads() {
   await saveReadList();
   allBooks = allBooks.filter(b => !readSet.has(b.book_id));
   applyFilters();
+  // Also remove marked-read books from the category tab if it has data
+  const catList = document.getElementById('catBookList');
+  catList.querySelectorAll('.book-card').forEach(card => {
+    const idEl = card.querySelector('.book-id');
+    if (idEl && readSet.has(idEl.textContent.trim())) card.remove();
+  });
   updateSubmitBar();
   btn.textContent = 'Submit'; btn.style.pointerEvents = '';
 }
@@ -412,7 +609,7 @@ async function saveReadList() {
   } catch(e) { toast('✗ Failed to save', 'err'); }
 }
 
-// ── Mark read from card ──
+// Mark read from card
 let pendingReads = new Set();
 
 async function markRead(bookId, btn) {
@@ -423,7 +620,7 @@ async function markRead(bookId, btn) {
   updateSubmitBar();
 }
 
-// ── Trigger scrape ──
+// Trigger scrape
 async function triggerScrape() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) { openTokenModal(); return; }
@@ -439,12 +636,12 @@ async function triggerScrape() {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: 'main' }),
     });
-    res.status === 204 ? toast('✓ Triggered — check Actions in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
+    res.status === 204 ? toast('✓ Triggered — results ready in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
   } catch(e) { toast('✗ Network error', 'err'); }
   btn.textContent = '▶ Run now'; btn.style.pointerEvents = '';
 }
 
-// ── Delete history ──
+// Delete history
 async function deleteSelectedHistory() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) { openTokenModal(); return; }
@@ -476,7 +673,7 @@ async function deleteSelectedHistory() {
   btn.textContent = '🗑 Delete'; btn.style.pointerEvents = '';
 }
 
-// ── Data ──
+// Data
 async function loadData(date) {
   try {
     const res = await fetch(date ? `data/history/${date}.json` : 'data/latest.json');
@@ -496,7 +693,7 @@ function rebuildHistoryDropdown(dates) {
   document.getElementById('delHistBtn').classList.remove('visible');
 }
 
-// ── Render ──
+// Render
 function fmtTimestamp(ts) {
   if (!ts) return '';
   const d = new Date(Number(ts) * 1000);
@@ -588,7 +785,7 @@ function applyFilters() {
   renderBookList(f);
 }
 
-// ── Events ──
+// Events
 function bindEvents() {
   document.getElementById('searchInput').addEventListener('input', e => { currentSearch = e.target.value.trim(); applyFilters(); });
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -615,9 +812,10 @@ function bindEvents() {
   document.getElementById('tokenModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeTokenModal(); });
 }
 
-// ── Init ──
+// Init
 async function init() {
   bindEvents();
+  buildCategorySelect();
   const [data, idx] = await Promise.all([loadData(), loadHistoryIndex()]);
   historyDates = idx;
   if (data) {
