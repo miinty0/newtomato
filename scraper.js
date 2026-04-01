@@ -3,7 +3,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-//  Config 
+// Config 
 const DATA_DIR    = path.join(__dirname, 'data');
 const HEADERS     = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -20,21 +20,25 @@ const BASE = 'fanqienovel.com';
 const API  = `https://${BASE}/api`;
 const PAGE = `https://${BASE}/page`;
 
-//  CLI args 
+// CLI args 
+// Usage:
+//   node scraper.js                  → daily run, all categories (category_id=-1)
+//   node scraper.js --category 24    → category run, saves to data/category_24.json
+//   node scraper.js -c 24            → same as above
 function parseArgs() {
   const args = process.argv.slice(2);
   let categoryId = -1;
   for (let i = 0; i < args.length; i++) {
-    if ((args[i] = '--category' || args[i] = '-c') && args[i + 1] ! undefined) {
+    if ((args[i] === '--category' || args[i] === '-c') && args[i + 1] !== undefined) {
       const parsed = parseInt(args[i + 1], 10);
       if (!isNaN(parsed)) categoryId = parsed;
       i++;
     }
   }
-  return { categoryId, isCategoryRun: categoryId ! -1 };
+  return { categoryId, isCategoryRun: categoryId !== -1 };
 }
 
-//  Utilities 
+// Utilities 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function jitteredDelay() { return sleep(REQUEST_DELAY + Math.floor(Math.random() * JITTER)); }
 
@@ -65,7 +69,7 @@ function fmtDateTime(d) {
   return `${fmtDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
 
-//  Step 1: Load read list 
+// Step 1: Load read list 
 function loadReadSet() {
   const p = path.join(DATA_DIR, 'read.json');
   if (!fs.existsSync(p)) return new Set();
@@ -73,7 +77,7 @@ function loadReadSet() {
   catch(e) { return new Set(); }
 }
 
-//  Step 2: Ranking list 
+// Step 2: Ranking list 
 async function fetchHotRankList(categoryId = -1) {
   const allBooks = [];
   const MAX_PAGES = 350;
@@ -91,18 +95,18 @@ async function fetchHotRankList(categoryId = -1) {
     for (let t = 1; t <= MAX_RETRY; t++) {
       try {
         const res = await httpGet(`${API}/author/library/book_list/v0/?${params}`, { Accept: 'application/json' });
-        if (res.status = 429 || res.status >= 500) {
-          const wait = res.status = 429 ? 60000 : 10000 * t;
+        if (res.status === 429 || res.status >= 500) {
+          const wait = res.status === 429 ? 60000 : 10000 * t;
           console.log(`  page ${page+1} HTTP ${res.status} — waiting ${wait/1000}s`);
           await sleep(wait);
           continue;
         }
         const json = JSON.parse(res.data);
-        if (json.code = 0 && json.data?.book_list) {
+        if (json.code === 0 && json.data?.book_list) {
           const batch = json.data.book_list;
           allBooks.push(...batch);
           console.log(`  page ${page+1}: +${batch.length} (total ${allBooks.length})`);
-          if (batch.length = 0) return allBooks.slice(0, POOL_SIZE);
+          if (batch.length === 0) return allBooks.slice(0, POOL_SIZE);
           ok = true; break;
         }
       } catch(e) { console.log(`  page ${page+1} attempt ${t}: ${e.message}`); }
@@ -114,7 +118,7 @@ async function fetchHotRankList(categoryId = -1) {
   return allBooks.slice(0, POOL_SIZE);
 }
 
-//  Step 3: Top book list 
+// Step 3: Top book list 
 async function fetchTopBookList() {
   try {
     const res  = await httpGet(`${API}/author/misc/top_book_list/v1/`, { Accept: 'application/json' });
@@ -134,7 +138,7 @@ async function fetchTopBookList() {
   return {};
 }
 
-//  Step 4: Parse detail page 
+// Step 4: Parse detail page 
 function parseDetailPage(html) {
   const info = {};
   const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*\r?\n/);
@@ -157,7 +161,7 @@ function parseDetailPage(html) {
   return info;
 }
 
-//  Step 4b: Cache for completed books 
+// Step 4b: Cache for completed books 
 function loadCache() {
   const p = path.join(DATA_DIR, 'cache.json');
   if (!fs.existsSync(p)) return {};
@@ -170,7 +174,7 @@ function saveCache(cache) {
   fs.writeFileSync(p, JSON.stringify(cache, null, 2), 'utf-8');
 }
 
-//  scrapeOnce 
+// scrapeOnce 
 async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   const [hotRankList, topBookMap] = await Promise.all([
     fetchHotRankList(categoryId),
@@ -195,18 +199,18 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   for (let i = 0; i < top.length; i++) {
     const rawBook = top[i];
     const bookId  = String(rawBook.book_id);
-    const hotRank = hotRankList.findIndex(b => String(b.book_id) = bookId) + 1;
+    const hotRank = hotRankList.findIndex(b => String(b.book_id) === bookId) + 1;
     const topInfo = topBookMap[bookId] || {};
 
     const creationStatus = topInfo.creation_status ?? rawBook.creation_status;
-    const statusLabel    = creationStatus = 0 ? 'Completed' : (creationStatus = 1 ? 'Ongoing' : 'Unknown');
-    const isCompleted    = statusLabel = 'Completed';
+    const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
+    const isCompleted    = statusLabel === 'Completed';
 
     const rankChange = !seenBookIds.has(bookId) ? 'new'
       : (bookId in prevMap) ? prevMap[bookId] - hotRank
       : 0;
 
-    const prevBook = prevData?.books?.find(b => b.book_id = bookId);
+    const prevBook = prevData?.books?.find(b => b.book_id === bookId);
     if (prevBook) {
       books.push({
         ...prevBook,
@@ -262,12 +266,12 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     console.log(`  cache updated (${Object.keys(cache).length} completed books cached)`);
   }
 
-  const newCount = books.filter(b => b.rank_change = 'new').length;
+  const newCount = books.filter(b => b.rank_change === 'new').length;
   console.log(`  → new entries this run: ${newCount}`);
   return { books, newCount };
 }
 
-//  Main 
+// Main 
 async function main() {
   const { categoryId, isCategoryRun } = parseArgs();
   const now = getNowBJT();
@@ -283,7 +287,7 @@ async function main() {
   ensureDir(path.join(DATA_DIR, 'history'));
 
   // Category runs → data/category_<id>.json
-  // Daily runs    → data/latest.json 
+  // Daily runs    → data/latest.json  (unchanged behaviour)
   const outputPath = isCategoryRun
     ? path.join(DATA_DIR, `category_${categoryId}.json`)
     : path.join(DATA_DIR, 'latest.json');
@@ -293,7 +297,9 @@ async function main() {
     try { prevData = JSON.parse(fs.readFileSync(outputPath, 'utf-8')); } catch(e) {}
   }
 
-  // Seen-book tracking
+  // Seen-book tracking:
+  //   Daily run    → scan all history snapshots (original behaviour)
+  //   Category run → just the previous category file (fresh "new" detection per category)
   const seenBookIds = new Set();
   if (isCategoryRun) {
     for (const b of prevData?.books || []) seenBookIds.add(b.book_id);
@@ -336,7 +342,7 @@ async function main() {
   const data = {
     update_time:  fmtDateTime(saveNow),
     update_date:  fmtDate(saveNow),
-    category_id:  categoryId,  
+    category_id:  categoryId,   // -1 = all categories; otherwise specific category
     total_count:  books.length,
     books,
   };
@@ -363,6 +369,7 @@ async function main() {
 }
 
 main().catch(() => {
+  // Exit 0 if we at least have a prior output file to serve, 1 if there's nothing at all
   const { categoryId, isCategoryRun } = parseArgs();
   const fallback = isCategoryRun
     ? path.join(__dirname, 'data', `category_${categoryId}.json`)
