@@ -293,16 +293,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 <div class="book-list" id="bookList">
   <div class="loading"><div class="spinner"></div><div>Loading...</div></div>
 </div>
-
-<!-- Submit bar -->
-<div class="submit-bar" id="submitBar">
-  <span><span id="submitCount">0</span> books marked as read</span>
-  <div style="display:flex;gap:8px">
-    <button onclick="cancelReads()" class="submit-cancel">Cancel</button>
-    <button onclick="submitReads()" id="submitBtn" class="submit-confirm">Submit</button>
-  </div>
-</div>
-
 </div><!-- /tab-daily -->
 
 <!-- ═══════════════ CATEGORY TAB ═══════════════ -->
@@ -321,15 +311,125 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
     <div class="empty-state" style="padding:60px 0">Select a category above to view results.</div>
   </div>
 
-</div><!-- /tab-category -->
+</div>
 
+<!-- Submit bar -->
+<div class="submit-bar" id="submitBar">
+  <span><span id="submitCount">0</span> books marked as read</span>
+  <div style="display:flex;gap:8px">
+    <button onclick="cancelReads()" class="submit-cancel">Cancel</button>
+    <button onclick="submitReads()" id="submitBtn" class="submit-confirm">Submit</button>
+  </div>
+</div>
 <script>
 // CATEGORY LIST
 const CATEGORIES = [
-  { id: 24,  name: '快穿' },
-  { id: 702, name: '双洁' },
-  // { id: 123, name: '穿越' },
-  // { id: 456, name: '系统' },
+{ id: 1, name: 'đô thị' },
+{ id: 2, name: 'đô thị sinh hoạt' },
+{ id: 3, name: 'hiện đại ngôn tình' },
+{ id: 4, name: 'vườn trường' },
+{ id: 8, name: 'khoa học viễn tưởng' },
+{ id: 10, name: 'huyền nghi' },
+{ id: 19, name: 'hệ thống' },
+{ id: 20, name: 'thần hào' },
+{ id: 23, name: 'làm ruộng' },
+{ id: 24, name: 'mau xuyên' },
+{ id: 28, name: 'manh bảo' },
+{ id: 32, name: 'ảo tưởng ngôn tình' },
+{ id: 36, name: 'trọng sinh' },
+{ id: 37, name: 'xuyên qua' },
+{ id: 40, name: 'hải đảo' },
+{ id: 43, name: 'giới giải trí' },
+{ id: 61, name: 'trinh thám' },
+{ id: 61, name: 'trinh thám huyền nghi' },
+{ id: 69, name: 'phát sóng trực tiếp' },
+{ id: 70, name: 'vô hạn lưu' },
+{ id: 77, name: 'tinh tế' },
+{ id: 78, name: 'mỹ thực' },
+{ id: 79, name: 'niên đại' },
+{ id: 82, name: 'học bá' },
+{ id: 86, name: 'nữ cường' },
+{ id: 89, name: 'tinh linh' },
+{ id: 90, name: 'thiên tài' },
+{ id: 92, name: 'phúc hắc' },
+{ id: 93, name: 'giả heo ăn hổ' },
+{ id: 94, name: 'đoàn sủng' },
+{ id: 95, name: 'ngược văn' },
+{ id: 96, name: 'ngọt sủng' },
+{ id: 125, name: 'gia đình' },
+{ id: 127, name: 'chức trường' },
+{ id: 261, name: 'đô thị hằng ngày' },
+{ id: 262, name: 'đô thị não động' },
+{ id: 263, name: 'đô thị làm ruộng' },
+{ id: 266, name: 'áo choàng' },
+{ id: 267, name: 'hiện ngôn não động' },
+{ id: 322, name: 'kinh tủng' },
+{ id: 369, name: 'vai ác' },
+{ id: 373, name: 'tây du' },
+{ id: 374, name: 'Marvel' },
+{ id: 379, name: 'cầu sinh' },
+{ id: 380, name: 'bệnh kiều' },
+{ id: 381, name: 'group chat' },
+{ id: 382, name: 'xuyên thư' },
+{ id: 387, name: 'thanh mai trúc mã' },
+{ id: 388, name: 'nữ giả nam trang' },
+{ id: 389, name: 'đơn nữ chủ' },
+{ id: 390, name: 'dân quốc' },
+{ id: 391, name: 'vô nữ chủ' },
+{ id: 392, name: 'vô CP' },
+{ id: 396, name: 'đô thị thanh xuân' },
+{ id: 454, name: 'khả muối khả ngọt' },
+{ id: 455, name: 'duyên trời tác hợp' },
+{ id: 456, name: 'yêu sâu sắc' },
+{ id: 458, name: 'bênh vực người mình' },
+{ id: 460, name: 'độc sủng' },
+{ id: 461, name: 'đàn xuyên' },
+{ id: 462, name: 'cổ xuyên kim' },
+{ id: 463, name: 'kim xuyên cổ' },
+{ id: 464, name: 'dị thế xuyên qua' },
+{ id: 466, name: 'lóe hôn' },
+{ id: 467, name: 'ẩn hôn' },
+{ id: 469, name: 'hai mặt' },
+{ id: 470, name: 'thế thân' },
+{ id: 471, name: 'khế ước hôn nhân' },
+{ id: 473, name: 'hào môn thế gia' },
+{ id: 474, name: 'lâu ngày sinh tình' },
+{ id: 475, name: 'gương vỡ lại lành' },
+{ id: 476, name: 'song hướng lao tới' },
+{ id: 477, name: 'nhất kiến chung tình' },
+{ id: 478, name: 'cường cường' },
+{ id: 479, name: 'mang cầu chạy' },
+{ id: 480, name: 'đào hôn' },
+{ id: 482, name: 'yêu thầm' },
+{ id: 483, name: 'tương ái tương sát' },
+{ id: 484, name: 'HE' },
+{ id: 485, name: 'chức trường thương chiến' },
+{ id: 486, name: 'minh tinh' },
+{ id: 487, name: 'bác sĩ' },
+{ id: 488, name: 'luật sư' },
+{ id: 489, name: 'hiện ngôn manh bảo' },
+{ id: 493, name: 'câu cá' },
+{ id: 494, name: 'độn vật tư' },
+{ id: 496, name: 'vận mệnh quốc gia' },
+{ id: 500, name: 'phay đứt gãy' },
+{ id: 502, name: 'cung đình hầu tước' },
+{ id: 505, name: 'phá án' },
+{ id: 509, name: 'trò chơi chủ bá' },
+{ id: 515, name: 'tận thế cầu sinh' },
+{ id: 516, name: 'đô thị dị năng' },
+{ id: 521, name: 'làm tinh' },
+{ id: 523, name: 'kiếp trước kiếp này' },
+{ id: 524, name: 'song trọng sinh' },
+{ id: 538, name: 'đồng nghiệp' },
+{ id: 539, name: 'huyền nghi não động' },
+{ id: 557, name: 'chạy nạn' },
+{ id: 702, name: 'song khiết' },
+{ id: 745, name: 'hào môn sảng văn' },
+{ id: 746, name: 'trò chơi thể dục' },
+{ id: 747, name: 'huyền nghi luyến ái' },
+{ id: 749, name: 'thanh xuân ngọt sủng' },
+{ id: 750, name: 'chức trường tình yêu và hôn nhân' },
+{ id: 778, name: 'khôi hài nhẹ nhàng' },
 ];
 
 // Tab switching
