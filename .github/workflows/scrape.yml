@@ -3,7 +3,12 @@ name: daily
 on:
   schedule:
     - cron: '0 22 * * *'   # 22:00 UTC = 05:00 UTC+7
-  workflow_dispatch:        # manual trigger from Actions tab
+  workflow_dispatch:        # manual trigger from Actions tab or index.html
+    inputs:
+      category_id:
+        description: 'Category ID (-1 for all)'
+        required: false
+        default: '-1'
 
 jobs:
   scrape:
@@ -17,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: run
-        run: node scraper.js
+        run: node scraper.js --category ${{ github.event.inputs.category_id || -1 }}
 
       - name: save
         run: |
