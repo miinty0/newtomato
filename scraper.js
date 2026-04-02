@@ -3,14 +3,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-// Config 
+// ========== Config ==========
 const DATA_DIR    = path.join(__dirname, 'data');
 const HEADERS     = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 };
 const POOL_SIZE       = 3000;
-const RECOMMEND_COUNT = 20;
+const RECOMMEND_COUNT = 30;
 const PAGE_SIZE       = 18;
 const GENDER          = 0;
 const REQUEST_DELAY   = 600;
@@ -20,7 +20,7 @@ const BASE = 'fanqienovel.com';
 const API  = `https://${BASE}/api`;
 const PAGE = `https://${BASE}/page`;
 
-// CLI args 
+// ========== CLI args ==========
 // Usage:
 //   node scraper.js                  → daily run, all categories (category_id=-1)
 //   node scraper.js --category 24    → category run, saves to data/category_24.json
@@ -38,7 +38,7 @@ function parseArgs() {
   return { categoryId, isCategoryRun: categoryId !== -1 };
 }
 
-// Utilities 
+// ========== Utilities ==========
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function jitteredDelay() { return sleep(REQUEST_DELAY + Math.floor(Math.random() * JITTER)); }
 
@@ -69,7 +69,7 @@ function fmtDateTime(d) {
   return `${fmtDate(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 }
 
-// Step 1: Load read list 
+// ========== Step 1: Load read list ==========
 function loadReadSet() {
   const p = path.join(DATA_DIR, 'read.json');
   if (!fs.existsSync(p)) return new Set();
@@ -77,7 +77,7 @@ function loadReadSet() {
   catch(e) { return new Set(); }
 }
 
-// Step 2: Ranking list 
+// ========== Step 2: Ranking list ==========
 async function fetchHotRankList(categoryId = -1) {
   const allBooks = [];
   const MAX_PAGES = 350;
@@ -118,7 +118,7 @@ async function fetchHotRankList(categoryId = -1) {
   return allBooks.slice(0, POOL_SIZE);
 }
 
-// Step 3: Top book list 
+// ========== Step 3: Top book list ==========
 async function fetchTopBookList() {
   try {
     const res  = await httpGet(`${API}/author/misc/top_book_list/v1/`, { Accept: 'application/json' });
@@ -138,7 +138,7 @@ async function fetchTopBookList() {
   return {};
 }
 
-// Step 4: Parse detail page 
+// ========== Step 4: Parse detail page ==========
 function parseDetailPage(html) {
   const info = {};
   const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*\r?\n/);
@@ -161,7 +161,7 @@ function parseDetailPage(html) {
   return info;
 }
 
-// Step 4b: Cache for completed books 
+// ========== Step 4b: Cache for completed books ==========
 function loadCache() {
   const p = path.join(DATA_DIR, 'cache.json');
   if (!fs.existsSync(p)) return {};
@@ -174,22 +174,27 @@ function saveCache(cache) {
   fs.writeFileSync(p, JSON.stringify(cache, null, 2), 'utf-8');
 }
 
-// scrapeOnce 
+// ========== scrapeOnce ==========
 async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
+  const isCategoryRun = categoryId !== -1;
+
   const [hotRankList, topBookMap] = await Promise.all([
     fetchHotRankList(categoryId),
     fetchTopBookList(),
   ]);
 
-  // Build prev rank map for rank_change
+  // Build prev rank map for rank_change (daily run only)
   const prevMap = {};
-  if (prevData?.books) {
+  if (!isCategoryRun && prevData?.books) {
     for (const b of prevData.books) prevMap[b.book_id] = b.hot_rank;
   }
 
-  // Filter out already-read books, keep ranking order
-  const candidates = hotRankList.filter(b => !readSet.has(String(b.book_id)));
-  console.log(`  pool: ${hotRankList.length} | unread candidates: ${candidates.length}`);
+  // Filter out already-read AND already-seen books (for category), keep ranking order
+  const candidates = hotRankList.filter(b => {
+    const id = String(b.book_id);
+    return !readSet.has(id) && !seenBookIds.has(id);
+  });
+  console.log(`  pool: ${hotRankList.length} | unread+unseen candidates: ${candidates.length}`);
 
   const top = candidates.slice(0, RECOMMEND_COUNT);
   const cache = loadCache();
@@ -206,20 +211,25 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
     const isCompleted    = statusLabel === 'Completed';
 
-    const rankChange = !seenBookIds.has(bookId) ? 'new'
+    // For category runs all new books are "new"; daily uses rank history
+    const rankChange = isCategoryRun ? 'new'
+      : !seenBookIds.has(bookId) ? 'new'
       : (bookId in prevMap) ? prevMap[bookId] - hotRank
       : 0;
 
-    const prevBook = prevData?.books?.find(b => b.book_id === bookId);
-    if (prevBook) {
-      books.push({
-        ...prevBook,
-        hot_rank: hotRank,
-        last_chapter_time: rawBook.last_chapter_time ?? prevBook.last_chapter_time,
-        rank_change: rankChange,
-      });
-      console.log(`  [${i+1}/${top.length}] prev hit: ${bookId}`);
-      continue;
+    // Daily run only: reuse prev data to avoid re-fetching
+    if (!isCategoryRun) {
+      const prevBook = prevData?.books?.find(b => b.book_id === bookId);
+      if (prevBook) {
+        books.push({
+          ...prevBook,
+          hot_rank: hotRank,
+          last_chapter_time: rawBook.last_chapter_time ?? prevBook.last_chapter_time,
+          rank_change: rankChange,
+        });
+        console.log(`  [${i+1}/${top.length}] prev hit: ${bookId}`);
+        continue;
+      }
     }
 
     let detailInfo = {};
@@ -271,7 +281,20 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   return { books, newCount };
 }
 
-// Main 
+// ========== Seen list helpers (category runs) ==========
+function loadSeenSet(categoryId) {
+  const p = path.join(DATA_DIR, `category_${categoryId}_seen.json`);
+  if (!fs.existsSync(p)) return new Set();
+  try { return new Set(JSON.parse(fs.readFileSync(p, 'utf-8'))); }
+  catch(e) { return new Set(); }
+}
+
+function saveSeenSet(categoryId, seenSet) {
+  const p = path.join(DATA_DIR, `category_${categoryId}_seen.json`);
+  fs.writeFileSync(p, JSON.stringify([...seenSet], null, 2), 'utf-8');
+}
+
+// ========== Main ==========
 async function main() {
   const { categoryId, isCategoryRun } = parseArgs();
   const now = getNowBJT();
@@ -297,25 +320,6 @@ async function main() {
     try { prevData = JSON.parse(fs.readFileSync(outputPath, 'utf-8')); } catch(e) {}
   }
 
-  // Seen-book tracking:
-  //   Daily run    → scan all history snapshots (original behaviour)
-  //   Category run → just the previous category file (fresh "new" detection per category)
-  const seenBookIds = new Set();
-  if (isCategoryRun) {
-    for (const b of prevData?.books || []) seenBookIds.add(b.book_id);
-  } else {
-    const histDir = path.join(DATA_DIR, 'history');
-    if (fs.existsSync(histDir)) {
-      for (const file of fs.readdirSync(histDir)) {
-        if (!file.endsWith('.json')) continue;
-        try {
-          const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
-          for (const b of h.books || []) seenBookIds.add(b.book_id);
-        } catch(e) {}
-      }
-    }
-  }
-
   const readSet = loadReadSet();
   console.log(`  read list: ${readSet.size} books`);
 
@@ -332,19 +336,62 @@ async function main() {
     }
   }
 
+  // ── Seen-book tracking ──
+  // Daily run    → scan all history snapshots
+  // Category run → load cumulative seen file (category_<id>_seen.json)
+  const seenBookIds = new Set();
+  if (isCategoryRun) {
+    const seen = loadSeenSet(categoryId);
+    // Also add anything already in read list — no point showing those
+    for (const id of seen)    seenBookIds.add(id);
+    for (const id of readSet) seenBookIds.add(id);
+    console.log(`  seen list for category ${categoryId}: ${seenBookIds.size} books`);
+  } else {
+    const histDir = path.join(DATA_DIR, 'history');
+    if (fs.existsSync(histDir)) {
+      for (const file of fs.readdirSync(histDir)) {
+        if (!file.endsWith('.json')) continue;
+        try {
+          const h = JSON.parse(fs.readFileSync(path.join(histDir, file), 'utf-8'));
+          for (const b of h.books || []) seenBookIds.add(b.book_id);
+        } catch(e) {}
+      }
+    }
+  }
+
   console.log('\nRunning...');
   const result = await scrapeOnce(prevData, readSet, seenBookIds, categoryId);
   console.log(`✓ ${result.newCount} new entries — saving`);
 
-  const { books, newCount } = result;
+  const { books: newBooks, newCount } = result;
   const saveNow = getNowBJT();
+
+  let finalBooks;
+  if (isCategoryRun) {
+    // Accumulate: keep existing unread books + append new ones
+    const existingBooks = (prevData?.books || []).filter(b => !readSet.has(b.book_id));
+    // Deduplicate just in case
+    const existingIds = new Set(existingBooks.map(b => b.book_id));
+    const trulyNew = newBooks.filter(b => !existingIds.has(b.book_id));
+    finalBooks = [...existingBooks, ...trulyNew];
+
+    // Update cumulative seen file
+    const seenToSave = loadSeenSet(categoryId);
+    for (const id of readSet)       seenToSave.add(id);
+    for (const b  of trulyNew)      seenToSave.add(b.book_id);
+    for (const b  of existingBooks) seenToSave.add(b.book_id);
+    saveSeenSet(categoryId, seenToSave);
+    console.log(`  seen file updated (${seenToSave.size} total)`);
+  } else {
+    finalBooks = newBooks;
+  }
 
   const data = {
     update_time:  fmtDateTime(saveNow),
     update_date:  fmtDate(saveNow),
-    category_id:  categoryId,   // -1 = all categories; otherwise specific category
-    total_count:  books.length,
-    books,
+    category_id:  categoryId,
+    total_count:  finalBooks.length,
+    books:        finalBooks,
   };
 
   // Always write primary output
@@ -364,7 +411,7 @@ async function main() {
     fs.writeFileSync(idxPath, JSON.stringify(idx, null, 2), 'utf-8');
   }
 
-  console.log(`\nDone — ${books.length} recommendations, ${newCount} new entries.`);
+  console.log(`\nDone — ${finalBooks.length} total books (${newCount} new this run).`);
   if (isCategoryRun) console.log(`Output → ${outputPath}`);
 }
 
