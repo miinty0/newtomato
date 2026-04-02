@@ -338,7 +338,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 
 </div><!-- /tab-category -->
 
-<!-- Submit bar -->
+<!-- Submit bar — outside tabs so it works from both -->
 <div class="submit-bar" id="submitBar">
   <span><span id="submitCount">0</span> books marked as read</span>
   <div style="display:flex;gap:8px">
@@ -348,10 +348,11 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 </div>
 
 <script>
-// CATEGORY LIST
-
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CATEGORY LIST 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const CATEGORIES = [
- { id: 1, name: 'đô thị' },
+{ id: 1, name: 'đô thị' },
 { id: 2, name: 'đô thị sinh hoạt' },
 { id: 3, name: 'hiện đại ngôn tình' },
 { id: 4, name: 'vườn trường' },
@@ -484,9 +485,7 @@ async function loadCategoryHistory() {
   const results = await Promise.all(
     CATEGORIES.map(async c => {
       try {
-        const res = await fetch(`data/category_${c.id}.json`);
-        if (!res.ok) return null;
-        const data = await res.json();
+        const data = await ghFetch(`data/category_${c.id}.json`);
         return { id: c.id, name: c.name, update_time: data.update_time, total: data.total_count };
       } catch(e) { return null; }
     })
@@ -521,7 +520,7 @@ function selectFromHistory(id, name) {
 let selectedCategoryId = null;
 let highlightedIndex   = -1;
 
-// Strip Vietnamese diacritics 
+// Strip Vietnamese diacritics so typing "xuyen" matches "xuyên" etc.
 function removeDiacritics(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
@@ -612,14 +611,13 @@ async function loadCategoryData(categoryId) {
   list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading...</div></div>';
   badge.style.display = 'none';
   try {
-    const res = await fetch(`data/category_${categoryId}.json`);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
+    const data = await ghFetch(`data/category_${categoryId}.json`);
     badge.textContent = `Updated ${data.update_time}`;
     badge.style.display = '';
     list.innerHTML = (data.books?.length)
       ? data.books.map(renderBookCard).join('')
       : '<div class="empty-state">No results yet — try scraping this category.</div>';
+    if (data.books?.length) attachMarkReadButtons(list);
   } catch(e) {
     list.innerHTML = '<div class="empty-state">No data yet — hit Scrape to fetch this category.</div>';
   }
@@ -638,7 +636,7 @@ async function triggerCategoryScrape() {
       body: JSON.stringify({ ref: 'main', inputs: { category_id: String(selectedCategoryId) } }),
     });
     res.status === 204
-      ? toast('✓ Triggered — results ready in ~5 mins', 'ok')
+      ? toast('✓ Triggered — results ready in ~1 min', 'ok')
       : toast(`✗ Failed (${res.status})`, 'err');
   } catch(e) { toast('✗ Network error', 'err'); }
   btn.textContent = '▶ Scrape'; btn.disabled = false;
@@ -792,27 +790,20 @@ async function saveReadList() {
   } catch(e) { toast('✗ Failed to save', 'err'); }
 }
 
-// ── Mark read from card (event delegation — works for both tabs) ──
+// ── Mark read from card ──
 let pendingReads = new Set();
 
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.mark-read-btn');
-  if (!btn) return;
-  const bookId = btn.dataset.bookId;
-  if (!bookId || readSet.has(bookId) || pendingReads.has(bookId)) return;
-  pendingReads.add(bookId);
-  btn.textContent = '✓ Marked';
-  btn.classList.add('marking');
-  updateSubmitBar();
-});
-
-async function markRead(bookId, btn) {
-  // kept for any legacy calls — delegates to the set
-  if (readSet.has(bookId) || pendingReads.has(bookId)) return;
-  pendingReads.add(bookId);
-  btn.textContent = '✓ Marked';
-  btn.classList.add('marking');
-  updateSubmitBar();
+function attachMarkReadButtons(container) {
+  container.querySelectorAll('.mark-read-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const bookId = btn.dataset.bookId;
+      if (!bookId || readSet.has(bookId) || pendingReads.has(bookId)) return;
+      pendingReads.add(bookId);
+      btn.textContent = '✓ Marked';
+      btn.classList.add('marking');
+      updateSubmitBar();
+    });
+  });
 }
 
 // ── Trigger scrape ──
@@ -831,7 +822,7 @@ async function triggerScrape() {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: 'main' }),
     });
-    res.status === 204 ? toast('✓ Triggered — results ready in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
+    res.status === 204 ? toast('✓ Triggered — check Actions in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
   } catch(e) { toast('✗ Network error', 'err'); }
   btn.textContent = '▶ Run now'; btn.style.pointerEvents = '';
 }
@@ -869,16 +860,29 @@ async function deleteSelectedHistory() {
 }
 
 // ── Data ──
+// Fetch a file from the repo via GitHub API (works locally + on Pages)
+async function ghFetch(path) {
+  const token = getToken(), repo = getRepo();
+  if (!token || !repo) throw new Error('no token');
+  const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json' }
+  });
+  if (!res.ok) throw new Error(res.status);
+  const info = await res.json();
+  // Decode base64 → UTF-8 correctly (handles Chinese, Vietnamese, etc.)
+  const binary = atob(info.content.replace(/\n/g, ''));
+  const bytes  = Uint8Array.from(binary, c => c.charCodeAt(0));
+  const text   = new TextDecoder('utf-8').decode(bytes);
+  return JSON.parse(text);
+}
+
 async function loadData(date) {
-  try {
-    const res = await fetch(date ? `data/history/${date}.json` : 'data/latest.json');
-    if (!res.ok) throw new Error();
-    return await res.json();
-  } catch(e) { return null; }
+  try { return await ghFetch(date ? `data/history/${date}.json` : 'data/latest.json'); }
+  catch(e) { return null; }
 }
 async function loadHistoryIndex() {
-  try { const r = await fetch('data/history_index.json'); return r.ok ? await r.json() : []; }
-  catch { return []; }
+  try { return await ghFetch('data/history_index.json'); }
+  catch(e) { return []; }
 }
 
 function rebuildHistoryDropdown(dates) {
@@ -948,6 +952,7 @@ function renderBookList(books) {
     return;
   }
   c.innerHTML = books.map(renderBookCard).join('');
+  attachMarkReadButtons(c);
 }
 
 function renderStats(data) {
