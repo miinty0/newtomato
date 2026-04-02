@@ -203,18 +203,21 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .cat-scrape-btn:disabled { opacity:.45; cursor:not-allowed; }
 .cat-update-badge { background:var(--bg3); padding:5px 13px; border-radius:20px; font-size:12px; color:var(--text2); }
 
-/* Category history table */
-.cat-history { max-width:1200px; margin:12px auto 0; padding:0 24px; }
+/* Category history — inline pill + collapsible panel */
+.cat-history-btn { padding:7px 13px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text2); font-size:12px; cursor:pointer; transition:all .2s; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.cat-history-btn:hover { border-color:var(--accent); color:var(--accent); }
+.cat-history-btn.open { border-color:var(--accent); color:var(--accent); background:rgba(240,107,171,.08); }
+.cat-history-panel { max-width:1200px; margin:6px auto 0; padding:0 24px; display:none; }
+.cat-history-panel.open { display:block; }
 .cat-history-inner { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-.cat-history-header { padding:10px 16px; font-size:12px; font-weight:600; color:var(--text2); border-bottom:1px solid var(--border); letter-spacing:.4px; }
-.cat-history-scroll { max-height:180px; overflow-y:auto; }
+.cat-history-scroll { max-height:200px; overflow-y:auto; }
 .cat-history-row { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; gap:12px; }
 .cat-history-row:last-child { border-bottom:none; }
 .cat-history-row:hover { background:var(--bg3); }
 .cat-history-row.active { background:rgba(240,107,171,.08); border-left:2px solid var(--accent); }
 .cat-history-name { font-size:13px; color:var(--text); font-weight:500; }
 .cat-history-meta { font-size:11px; color:var(--text2); white-space:nowrap; }
-.cat-history-empty { padding:16px; font-size:12px; color:var(--text2); text-align:center; }
+.cat-history-empty { padding:14px 16px; font-size:12px; color:var(--text2); }
 /* Responsive */
 @media (max-width:900px) { .abstract-col { flex:0 0 220px; max-width:220px; } }
 @media (max-width:700px) {
@@ -266,7 +269,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <button class="tab-btn" onclick="switchTab('category')">🏷 Category</button>
 </nav>
 
-<!--  DAILY TAB  -->
+<!-- ═══════════════ DAILY TAB ═══════════════ -->
 <div class="tab-panel active" id="tab-daily">
 <div class="read-panel">
   <div class="read-panel-inner">
@@ -306,9 +309,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <div class="loading"><div class="spinner"></div><div>Loading...</div></div>
 </div>
 
-</div>
+</div><!-- /tab-daily -->
 
-<!-- CATEGORY TAB -->
+<!-- ═══════════════ CATEGORY TAB ═══════════════ -->
 <div class="tab-panel" id="tab-category">
 
   <div class="cat-bar">
@@ -317,12 +320,12 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
       <div class="cat-dropdown" id="catDropdown"></div>
     </div>
     <button class="cat-scrape-btn" id="catScrapeBtn" onclick="triggerCategoryScrape()">▶ Scrape</button>
+    <button class="cat-history-btn" id="catHistoryBtn" onclick="toggleCatHistory()">🕓 Recent <span id="catHistoryArrow">▾</span></button>
     <span class="cat-update-badge" id="catUpdateBadge" style="display:none"></span>
   </div>
 
-  <div class="cat-history">
+  <div class="cat-history-panel" id="catHistoryPanel">
     <div class="cat-history-inner">
-      <div class="cat-history-header">🕓 Recent scrapes</div>
       <div class="cat-history-scroll" id="catHistoryList">
         <div class="cat-history-empty">No scrapes yet.</div>
       </div>
@@ -333,7 +336,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
     <div class="empty-state" style="padding:60px 0">Select a category above to view results.</div>
   </div>
 
-</div>
+</div><!-- /tab-category -->
 
 <!-- Submit bar -->
 <div class="submit-bar" id="submitBar">
@@ -345,9 +348,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 </div>
 
 <script>
-// CATEGORY LIST 
+// CATEGORY LIST
+
 const CATEGORIES = [
-{ id: 1, name: 'đô thị' },
+ { id: 1, name: 'đô thị' },
 { id: 2, name: 'đô thị sinh hoạt' },
 { id: 3, name: 'hiện đại ngôn tình' },
 { id: 4, name: 'vườn trường' },
@@ -455,7 +459,7 @@ const CATEGORIES = [
 { id: 778, name: 'khôi hài nhẹ nhàng' },
 ];
 
-//  Tab switching 
+// ── Tab switching ──
 let currentTab = 'daily';
 function switchTab(tab) {
   currentTab = tab;
@@ -464,9 +468,19 @@ function switchTab(tab) {
   document.getElementById('tab-category').classList.toggle('active', tab === 'category');
 }
 
-//  Category history table 
+function toggleCatHistory() {
+  const panel  = document.getElementById('catHistoryPanel');
+  const btn    = document.getElementById('catHistoryBtn');
+  const arrow  = document.getElementById('catHistoryArrow');
+  const isOpen = panel.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+  arrow.textContent = isOpen ? '▴' : '▾';
+}
+
+// ── Category history table ──
 async function loadCategoryHistory() {
   const container = document.getElementById('catHistoryList');
+  // Fetch all category files in parallel, skip ones that don't exist yet
   const results = await Promise.all(
     CATEGORIES.map(async c => {
       try {
@@ -479,7 +493,7 @@ async function loadCategoryHistory() {
   );
   const scraped = results
     .filter(Boolean)
-    .sort((a, b) => b.update_time.localeCompare(a.update_time)); 
+    .sort((a, b) => b.update_time.localeCompare(a.update_time)); // newest first
 
   if (scraped.length === 0) {
     container.innerHTML = '<div class="cat-history-empty">No scrapes yet.</div>';
@@ -493,13 +507,17 @@ async function loadCategoryHistory() {
 }
 
 function selectFromHistory(id, name) {
+  // Highlight active row
   document.querySelectorAll('.cat-history-row').forEach(r =>
     r.classList.toggle('active', Number(r.dataset.id) === id)
   );
+  // Sync the search input
   selectedCategoryId = id;
   document.getElementById('catSearchInput').value = name;
   loadCategoryData(id);
 }
+
+// ── Category typeahead ──
 let selectedCategoryId = null;
 let highlightedIndex   = -1;
 
@@ -512,7 +530,7 @@ function buildCategorySelect() {
   const input    = document.getElementById('catSearchInput');
   const dropdown = document.getElementById('catDropdown');
 
-  loadCategoryHistory(); 
+  loadCategoryHistory(); // populate history table on load
 
   function getFiltered(q) {
     if (!q) return CATEGORIES;
@@ -542,7 +560,7 @@ function buildCategorySelect() {
       ).join('');
       dropdown.querySelectorAll('.cat-option').forEach(el => {
         el.addEventListener('mousedown', e => {
-          e.preventDefault(); 
+          e.preventDefault(); // keep focus on input
           selectCategory(Number(el.dataset.id), CATEGORIES.find(c => c.id == el.dataset.id).name);
         });
       });
@@ -554,6 +572,7 @@ function buildCategorySelect() {
     selectedCategoryId = id;
     input.value = name;
     dropdown.classList.remove('open');
+    // Highlight matching history row
     document.querySelectorAll('.cat-history-row').forEach(r =>
       r.classList.toggle('active', Number(r.dataset.id) === id)
     );
@@ -619,13 +638,13 @@ async function triggerCategoryScrape() {
       body: JSON.stringify({ ref: 'main', inputs: { category_id: String(selectedCategoryId) } }),
     });
     res.status === 204
-      ? toast('✓ Triggered — results ready in ~1 min', 'ok')
+      ? toast('✓ Triggered — results ready in ~5 mins', 'ok')
       : toast(`✗ Failed (${res.status})`, 'err');
   } catch(e) { toast('✗ Network error', 'err'); }
   btn.textContent = '▶ Scrape'; btn.disabled = false;
 }
 
-//  State 
+// ── State ──
 let allBooks    = [];
 let currentFilter = 'all';
 let currentSearch = '';
@@ -633,7 +652,7 @@ let historyDates  = [];
 let readSet       = new Set();
 let readPanelOpen = false;
 
-//  Token 
+// ── Token ──
 const getToken = () => localStorage.getItem('gh_token') || '';
 const getRepo  = () => localStorage.getItem('gh_repo')  || '';
 
@@ -659,14 +678,14 @@ function clearToken() {
 }
 function setModalStatus(m, t) { const el = document.getElementById('tokenStatus'); el.textContent = m; el.className = 'modal-status ' + (t||''); }
 
-//  Toast 
+// ── Toast ──
 function toast(msg, type='ok') {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = `toast show ${type}`;
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-//  Read panel 
+// ── Read panel ──
 function toggleReadPanel() {
   readPanelOpen = !readPanelOpen;
   document.getElementById('readPanelBody').classList.toggle('open', readPanelOpen);
@@ -721,10 +740,11 @@ async function submitReads() {
   await saveReadList();
   allBooks = allBooks.filter(b => !readSet.has(b.book_id));
   applyFilters();
-  const catList = document.getElementById('catBookList');
-  catList.querySelectorAll('.book-card').forEach(card => {
-    const idEl = card.querySelector('.book-id');
-    if (idEl && readSet.has(idEl.textContent.trim())) card.remove();
+  // Remove marked-read cards from category tab
+  readSet.forEach(id => {
+    document.querySelectorAll(`.mark-read-btn[data-book-id="${id}"]`).forEach(btn => {
+      btn.closest('.book-card')?.remove();
+    });
   });
   updateSubmitBar();
   btn.textContent = 'Submit'; btn.style.pointerEvents = '';
@@ -732,8 +752,9 @@ async function submitReads() {
 
 function cancelReads() {
   pendingReads.forEach(id => {
-    const btn = document.querySelector(`[onclick*="'${id}'"]`);
-    if (btn) { btn.textContent = '✓ Mark read'; btn.classList.remove('marking'); }
+    document.querySelectorAll(`.mark-read-btn[data-book-id="${id}"]`).forEach(btn => {
+      btn.textContent = '✓ Mark read'; btn.classList.remove('marking');
+    });
   });
   pendingReads.clear();
   updateSubmitBar();
@@ -771,10 +792,22 @@ async function saveReadList() {
   } catch(e) { toast('✗ Failed to save', 'err'); }
 }
 
-//  Mark read from card 
+// ── Mark read from card (event delegation — works for both tabs) ──
 let pendingReads = new Set();
 
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.mark-read-btn');
+  if (!btn) return;
+  const bookId = btn.dataset.bookId;
+  if (!bookId || readSet.has(bookId) || pendingReads.has(bookId)) return;
+  pendingReads.add(bookId);
+  btn.textContent = '✓ Marked';
+  btn.classList.add('marking');
+  updateSubmitBar();
+});
+
 async function markRead(bookId, btn) {
+  // kept for any legacy calls — delegates to the set
   if (readSet.has(bookId) || pendingReads.has(bookId)) return;
   pendingReads.add(bookId);
   btn.textContent = '✓ Marked';
@@ -782,7 +815,7 @@ async function markRead(bookId, btn) {
   updateSubmitBar();
 }
 
-//  Trigger scrape 
+// ── Trigger scrape ──
 async function triggerScrape() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) { openTokenModal(); return; }
@@ -798,12 +831,12 @@ async function triggerScrape() {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: 'main' }),
     });
-    res.status === 204 ? toast('✓ Triggered — check Actions in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
+    res.status === 204 ? toast('✓ Triggered — results ready in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
   } catch(e) { toast('✗ Network error', 'err'); }
   btn.textContent = '▶ Run now'; btn.style.pointerEvents = '';
 }
 
-//  Delete history 
+// ── Delete history ──
 async function deleteSelectedHistory() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) { openTokenModal(); return; }
@@ -835,7 +868,7 @@ async function deleteSelectedHistory() {
   btn.textContent = '🗑 Delete'; btn.style.pointerEvents = '';
 }
 
-//  Data 
+// ── Data ──
 async function loadData(date) {
   try {
     const res = await fetch(date ? `data/history/${date}.json` : 'data/latest.json');
@@ -855,7 +888,7 @@ function rebuildHistoryDropdown(dates) {
   document.getElementById('delHistBtn').classList.remove('visible');
 }
 
-//  Render 
+// ── Render ──
 function fmtTimestamp(ts) {
   if (!ts) return '';
   const d = new Date(Number(ts) * 1000);
@@ -876,7 +909,6 @@ function renderBookCard(book) {
   const isNew = book.rank_change === 'new';
   let cover = book.thumb_url || '';
   if (cover.startsWith('http://')) cover = cover.replace('http://','https://');
-  const ph = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='68' height='90'><rect width='68' height='90' fill='%231c1c28'/><text x='34' y='48' text-anchor='middle' fill='%23666' font-size='20'>📖</text></svg>`;
   const chapterDate = fmtTimestamp(book.last_chapter_time);
   return `
     <div class="book-card ${isNew?'is-new':''}">
@@ -887,7 +919,7 @@ function renderBookCard(book) {
       </div>
       <div class="info-col">
         <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:8px">
-          <img class="cover-img" src="${cover}" alt="" loading="lazy" onerror="this.src='${ph}'" style="flex-shrink:0">
+          <img class="cover-img" src="${cover}" alt="" loading="lazy" onerror="this.onerror=null;this.src=&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='90'%3E%3Crect width='68' height='90' fill='%231c1c28'/%3E%3Ctext x='34' y='48' text-anchor='middle' fill='%23666' font-size='20'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E&quot;" style="flex-shrink:0">
           <div>
             <div class="book-title" onclick="window.open('https://fanqienovel.com/page/${book.book_id}','_blank')">${esc(book.book_name)}</div>
             <div class="book-id">${esc(book.book_id)}</div>
@@ -903,7 +935,7 @@ function renderBookCard(book) {
       <div class="abstract-col">
         <div class="abstract-text">${esc(book.abstract)}</div>
       </div>
-      <button class="mark-read-btn" onclick="markRead('${esc(book.book_id)}',this)">✓ Mark read</button>
+      <button class="mark-read-btn" data-book-id="${esc(book.book_id)}">✓ Mark read</button>
     </div>`;
 }
 
@@ -947,7 +979,7 @@ function applyFilters() {
   renderBookList(f);
 }
 
-//  Events 
+// ── Events ──
 function bindEvents() {
   document.getElementById('searchInput').addEventListener('input', e => { currentSearch = e.target.value.trim(); applyFilters(); });
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -974,7 +1006,7 @@ function bindEvents() {
   document.getElementById('tokenModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeTokenModal(); });
 }
 
-//  Init 
+// ── Init ──
 async function init() {
   bindEvents();
   buildCategorySelect();
