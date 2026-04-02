@@ -203,6 +203,18 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .cat-scrape-btn:disabled { opacity:.45; cursor:not-allowed; }
 .cat-update-badge { background:var(--bg3); padding:5px 13px; border-radius:20px; font-size:12px; color:var(--text2); }
 
+/* Category history table */
+.cat-history { max-width:1200px; margin:12px auto 0; padding:0 24px; }
+.cat-history-inner { background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.cat-history-header { padding:10px 16px; font-size:12px; font-weight:600; color:var(--text2); border-bottom:1px solid var(--border); letter-spacing:.4px; }
+.cat-history-scroll { max-height:180px; overflow-y:auto; }
+.cat-history-row { display:flex; align-items:center; justify-content:space-between; padding:8px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; gap:12px; }
+.cat-history-row:last-child { border-bottom:none; }
+.cat-history-row:hover { background:var(--bg3); }
+.cat-history-row.active { background:rgba(240,107,171,.08); border-left:2px solid var(--accent); }
+.cat-history-name { font-size:13px; color:var(--text); font-weight:500; }
+.cat-history-meta { font-size:11px; color:var(--text2); white-space:nowrap; }
+.cat-history-empty { padding:16px; font-size:12px; color:var(--text2); text-align:center; }
 /* Responsive */
 @media (max-width:900px) { .abstract-col { flex:0 0 220px; max-width:220px; } }
 @media (max-width:700px) {
@@ -254,7 +266,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
   <button class="tab-btn" onclick="switchTab('category')">🏷 Category</button>
 </nav>
 
-<!-- ═══════════════ DAILY TAB ═══════════════ -->
+<!--  DAILY TAB  -->
 <div class="tab-panel active" id="tab-daily">
 <div class="read-panel">
   <div class="read-panel-inner">
@@ -293,9 +305,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 <div class="book-list" id="bookList">
   <div class="loading"><div class="spinner"></div><div>Loading...</div></div>
 </div>
-</div><!-- /tab-daily -->
 
-<!-- ═══════════════ CATEGORY TAB ═══════════════ -->
+</div>
+
+<!-- CATEGORY TAB -->
 <div class="tab-panel" id="tab-category">
 
   <div class="cat-bar">
@@ -305,6 +318,15 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
     </div>
     <button class="cat-scrape-btn" id="catScrapeBtn" onclick="triggerCategoryScrape()">▶ Scrape</button>
     <span class="cat-update-badge" id="catUpdateBadge" style="display:none"></span>
+  </div>
+
+  <div class="cat-history">
+    <div class="cat-history-inner">
+      <div class="cat-history-header">🕓 Recent scrapes</div>
+      <div class="cat-history-scroll" id="catHistoryList">
+        <div class="cat-history-empty">No scrapes yet.</div>
+      </div>
+    </div>
   </div>
 
   <div class="book-list" id="catBookList">
@@ -321,8 +343,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
     <button onclick="submitReads()" id="submitBtn" class="submit-confirm">Submit</button>
   </div>
 </div>
+
 <script>
-// CATEGORY LIST
+// CATEGORY LIST 
 const CATEGORIES = [
 { id: 1, name: 'đô thị' },
 { id: 2, name: 'đô thị sinh hoạt' },
@@ -333,7 +356,7 @@ const CATEGORIES = [
 { id: 19, name: 'hệ thống' },
 { id: 20, name: 'thần hào' },
 { id: 23, name: 'làm ruộng' },
-{ id: 24, name: 'mau xuyên' },
+{ id: 24, name: 'xuyên nhanh' },
 { id: 28, name: 'manh bảo' },
 { id: 32, name: 'ảo tưởng ngôn tình' },
 { id: 36, name: 'trọng sinh' },
@@ -432,7 +455,7 @@ const CATEGORIES = [
 { id: 778, name: 'khôi hài nhẹ nhàng' },
 ];
 
-// Tab switching
+//  Tab switching 
 let currentTab = 'daily';
 function switchTab(tab) {
   currentTab = tab;
@@ -441,11 +464,46 @@ function switchTab(tab) {
   document.getElementById('tab-category').classList.toggle('active', tab === 'category');
 }
 
-// Category typeahead
+//  Category history table 
+async function loadCategoryHistory() {
+  const container = document.getElementById('catHistoryList');
+  const results = await Promise.all(
+    CATEGORIES.map(async c => {
+      try {
+        const res = await fetch(`data/category_${c.id}.json`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return { id: c.id, name: c.name, update_time: data.update_time, total: data.total_count };
+      } catch(e) { return null; }
+    })
+  );
+  const scraped = results
+    .filter(Boolean)
+    .sort((a, b) => b.update_time.localeCompare(a.update_time)); 
+
+  if (scraped.length === 0) {
+    container.innerHTML = '<div class="cat-history-empty">No scrapes yet.</div>';
+    return;
+  }
+  container.innerHTML = scraped.map(c => `
+    <div class="cat-history-row" data-id="${c.id}" data-name="${esc(c.name)}" onclick="selectFromHistory(${c.id}, '${esc(c.name)}')">
+      <span class="cat-history-name">${esc(c.name)}</span>
+      <span class="cat-history-meta">${c.update_time} · ${c.total} cuốn</span>
+    </div>`).join('');
+}
+
+function selectFromHistory(id, name) {
+  document.querySelectorAll('.cat-history-row').forEach(r =>
+    r.classList.toggle('active', Number(r.dataset.id) === id)
+  );
+  selectedCategoryId = id;
+  document.getElementById('catSearchInput').value = name;
+  loadCategoryData(id);
+}
 let selectedCategoryId = null;
 let highlightedIndex   = -1;
 
-// Strip diacritics
+// Strip Vietnamese diacritics 
 function removeDiacritics(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
@@ -453,6 +511,8 @@ function removeDiacritics(s) {
 function buildCategorySelect() {
   const input    = document.getElementById('catSearchInput');
   const dropdown = document.getElementById('catDropdown');
+
+  loadCategoryHistory(); 
 
   function getFiltered(q) {
     if (!q) return CATEGORIES;
@@ -494,6 +554,9 @@ function buildCategorySelect() {
     selectedCategoryId = id;
     input.value = name;
     dropdown.classList.remove('open');
+    document.querySelectorAll('.cat-history-row').forEach(r =>
+      r.classList.toggle('active', Number(r.dataset.id) === id)
+    );
     loadCategoryData(id);
   }
 
@@ -562,7 +625,7 @@ async function triggerCategoryScrape() {
   btn.textContent = '▶ Scrape'; btn.disabled = false;
 }
 
-// State
+//  State 
 let allBooks    = [];
 let currentFilter = 'all';
 let currentSearch = '';
@@ -570,7 +633,7 @@ let historyDates  = [];
 let readSet       = new Set();
 let readPanelOpen = false;
 
-// Token
+//  Token 
 const getToken = () => localStorage.getItem('gh_token') || '';
 const getRepo  = () => localStorage.getItem('gh_repo')  || '';
 
@@ -596,14 +659,14 @@ function clearToken() {
 }
 function setModalStatus(m, t) { const el = document.getElementById('tokenStatus'); el.textContent = m; el.className = 'modal-status ' + (t||''); }
 
-// Toast
+//  Toast 
 function toast(msg, type='ok') {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = `toast show ${type}`;
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-// Read panel
+//  Read panel 
 function toggleReadPanel() {
   readPanelOpen = !readPanelOpen;
   document.getElementById('readPanelBody').classList.toggle('open', readPanelOpen);
@@ -658,7 +721,6 @@ async function submitReads() {
   await saveReadList();
   allBooks = allBooks.filter(b => !readSet.has(b.book_id));
   applyFilters();
-  // Also remove marked-read books from the category tab if it has data
   const catList = document.getElementById('catBookList');
   catList.querySelectorAll('.book-card').forEach(card => {
     const idEl = card.querySelector('.book-id');
@@ -709,7 +771,7 @@ async function saveReadList() {
   } catch(e) { toast('✗ Failed to save', 'err'); }
 }
 
-// Mark read from card
+//  Mark read from card 
 let pendingReads = new Set();
 
 async function markRead(bookId, btn) {
@@ -720,7 +782,7 @@ async function markRead(bookId, btn) {
   updateSubmitBar();
 }
 
-// Trigger scrape
+//  Trigger scrape 
 async function triggerScrape() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) { openTokenModal(); return; }
@@ -736,12 +798,12 @@ async function triggerScrape() {
       headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ ref: 'main' }),
     });
-    res.status === 204 ? toast('✓ Triggered — results ready in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
+    res.status === 204 ? toast('✓ Triggered — check Actions in ~1 min', 'ok') : toast(`✗ Failed (${res.status})`, 'err');
   } catch(e) { toast('✗ Network error', 'err'); }
   btn.textContent = '▶ Run now'; btn.style.pointerEvents = '';
 }
 
-// Delete history
+//  Delete history 
 async function deleteSelectedHistory() {
   const token = getToken(), repo = getRepo();
   if (!token || !repo) { openTokenModal(); return; }
@@ -773,7 +835,7 @@ async function deleteSelectedHistory() {
   btn.textContent = '🗑 Delete'; btn.style.pointerEvents = '';
 }
 
-// Data
+//  Data 
 async function loadData(date) {
   try {
     const res = await fetch(date ? `data/history/${date}.json` : 'data/latest.json');
@@ -793,7 +855,7 @@ function rebuildHistoryDropdown(dates) {
   document.getElementById('delHistBtn').classList.remove('visible');
 }
 
-// Render
+//  Render 
 function fmtTimestamp(ts) {
   if (!ts) return '';
   const d = new Date(Number(ts) * 1000);
@@ -885,7 +947,7 @@ function applyFilters() {
   renderBookList(f);
 }
 
-// Events
+//  Events 
 function bindEvents() {
   document.getElementById('searchInput').addEventListener('input', e => { currentSearch = e.target.value.trim(); applyFilters(); });
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -912,7 +974,7 @@ function bindEvents() {
   document.getElementById('tokenModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeTokenModal(); });
 }
 
-// Init
+//  Init 
 async function init() {
   bindEvents();
   buildCategorySelect();
