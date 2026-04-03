@@ -1099,7 +1099,8 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     <div class="book-info">
       <div class="book-rank notranslate">#${book.hot_rank || '?'} ${rc}</div>
       <div class="book-name" title="${book.book_name}">${book.book_name}</div>
-      <div class="book-author">${book.author || ''} <a href="https://fanqienovel.com/page/${book.book_id}" target="_blank" rel="noopener" class="book-id-link notranslate">#${book.book_id}</a></div>
+      <div class="book-author">${book.author || ''}</div>
+      <a href="https://fanqienovel.com/page/${book.book_id}" target="_blank" rel="noopener" class="book-id-link notranslate">#${book.book_id}</a>
       ${book.abstract ? `<div class="book-abstract" id="abs-${book.book_id}">${book.abstract}</div><button class="btn-abstract" onclick="openAbstract('${book.book_id}', this)">Xem thêm ▾</button>` : ''}
       <div class="book-tags">${statusTag}${tags}</div>
       <div class="book-footer">
