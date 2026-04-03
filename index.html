@@ -1007,8 +1007,10 @@ const pendingRead = { daily: new Set(), category: new Set() };
 
 function updateReadBar(tab) {
   const count = pendingRead[tab].size;
-  document.getElementById(`${tab}-read-bar`).style.display = count > 0 ? '' : 'none';
-  document.getElementById(`${tab}-marked-count`).textContent = count;
+  // id prefix: 'daily' → 'daily', 'category' → 'cat'
+  const prefix = tab === 'category' ? 'cat' : tab;
+  document.getElementById(`${prefix}-read-bar`).style.display = count > 0 ? '' : 'none';
+  document.getElementById(`${prefix}-marked-count`).textContent = count;
 }
 
 async function submitRead(tab) {
@@ -1089,8 +1091,11 @@ function bookCardHTML(book, tab, readSet = new Set()) {
       ? `<span class="tag ongoing">Còn tiếp</span>`
       : '';
   const rc = rankChangeHTML(book.rank_change);
+  const isPending = pendingRead[tab] && pendingRead[tab].has(book.book_id);
   const readBtn = isRead
     ? `<button class="btn-read marked" disabled>✓ Đã đọc</button>`
+    : isPending
+      ? `<button class="btn-read marked" onclick="toggleRead('${book.book_id}', this, '${tab}')">✓ Đã đọc</button>`
     : `<button class="btn-read" onclick="toggleRead('${book.book_id}', this, '${tab}')">+ Đánh dấu đã đọc</button>`;
 
   return `
