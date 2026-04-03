@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>📚 Truyện Hay</title>
+<title>💗fresh tomato</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -262,8 +262,68 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     line-height: 1.5;
+    white-space: pre-line;
+  }
+  .btn-abstract {
+    font-size: 11px; color: var(--accent);
+    background: none; border: none; padding: 0;
+    cursor: pointer; margin-bottom: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+  }
+  .btn-abstract:hover { text-decoration: underline; }
+
+  /* ── Abstract modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 8000;
+    background: rgba(26,23,20,.45);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%; max-width: 520px;
+    max-height: 80vh;
+    display: flex; flex-direction: column;
+    transform: translateY(12px);
+    transition: transform .2s;
+  }
+  .modal-overlay.open .modal-box { transform: translateY(0); }
+  .modal-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .modal-title {
+    font-family: 'Lora', serif;
+    font-size: 16px; font-weight: 600;
+    flex: 1; line-height: 1.35;
+  }
+  .modal-author { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .modal-close {
+    width: 28px; height: 28px; flex-shrink: 0;
+    border: 1.5px solid var(--border2);
+    border-radius: 6px; background: none;
+    cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .15s;
+  }
+  .modal-close:hover { border-color: var(--accent); color: var(--accent); }
+  .modal-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    font-size: 13px; line-height: 1.8;
+    color: var(--text);
+    white-space: pre-line;
   }
   .book-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
   .tag {
@@ -515,6 +575,20 @@
 
 </main>
 
+<!-- ── Abstract modal ── -->
+<div id="abstract-modal" class="modal-overlay" onclick="closeAbstractOnBg(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div style="flex:1">
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-author" id="modal-author"></div>
+      </div>
+      <button class="modal-close" onclick="closeAbstract()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════
 // Config
@@ -526,8 +600,112 @@ const CATEGORY_NAMES = {
   70: 'Đô thị',
 };
 const CATEGORIES = [
-  { id: 24, name: 'Huyền huyễn' },
-  { id: 70, name: 'Đô thị' },
+{ id: 1, name: 'đô thị' },
+{ id: 2, name: 'đô thị sinh hoạt' },
+{ id: 3, name: 'hiện đại ngôn tình' },
+{ id: 4, name: 'vườn trường' },
+{ id: 8, name: 'khoa học viễn tưởng' },
+{ id: 10, name: 'huyền nghi' },
+{ id: 19, name: 'hệ thống' },
+{ id: 20, name: 'thần hào' },
+{ id: 23, name: 'làm ruộng' },
+{ id: 24, name: 'xuyên nhanh' },
+{ id: 28, name: 'manh bảo' },
+{ id: 32, name: 'ảo tưởng ngôn tình' },
+{ id: 36, name: 'trọng sinh' },
+{ id: 37, name: 'xuyên qua' },
+{ id: 40, name: 'hải đảo' },
+{ id: 43, name: 'giới giải trí' },
+{ id: 61, name: 'trinh thám' },
+{ id: 61, name: 'trinh thám huyền nghi' },
+{ id: 69, name: 'phát sóng trực tiếp' },
+{ id: 70, name: 'vô hạn lưu' },
+{ id: 77, name: 'tinh tế' },
+{ id: 78, name: 'mỹ thực' },
+{ id: 79, name: 'niên đại' },
+{ id: 82, name: 'học bá' },
+{ id: 86, name: 'nữ cường' },
+{ id: 89, name: 'tinh linh' },
+{ id: 90, name: 'thiên tài' },
+{ id: 92, name: 'phúc hắc' },
+{ id: 93, name: 'giả heo ăn hổ' },
+{ id: 94, name: 'đoàn sủng' },
+{ id: 95, name: 'ngược văn' },
+{ id: 96, name: 'ngọt sủng' },
+{ id: 125, name: 'gia đình' },
+{ id: 127, name: 'chức trường' },
+{ id: 261, name: 'đô thị hằng ngày' },
+{ id: 262, name: 'đô thị não động' },
+{ id: 263, name: 'đô thị làm ruộng' },
+{ id: 266, name: 'áo choàng' },
+{ id: 267, name: 'hiện ngôn não động' },
+{ id: 322, name: 'kinh tủng' },
+{ id: 369, name: 'vai ác' },
+{ id: 373, name: 'tây du' },
+{ id: 374, name: 'Marvel' },
+{ id: 379, name: 'cầu sinh' },
+{ id: 380, name: 'bệnh kiều' },
+{ id: 381, name: 'group chat' },
+{ id: 382, name: 'xuyên thư' },
+{ id: 387, name: 'thanh mai trúc mã' },
+{ id: 388, name: 'nữ giả nam trang' },
+{ id: 389, name: 'đơn nữ chủ' },
+{ id: 390, name: 'dân quốc' },
+{ id: 391, name: 'vô nữ chủ' },
+{ id: 392, name: 'vô CP' },
+{ id: 396, name: 'đô thị thanh xuân' },
+{ id: 454, name: 'khả muối khả ngọt' },
+{ id: 455, name: 'duyên trời tác hợp' },
+{ id: 456, name: 'yêu sâu sắc' },
+{ id: 458, name: 'bênh vực người mình' },
+{ id: 460, name: 'độc sủng' },
+{ id: 461, name: 'đàn xuyên' },
+{ id: 462, name: 'cổ xuyên kim' },
+{ id: 463, name: 'kim xuyên cổ' },
+{ id: 464, name: 'dị thế xuyên qua' },
+{ id: 466, name: 'lóe hôn' },
+{ id: 467, name: 'ẩn hôn' },
+{ id: 469, name: 'hai mặt' },
+{ id: 470, name: 'thế thân' },
+{ id: 471, name: 'khế ước hôn nhân' },
+{ id: 473, name: 'hào môn thế gia' },
+{ id: 474, name: 'lâu ngày sinh tình' },
+{ id: 475, name: 'gương vỡ lại lành' },
+{ id: 476, name: 'song hướng lao tới' },
+{ id: 477, name: 'nhất kiến chung tình' },
+{ id: 478, name: 'cường cường' },
+{ id: 479, name: 'mang cầu chạy' },
+{ id: 480, name: 'đào hôn' },
+{ id: 482, name: 'yêu thầm' },
+{ id: 483, name: 'tương ái tương sát' },
+{ id: 484, name: 'HE' },
+{ id: 485, name: 'chức trường thương chiến' },
+{ id: 486, name: 'minh tinh' },
+{ id: 487, name: 'bác sĩ' },
+{ id: 488, name: 'luật sư' },
+{ id: 489, name: 'hiện ngôn manh bảo' },
+{ id: 493, name: 'câu cá' },
+{ id: 494, name: 'độn vật tư' },
+{ id: 496, name: 'vận mệnh quốc gia' },
+{ id: 500, name: 'phay đứt gãy' },
+{ id: 502, name: 'cung đình hầu tước' },
+{ id: 505, name: 'phá án' },
+{ id: 509, name: 'trò chơi chủ bá' },
+{ id: 515, name: 'tận thế cầu sinh' },
+{ id: 516, name: 'đô thị dị năng' },
+{ id: 521, name: 'làm tinh' },
+{ id: 523, name: 'kiếp trước kiếp này' },
+{ id: 524, name: 'song trọng sinh' },
+{ id: 538, name: 'đồng nghiệp' },
+{ id: 539, name: 'huyền nghi não động' },
+{ id: 557, name: 'chạy nạn' },
+{ id: 702, name: 'song khiết' },
+{ id: 745, name: 'hào môn sảng văn' },
+{ id: 746, name: 'trò chơi thể dục' },
+{ id: 747, name: 'huyền nghi luyến ái' },
+{ id: 749, name: 'thanh xuân ngọt sủng' },
+{ id: 750, name: 'chức trường tình yêu và hôn nhân' },
+{ id: 778, name: 'khôi hài nhẹ nhàng' },
 ];
 
 function loadConfig() {
@@ -719,7 +897,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   const statusTag = book.status === 'Completed'
     ? `<span class="tag completed">Hoàn thành</span>`
     : book.status === 'Ongoing'
-      ? `<span class="tag ongoing">Đang ra</span>`
+      ? `<span class="tag ongoing">Còn tiếp</span>`
       : '';
   const rc = rankChangeHTML(book.rank_change);
   const readBtn = isRead
@@ -733,7 +911,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
       <div class="book-rank">#${book.hot_rank || '?'} ${rc}</div>
       <div class="book-name" title="${book.book_name}">${book.book_name}</div>
       <div class="book-author">${book.author || ''}</div>
-      ${book.abstract ? `<div class="book-abstract">${book.abstract}</div>` : ''}
+      ${book.abstract ? `<div class="book-abstract" id="abs-${book.book_id}">${book.abstract}</div><button class="btn-abstract" onclick="openAbstract('${book.book_id}', this)">Xem thêm ▾</button>` : ''}
       <div class="book-tags">${statusTag}${tags}</div>
       <div class="book-footer">
         <div class="book-time">${fmtTime(book.last_chapter_time)}</div>
@@ -761,6 +939,7 @@ async function loadDaily() {
     dailyReadSet = new Set(readArr.map(String));
 
     infoEl.textContent = `Cập nhật: ${data.update_time || '—'} · Tổng: ${data.total_count || 0} cuốn`;
+    registerBooks(data.books || []);
 
     if (!data.books || data.books.length === 0) {
       container.innerHTML = `<div class="state-box"><div class="icon">📭</div>Chưa có dữ liệu.</div>`;
@@ -822,6 +1001,7 @@ async function loadCategory(catId) {
         ghRaw('data/read.json').catch(() => []),
       ]);
       catData[catId] = { data, readSet: new Set(readArr.map(String)) };
+      registerBooks(data.books || []);
     } catch(e) {
       panelsEl.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi: ${e.message}</div>`;
       return;
@@ -890,6 +1070,36 @@ async function triggerCatScrape() {
     btn.disabled = false;
     btn.innerHTML = '▶ Scrape danh mục';
   }
+}
+
+// ══════════════════════════════════════════
+// Abstract modal
+// ══════════════════════════════════════════
+// Store book data for modal lookup
+const _bookRegistry = {};
+
+function registerBooks(books) {
+  for (const b of books) _bookRegistry[b.book_id] = b;
+}
+
+function openAbstract(bookId, btn) {
+  const book = _bookRegistry[bookId];
+  if (!book || !book.abstract) return;
+  document.getElementById('modal-title').textContent  = book.book_name || '';
+  document.getElementById('modal-author').textContent = book.author || '';
+  // Format abstract: split on \n or Chinese paragraph breaks
+  document.getElementById('modal-body').textContent   = book.abstract;
+  document.getElementById('abstract-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAbstract() {
+  document.getElementById('abstract-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeAbstractOnBg(e) {
+  if (e.target === document.getElementById('abstract-modal')) closeAbstract();
 }
 
 // ══════════════════════════════════════════
