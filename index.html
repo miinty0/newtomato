@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>💗fresh or rotten</title>
+<title>💗cà ngọt hay chua</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -541,7 +541,7 @@
 <div id="setup-overlay">
   <div class="setup-card">
     <h2>📚 Cấu hình</h2>
-    <p>Nhập thông tin GitHub để bắt đầu. Dùng <strong>fine-grained PAT</strong> với quyền <code>Contents</code>, <code>Actions</code>, <code>Workflows</code> (Read &amp; Write) cho repo này.</p>
+    <p>Nhập thông tin GitHub để bắt đầu. Dữ liệu được lưu vĩnh viễn trong trình duyệt.<br>Dùng <strong>fine-grained PAT</strong> với quyền <code>Contents</code>, <code>Actions</code>, <code>Workflows</code> (Read &amp; Write) cho repo này.</p>
     <div class="setup-field">
       <label>GitHub Username</label>
       <input id="cfg-user" type="text" placeholder="miinty0" />
@@ -560,7 +560,7 @@
 
 <!-- ── Header ── -->
 <header>
-  <div class="logo">💗 <span>Fresh<span class="logo-dot">.</span>rotten</span></div>
+  <div class="logo">💗 <span>ngọt<span class="logo-dot">.</span>hay<span class="logo-dot">.</span>chua</span></div>
   <div class="header-right">
     <span class="repo-badge" id="repo-badge">—</span>
     <button class="btn-icon" title="Cài đặt lại" onclick="openSetup()">⚙</button>
@@ -620,7 +620,7 @@
       </select>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input id="cat-search" type="text" placeholder="Tìm truyện…" oninput="filterCatBooks()" />
+        <input id="cat-search" type="text" placeholder="Tìm tên truyện hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
       </div>
       <button class="btn btn-danger btn-sm" id="cat-scrape-btn" onclick="triggerCatScrape()" disabled>▶ Scrape danh mục</button>
 
@@ -672,8 +672,112 @@
 let CFG = { user: '', repo: '', token: '' };
 
 const CATEGORY_NAMES = {
-  24: 'Huyền huyễn',
-  70: 'Đô thị',
+1: 'đô thị',
+2: 'đô thị sinh hoạt',
+3: 'hiện đại ngôn tình',
+4: 'vườn trường',
+8: 'khoa học viễn tưởng',
+10: 'huyền nghi',
+19: 'hệ thống',
+20: 'thần hào',
+23: 'làm ruộng',
+24: 'xuyên nhanh',
+28: 'manh bảo',
+32: 'ảo tưởng ngôn tình',
+36: 'trọng sinh',
+37: 'xuyên qua',
+40: 'hải đảo',
+43: 'giới giải trí',
+61: 'trinh thám',
+61: 'trinh thám huyền nghi',
+69: 'phát sóng trực tiếp',
+70: 'vô hạn lưu',
+77: 'tinh tế',
+78: 'mỹ thực',
+79: 'niên đại',
+82: 'học bá',
+86: 'nữ cường',
+89: 'tinh linh',
+90: 'thiên tài',
+92: 'phúc hắc',
+93: 'giả heo ăn hổ',
+94: 'đoàn sủng',
+95: 'ngược văn',
+96: 'ngọt sủng',
+125: 'gia đình',
+127: 'chức trường',
+261: 'đô thị hằng ngày',
+262: 'đô thị não động',
+263: 'đô thị làm ruộng',
+266: 'áo choàng',
+267: 'hiện ngôn não động',
+322: 'kinh tủng',
+369: 'vai ác',
+373: 'tây du',
+374: 'Marvel',
+379: 'cầu sinh',
+380: 'bệnh kiều',
+381: 'group chat',
+382: 'xuyên thư',
+387: 'thanh mai trúc mã',
+388: 'nữ giả nam trang',
+389: 'đơn nữ chủ',
+390: 'dân quốc',
+391: 'vô nữ chủ',
+392: 'vô CP',
+396: 'đô thị thanh xuân',
+454: 'khả muối khả ngọt',
+455: 'duyên trời tác hợp',
+456: 'yêu sâu sắc',
+458: 'bênh vực người mình',
+460: 'độc sủng',
+461: 'đàn xuyên',
+462: 'cổ xuyên kim',
+463: 'kim xuyên cổ',
+464: 'dị thế xuyên qua',
+466: 'lóe hôn',
+467: 'ẩn hôn',
+469: 'hai mặt',
+470: 'thế thân',
+471: 'khế ước hôn nhân',
+473: 'hào môn thế gia',
+474: 'lâu ngày sinh tình',
+475: 'gương vỡ lại lành',
+476: 'song hướng lao tới',
+477: 'nhất kiến chung tình',
+478: 'cường cường',
+479: 'mang cầu chạy',
+480: 'đào hôn',
+482: 'yêu thầm',
+483: 'tương ái tương sát',
+484: 'HE',
+485: 'chức trường thương chiến',
+486: 'minh tinh',
+487: 'bác sĩ',
+488: 'luật sư',
+489: 'hiện ngôn manh bảo',
+493: 'câu cá',
+494: 'độn vật tư',
+496: 'vận mệnh quốc gia',
+500: 'phay đứt gãy',
+502: 'cung đình hầu tước',
+505: 'phá án',
+509: 'trò chơi chủ bá',
+515: 'tận thế cầu sinh',
+516: 'đô thị dị năng',
+521: 'làm tinh',
+523: 'kiếp trước kiếp này',
+524: 'song trọng sinh',
+538: 'đồng nghiệp',
+539: 'huyền nghi não động',
+557: 'chạy nạn',
+702: 'song khiết',
+745: 'hào môn sảng văn',
+746: 'trò chơi thể dục',
+747: 'huyền nghi luyến ái',
+749: 'thanh xuân ngọt sủng',
+750: 'chức trường tình yêu và hôn nhân',
+778: 'khôi hài nhẹ nhàng',
 };
 const CATEGORIES = [
 { id: 1, name: 'đô thị' },
@@ -842,7 +946,7 @@ function switchTab(id, btn) {
 // GitHub raw content fetch
 // ══════════════════════════════════════════
 async function ghRaw(filePath) {
-  // Use Contents API 
+  // Use Contents API — works with fine-grained PAT, avoids raw.githubusercontent.com CORS issues
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
   const res = await fetch(url, {
     cache: 'no-store',
@@ -978,7 +1082,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   const rc = rankChangeHTML(book.rank_change);
   const readBtn = isRead
     ? `<button class="btn-read marked" disabled>✓ Đã đọc</button>`
-    : `<button class="btn-read" onclick="toggleRead('${book.book_id}', this, '${tab}')">+ Đánh dấu</button>`;
+    : `<button class="btn-read" onclick="toggleRead('${book.book_id}', this, '${tab}')">+ Đánh dấu đã đọc</button>`;
 
   return `
   <div class="book-card${isRead ? ' is-read' : ''}" data-id="${book.book_id}" data-name="${(book.book_name||'').toLowerCase()}" data-pending-read="">
@@ -1005,23 +1109,56 @@ let dailyReadSet = new Set();
 async function loadDaily() {
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
-  container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải…</div>`;
+  container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải latest + lịch sử…</div>`;
 
   try {
-    const [data, readArr] = await Promise.all([
+    // Load latest + read list + history index in parallel
+    const [latestData, readArr, histIndex] = await Promise.all([
       ghRaw('data/latest.json'),
       ghRaw('data/read.json').catch(() => []),
+      ghRaw('data/history_index.json').catch(() => []),
     ]);
     dailyReadSet = new Set(readArr.map(String));
 
-    infoEl.textContent = `Cập nhật: ${data.update_time || '—'} · Tổng: ${data.total_count || 0} cuốn`;
-    registerBooks(data.books || []);
+    // Collect all books: start with latest
+    const bookMap = {};
+    for (const b of (latestData.books || [])) bookMap[b.book_id] = b;
 
-    if (!data.books || data.books.length === 0) {
-      container.innerHTML = `<div class="state-box"><div class="icon">📭</div>Chưa có dữ liệu.</div>`;
+    // Load history files (skip today's date since latest.json already has it)
+    const todayStr = latestData.update_date || '';
+    const histDates = (histIndex || []).filter(d => d !== todayStr);
+
+    if (histDates.length > 0) {
+      infoEl.textContent = `Đang tải ${histDates.length} snapshot lịch sử…`;
+      // Load all history files in parallel
+      const histResults = await Promise.allSettled(
+        histDates.map(d => ghRaw(`data/history/${d}.json`))
+      );
+      for (const r of histResults) {
+        if (r.status !== 'fulfilled') continue;
+        for (const b of (r.value.books || [])) {
+          if (!bookMap[b.book_id]) bookMap[b.book_id] = b;
+        }
+      }
+    }
+
+    // Filter out already-read books
+    const allBooks = Object.values(bookMap).filter(b => !dailyReadSet.has(b.book_id));
+    // Sort: unread new first (rank_change === 'new'), then by hot_rank
+    allBooks.sort((a, b) => {
+      if (a.rank_change === 'new' && b.rank_change !== 'new') return -1;
+      if (b.rank_change === 'new' && a.rank_change !== 'new') return 1;
+      return (a.hot_rank || 999) - (b.hot_rank || 999);
+    });
+
+    registerBooks(allBooks);
+    infoEl.textContent = `Cập nhật: ${latestData.update_time || '—'} · ${allBooks.length} cuốn chưa đọc (từ ${histDates.length + 1} ngày)`;
+
+    if (allBooks.length === 0) {
+      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Bạn đã đọc hết tất cả sách được đề xuất!</div>`;
       return;
     }
-    container.innerHTML = data.books.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
+    container.innerHTML = allBooks.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
   } catch(e) {
     container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${e.message}</div>`;
   }
@@ -1042,6 +1179,7 @@ async function triggerDailyScrape() {
     btn.innerHTML = '▶ Scrape ngay';
   }
 }
+
 // ══════════════════════════════════════════
 // CATEGORY TAB
 // ══════════════════════════════════════════
@@ -1096,6 +1234,7 @@ function renderCatPanels() {
   }
 
   // When searching: show all loaded categories sorted by match count
+  // When not searching: only show selected category
   const selectedId = document.getElementById('cat-select').value;
   const entriesToShow = query
     ? Object.entries(catData)
@@ -1112,9 +1251,9 @@ function renderCatPanels() {
   for (const [catId, { data, readSet }] of entriesToShow) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
     let books = data.books || [];
- if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
+    if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
     const count = books.length;
-    if (query && count === 0) continue; 
+    if (query && count === 0) continue; // hide panels with no results when searching
     totalMatches += count;
 
     html += `
@@ -1293,9 +1432,43 @@ function closeAbstractOnBg(e) {
 // ══════════════════════════════════════════
 // Init
 // ══════════════════════════════════════════
-function initApp() {
+async function detectExistingCategories() {
+  // List data/ folder via GitHub Contents API to find category_*.json files
+  try {
+    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data`;
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return;
+    const files = await res.json();
+    const h = loadFetchHistory();
+    let changed = false;
+    for (const f of files) {
+      const m = f.name.match(/^category_(\d+)\.json$/);
+      if (!m) continue;
+      const catId = m[1];
+      if (!h[catId]) {
+        // Try to read update_time from the file
+        try {
+          const data = await ghRaw(`data/category_${catId}.json`);
+          const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
+          h[catId] = {
+            name,
+            date: data.update_time ? new Date(data.update_time.replace(' ', 'T')).toISOString() : new Date().toISOString()
+          };
+          changed = true;
+        } catch(e) {}
+      }
+    }
+    if (changed) { saveFetchHistory(h); renderFetchHistory(); }
+  } catch(e) {}
+}
+
+async function initApp() {
   initCatSelect();
   renderFetchHistory();
+  detectExistingCategories(); // async, runs in background
   loadDaily();
 }
 
