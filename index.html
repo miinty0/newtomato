@@ -256,6 +256,14 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .book-author { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .book-id-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--muted);
+    text-decoration: none; opacity: .6;
+    border-bottom: 1px dashed var(--border2);
+    transition: opacity .15s, color .15s;
+  }
+  .book-id-link:hover { opacity: 1; color: var(--accent); }
   .book-abstract {
     font-size: 12px; color: var(--muted);
     display: -webkit-box;
@@ -659,6 +667,7 @@
         <div class="modal-title" id="modal-title"></div>
         <div class="modal-author" id="modal-author"></div>
       </div>
+      <button class="btn-outline btn-sm" id="modal-translate-btn" onclick="translateModal()" style="flex-shrink:0">🌐 Dịch</button>
       <button class="modal-close" onclick="closeAbstract()">✕</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
@@ -1090,7 +1099,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     <div class="book-info">
       <div class="book-rank notranslate">#${book.hot_rank || '?'} ${rc}</div>
       <div class="book-name" title="${book.book_name}">${book.book_name}</div>
-      <div class="book-author">${book.author || ''}</div>
+      <div class="book-author">${book.author || ''} <a href="https://fanqienovel.com/page/${book.book_id}" target="_blank" rel="noopener" class="book-id-link notranslate">#${book.book_id}</a></div>
       ${book.abstract ? `<div class="book-abstract" id="abs-${book.book_id}">${book.abstract}</div><button class="btn-abstract" onclick="openAbstract('${book.book_id}', this)">Xem thêm ▾</button>` : ''}
       <div class="book-tags">${statusTag}${tags}</div>
       <div class="book-footer">
@@ -1419,7 +1428,47 @@ function openAbstract(bookId, btn) {
   // Format abstract: split on \n or Chinese paragraph breaks
   document.getElementById('modal-body').textContent   = book.abstract;
   document.getElementById('abstract-modal').classList.add('open');
+  // Reset translate button state
+  const tBtn = document.getElementById('modal-translate-btn');
+  if (tBtn) { tBtn.dataset.translated = ''; tBtn.textContent = '🌐 Dịch'; tBtn.disabled = false; }
+  document.getElementById('modal-body')._originalText = null;
   document.body.style.overflow = 'hidden';
+}
+
+async function translateModal() {
+  const btn = document.getElementById('modal-translate-btn');
+  const body = document.getElementById('modal-body');
+  const originalText = body._originalText || body.textContent;
+  body._originalText = originalText;
+
+  // Toggle: if already translated, restore
+  if (btn.dataset.translated === '1') {
+    body.textContent = originalText;
+    btn.dataset.translated = '';
+    btn.textContent = '🌐 Dịch';
+    return;
+  }
+
+  // Check if userscript is loaded
+  if (typeof window.tmTranslate !== 'function') {
+    alert('Cần cài Tampermonkey + userscript TM Translate để dịch.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳…';
+
+  try {
+    const translated = await window.tmTranslate(originalText);
+    body.textContent = translated;
+    btn.dataset.translated = '1';
+    btn.textContent = '↩ Gốc';
+  } catch(e) {
+    btn.textContent = '⚠ Lỗi';
+    setTimeout(() => { btn.textContent = '🌐 Dịch'; }, 2000);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function closeAbstract() {
