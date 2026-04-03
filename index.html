@@ -1112,9 +1112,9 @@ function renderCatPanels() {
   for (const [catId, { data, readSet }] of entriesToShow) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
     let books = data.books || [];
-    if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query));
+ if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
     const count = books.length;
-    if (query && count === 0) continue; // hide panels with no results when searching
+    if (query && count === 0) continue; 
     totalMatches += count;
 
     html += `
