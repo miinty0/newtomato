@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>📚 Truyện Hay</title>
+<title>📚 fresh tomato</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -415,17 +415,17 @@
 <div id="setup-overlay">
   <div class="setup-card">
     <h2>📚 Cấu hình</h2>
-    <p>Nhập thông tin GitHub để bắt đầu. Dữ liệu được lưu vĩnh viễn trong trình duyệt.</p>
+    <p>Nhập thông tin GitHub để bắt đầu. Dữ liệu được lưu vĩnh viễn trong trình duyệt.<br>Dùng <strong>fine-grained PAT</strong> với quyền <code>Contents</code>, <code>Actions</code>, <code>Workflows</code> (Read &amp; Write) cho repo này.</p>
     <div class="setup-field">
       <label>GitHub Username</label>
-      <input id="cfg-user" type="text" placeholder="your-username" />
+      <input id="cfg-user" type="text" placeholder="miinty0" />
     </div>
     <div class="setup-field">
       <label>Repository Name</label>
-      <input id="cfg-repo" type="text" placeholder="your-repo-name" />
+      <input id="cfg-repo" type="text" placeholder="newtomato" />
     </div>
     <div class="setup-field">
-      <label>GitHub Token (classic — repo + workflow scope)</label>
+      <label>GitHub Fine-grained PAT</label>
       <input id="cfg-token" type="password" placeholder="ghp_xxxxxxxxxxxx" />
     </div>
     <button class="btn-primary" onclick="saveConfig()">Lưu & tiếp tục →</button>
@@ -589,14 +589,14 @@ function switchTab(id, btn) {
 // ══════════════════════════════════════════
 async function ghRaw(filePath) {
   const url = `https://raw.githubusercontent.com/${CFG.user}/${CFG.repo}/main/${filePath}`;
-  const res = await fetch(url, { headers: { 'Authorization': `token ${CFG.token}`, 'Cache-Control': 'no-cache' } });
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${CFG.token}`, 'Cache-Control': 'no-cache' } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 async function ghGetFile(filePath) {
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
-  const res = await fetch(url, { headers: { 'Authorization': `token ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' } });
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -606,7 +606,7 @@ async function ghPutFile(filePath, content, message, sha) {
   const body = { message, content: btoa(unescape(encodeURIComponent(content))), sha };
   const res = await fetch(url, {
     method: 'PUT',
-    headers: { 'Authorization': `token ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
@@ -617,7 +617,7 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/actions/workflows/${workflowId}/dispatches`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Authorization': `token ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ ref: 'main', inputs }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
