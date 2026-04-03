@@ -591,10 +591,10 @@ async function ghRaw(filePath) {
   // Use Contents API — works with fine-grained PAT, avoids raw.githubusercontent.com CORS issues
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
   const res = await fetch(url, {
+    cache: 'no-store',
     headers: {
       'Authorization': `Bearer ${CFG.token}`,
       'Accept': 'application/vnd.github.v3+json',
-      'Cache-Control': 'no-cache',
     }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
