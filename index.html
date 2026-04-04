@@ -1015,7 +1015,8 @@ function updateReadBar(tab) {
 
 async function submitRead(tab) {
   if (pendingRead[tab].size === 0) return;
-  const btn = document.querySelector(`#${tab}-read-bar .btn-success`);
+  const prefix = tab === 'category' ? 'cat' : tab;
+  const btn = document.querySelector(`#${prefix}-read-bar .btn-success`);
   btn.disabled = true; btn.textContent = '⏳ Đang lưu…';
   try {
     // Fetch current read.json
@@ -1030,6 +1031,11 @@ async function submitRead(tab) {
     const merged = Array.from(new Set([...currentIds, ...pendingRead[tab]]));
     await ghPutFile('data/read.json', JSON.stringify(merged, null, 2), `mark ${pendingRead[tab].size} book(s) as read`, sha);
 
+    // Update in-memory readSets so re-renders stay correct
+    for (const id of pendingRead[tab]) {
+      dailyReadSet.add(id);
+      for (const cat of Object.values(catData)) cat.readSet.add(id);
+    }
     pendingRead[tab].clear();
     updateReadBar(tab);
     // Mark cards visually
