@@ -974,7 +974,7 @@ async function ghRaw(filePath) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const meta = await res.json();
-  const text = decodeURIComponent(escape(b64DecodeUTF8(meta.content)));
+  const text = b64DecodeUTF8(meta.content);
   return JSON.parse(text);
 }
 
