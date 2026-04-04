@@ -598,6 +598,7 @@
       <div class="action-row">
         <button class="btn btn-outline btn-sm" id="daily-reload-btn" onclick="loadDaily()">↻ Tải lại</button>
         <button class="btn btn-danger btn-sm" id="daily-scrape-btn" onclick="triggerDailyScrape()">▶ Scrape ngay</button>
+        <button class="btn btn-outline btn-sm" id="cleanup-btn" onclick="runFullCleanup()" title="Dọn sạch history/cache theo read.json hiện tại">🧹 Dọn dẹp</button>
       </div>
     </div>
 
@@ -989,6 +990,16 @@ async function ghPutFile(filePath, content, message, sha) {
   return res.json();
 }
 
+async function ghDeleteFile(filePath, sha, message) {
+  const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, sha }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
+}
+
 async function ghDispatchWorkflow(workflowId, inputs = {}) {
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/actions/workflows/${workflowId}/dispatches`;
   const res = await fetch(url, {
@@ -1013,6 +1024,115 @@ function updateReadBar(tab) {
   document.getElementById(`${prefix}-marked-count`).textContent = count;
 }
 
+async function runFullCleanup() {
+  const btn = document.getElementById('cleanup-btn');
+  btn.disabled = true; btn.textContent = '⏳ Đang tải…';
+  try {
+    // Load full read list from GitHub
+    const meta = await ghGetFile('data/read.json');
+    const allReadIds = new Set(JSON.parse(atob(meta.content.replace(/\n/g, ''))).map(String));
+    if (allReadIds.size === 0) {
+      toast('read.json trống, không có gì để dọn.', '');
+      return;
+    }
+    btn.textContent = `🧹 Đang dọn ${allReadIds.size} ID…`;
+    await cleanupAfterRead(allReadIds);
+  } catch(e) {
+    toast('Lỗi: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false; btn.textContent = '🧹 Dọn dẹp';
+  }
+}
+
+async function cleanupAfterRead(readIds) {
+  // readIds: Set of book_id strings just marked as read
+  if (readIds.size === 0) return;
+  const ids = readIds;
+
+  toast('🧹 Đang dọn history…', '');
+
+  try {
+    // ── 1. Clean latest.json ──
+    try {
+      const latestMeta = await ghGetFile('data/latest.json');
+      const latest = JSON.parse(atob(latestMeta.content.replace(/\n/g, '')));
+      const filtered = (latest.books || []).filter(b => !ids.has(b.book_id));
+      if (filtered.length !== (latest.books || []).length) {
+        latest.books = filtered;
+        latest.total_count = filtered.length;
+        await ghPutFile('data/latest.json', JSON.stringify(latest, null, 2), `cleanup: remove ${ids.size} read book(s) from latest`, latestMeta.sha);
+      }
+    } catch(e) { console.warn('latest.json cleanup failed:', e.message); }
+
+    // ── 2. Clean history files ──
+    try {
+      const idxMeta = await ghGetFile('data/history_index.json');
+      const histDates = JSON.parse(atob(idxMeta.content.replace(/\n/g, '')));
+      const remainingDates = [];
+
+      for (const date of histDates) {
+        try {
+          const filePath = `data/history/${date}.json`;
+          const meta = await ghGetFile(filePath);
+          const data = JSON.parse(atob(meta.content.replace(/\n/g, '')));
+          const filtered = (data.books || []).filter(b => !ids.has(b.book_id));
+
+          if (filtered.length === 0) {
+            // Delete the file entirely
+            await ghDeleteFile(filePath, meta.sha, `cleanup: remove empty history ${date}`);
+          } else if (filtered.length !== (data.books || []).length) {
+            data.books = filtered;
+            data.total_count = filtered.length;
+            await ghPutFile(filePath, JSON.stringify(data, null, 2), `cleanup: remove read books from history ${date}`, meta.sha);
+            remainingDates.push(date);
+          } else {
+            remainingDates.push(date);
+          }
+        } catch(e) { console.warn(`history/${date} cleanup failed:`, e.message); }
+      }
+
+      // Update history_index.json if any dates were removed
+      if (remainingDates.length !== histDates.length) {
+        await ghPutFile('data/history_index.json', JSON.stringify(remainingDates, null, 2), `cleanup: remove ${histDates.length - remainingDates.length} empty history file(s)`, idxMeta.sha);
+      }
+    } catch(e) { console.warn('history cleanup failed:', e.message); }
+
+    // ── 3. Clean cache.json ──
+    try {
+      const cacheMeta = await ghGetFile('data/cache.json');
+      const cache = JSON.parse(atob(cacheMeta.content.replace(/\n/g, '')));
+      let cacheChanged = false;
+      for (const id of ids) {
+        if (cache[id]) { delete cache[id]; cacheChanged = true; }
+      }
+      if (cacheChanged) {
+        await ghPutFile('data/cache.json', JSON.stringify(cache, null, 2), `cleanup: remove ${ids.size} read book(s) from cache`, cacheMeta.sha);
+      }
+    } catch(e) { console.warn('cache.json cleanup failed:', e.message); }
+
+    // ── 4. Clean category files ──
+    for (const [catId, catInfo] of Object.entries(catData)) {
+      try {
+        const filePath = `data/category_${catId}.json`;
+        const meta = await ghGetFile(filePath);
+        const data = JSON.parse(atob(meta.content.replace(/\n/g, '')));
+        const filtered = (data.books || []).filter(b => !ids.has(b.book_id));
+        if (filtered.length !== (data.books || []).length) {
+          data.books = filtered;
+          data.total_count = filtered.length;
+          await ghPutFile(filePath, JSON.stringify(data, null, 2), `cleanup: remove read books from category ${catId}`, meta.sha);
+          // Update in-memory catData too
+          catData[catId].data.books = filtered;
+        }
+      } catch(e) { console.warn(`category_${catId} cleanup failed:`, e.message); }
+    }
+
+    toast('✓ Đã dọn xong history & cache', 'ok');
+  } catch(e) {
+    toast('⚠ Cleanup lỗi: ' + e.message, 'err');
+  }
+}
+
 async function submitRead(tab) {
   if (pendingRead[tab].size === 0) return;
   const prefix = tab === 'category' ? 'cat' : tab;
@@ -1032,12 +1152,15 @@ async function submitRead(tab) {
     await ghPutFile('data/read.json', JSON.stringify(merged, null, 2), `mark ${pendingRead[tab].size} book(s) as read`, sha);
 
     // Update in-memory readSets so re-renders stay correct
-    for (const id of pendingRead[tab]) {
+    const justRead = new Set(pendingRead[tab]);
+    for (const id of justRead) {
       dailyReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
+    // Cleanup history/cache in background (don't await — let UI update first)
+    cleanupAfterRead(justRead);
     // Mark cards visually
     document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
       c.dataset.pendingRead = '';
