@@ -1,364 +1,60 @@
 {
   "update_time": "2026-03-25 12:58:46",
   "update_date": "2026-03-25",
-  "total_count": 20,
+  "total_count": 3,
   "books": [
-    {
-      "hot_rank": 2,
-      "book_id": "7243499543516417064",
-      "book_name": "九千岁狠毒疯批，却实在美丽",
-      "author": "爱干饭的团子",
-      "tags": [
-        "双男主",
-        "古代",
-        "破镜重圆",
-        "强强",
-        "HE"
-      ],
-      "abstract": "【已完结】【自我攻略攻X情感障碍受＋双强双洁1V1＋破镜重圆HE】天下第一美人谢玉，体弱多病，满身弱...",
-      "status": "Completed",
-      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/p2oc7abd4375a1760d5e37fed0c017b5244~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501101&x-signature=A%2BsIiz0SoTkEty9Dx7Q0abk0Qus%3D",
-      "last_chapter_time": "1701270969",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 10,
-      "book_id": "7590736068664642584",
-      "book_name": "合欢宗老祖重生小白花，又妖又坏",
-      "author": "白衣叹",
-      "tags": [
-        "玄幻言情",
-        "古代言情",
-        "幻想言情",
-        "重生",
-        "大佬"
-      ],
-      "abstract": "【合欢宗老祖重生+修仙+男全洁+1vN+多男主自我攻略+全收】上辈子，元姝继任合欢宗掌门之位，被道侣...",
-      "status": "Ongoing",
-      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/450e7923ac521eefc9804a1bdf470e5a~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501102&x-signature=YJDErwPDMRE33ZGG2dnIMdMn%2BUk%3D",
-      "last_chapter_time": "1774398701",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 17,
-      "book_id": "7566096846053985304",
-      "book_name": "被闺蜜骗到缅北赚快钱",
-      "author": "山清泉",
-      "tags": [
-        "职场婚恋",
-        "现代言情",
-        "第一人称"
-      ],
-      "abstract": "写下这段经历，就是为了告诫所有人。有句话说的好，你不会被骗，是因为没有遇到适合你的骗局。周程程本来可...",
-      "status": "Ongoing",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2o78d279983e7891729ba07a0b232db087~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501104&x-signature=b82JaM0Ij31JhJH9%2BWm4fBuSNhw%3D",
-      "last_chapter_time": "1774369836",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 18,
-      "book_id": "7432530171590085656",
-      "book_name": "通房假死后，禁欲世子苦寻三年",
-      "author": "归宴酒",
-      "tags": [
-        "宫斗宅斗",
-        "古代言情",
-        "重生",
-        "古色古香",
-        "黑化"
-      ],
-      "abstract": "【上位者低头】【火葬场】【双处】起初，在赵玄祐眼中，玉萦不过是个寻常通房丫鬟，她漂亮，她逢迎，玩物而...",
-      "status": "Completed",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2o5a9d6085eaf41aecfad030f6e67727e1~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501105&x-signature=3LOdYsi4By3sYivdP01uTZADOV8%3D",
-      "last_chapter_time": "1764947262",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 20,
-      "book_id": "7387636201840200766",
-      "book_name": "与家人决裂后，他们后悔了",
-      "author": "泉泽",
-      "tags": [
-        "星光璀璨",
-        "现代言情",
-        "重生",
-        "娱乐圈",
-        "虐渣"
-      ],
-      "abstract": "“妹妹，你怎么可以这样？这镯子可是妈妈送我的见面礼，平时都舍不得戴的。”“明明是你自己摔的……”母亲...",
-      "status": "Completed",
-      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/p2o90ae2197f1a2a8a1faca4d77ca7f913a~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501107&x-signature=GGQDrfxHbEvIyzqVI2aW4207NiY%3D",
-      "last_chapter_time": "1772288221",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 21,
-      "book_id": "7582052317478800409",
-      "book_name": "是男朋友？不，是老婆",
-      "author": "某江非知名作者",
-      "tags": [
-        "双男主",
-        "甜宠",
-        "独宠",
-        "一见钟情",
-        "强强"
-      ],
-      "abstract": "【双男主+双强+受洁攻心洁身不洁+互为初恋+一见钟情+身份差+伪强制+直男为钱低头+花男为爱收心+无...",
-      "status": "Ongoing",
-      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/459439f17a583b87e6664fe88f2be799~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501108&x-signature=jb1EYowwztybwBL%2BG9OQIqZMfNA%3D",
-      "last_chapter_time": "1774367054",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 23,
-      "book_id": "7604781318974475288",
-      "book_name": "只想混吃等死，却被亲爹坑上龙床",
-      "author": "生活杀了我",
-      "tags": [
-        "双男主",
-        "穿越",
-        "双洁",
-        "古代",
-        "1v1"
-      ],
-      "abstract": "【双男主x双洁x1v1x偏正剧x年上x君臣x强制爱】【排雷：1：攻是真暴君，会杀人。2：不是宫斗类型...",
-      "status": "Ongoing",
-      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/dac6d9e4b887c332ca0220f4ee316847~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501109&x-signature=oocDTV7CDNWA6ajhJpzL8MwyNaE%3D",
-      "last_chapter_time": "1774368322",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 26,
-      "book_id": "7572170271801478206",
-      "book_name": "姐妹随军认错夫：面凶军官沦陷了",
-      "author": "月半柠",
-      "tags": [
-        "年代",
-        "现代言情",
-        "幻想言情",
-        "甜宠",
-        "家长里短"
-      ],
-      "abstract": "（认错丈夫+随军+甜宠+雪媚娘女主/'脏脏包'男主)顾昭宁和顾家养女苏静微同时议亲，相了裴家一对亲兄...",
-      "status": "Ongoing",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2o39422e5089f95beca3b92469ea2e0e5d~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501110&x-signature=FfUJeY76dR3rMk2eekIMlerYoYo%3D",
-      "last_chapter_time": "1774353452",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 28,
-      "book_id": "7503764915430099992",
-      "book_name": "掏空家底，资本家大小姐嫁军少",
-      "author": "功夫马铃薯",
-      "tags": [
-        "年代",
-        "现代言情",
-        "重生",
-        "空间",
-        "虐渣"
-      ],
-      "abstract": "【重生+军婚+空间+外表明媚骨子里高傲的资本家小姐VS体力过人、八块腹肌的自律军官】  沈知棠前世被...",
-      "status": "Ongoing",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2oc0be83e97980d5da15c1ca63c214d035~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501112&x-signature=UFOuZcYUZGu%2FR3remM21Wh5XEws%3D",
-      "last_chapter_time": "1774411991",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 35,
-      "book_id": "7605079869315107864",
-      "book_name": "睡了姐姐闺蜜，她竟是我大学教授",
-      "author": "祈诗安雪",
-      "tags": [
-        "都市日常",
-        "都市",
-        "单女主",
-        "无后宫",
-        "1v1"
-      ],
-      "abstract": "[都市日常+校园+教授+单女主+姐弟恋+甜文撒糖]（评分刚出，后续会涨）许望的天塌了！他遇到一个喝醉...",
-      "status": "Ongoing",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/38eb0ac582a4f91149fbcc77ed7a2896~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501113&x-signature=pB2u1W9IEZWCw0%2BAcS0k7rD3bew%3D",
-      "last_chapter_time": "1774362721",
-      "rank_change": "new"
-    },
     {
       "hot_rank": 38,
       "book_id": "7582208638912056345",
-      "book_name": "带别墅空间在苦寒之地娇养童养夫",
-      "author": "兮兮伴月",
+      "book_name": "å¸¦å«å¢ç©ºé´å¨è¦å¯ä¹å°å¨å»ç«¥å»å¤«",
+      "author": "å®å®ä¼´æ",
       "tags": [
-        "古言脑洞",
-        "古代言情",
-        "穿越",
-        "空间",
+        "å¤è¨èæ´",
+        "å¤ä»£è¨æ",
+        "ç©¿è¶",
+        "ç©ºé´",
         "1v1"
       ],
-      "abstract": "【穿越+空间+养成+1v1+重生+黑化】18岁的苏星橙一觉醒来，穿成了漠北苦寒之地的8岁孤女，身边还...",
+      "abstract": "ãç©¿è¶+ç©ºé´+å»æ+1v1+éç+é»åã18å²çèææ©ä¸è§éæ¥ï¼ç©¿æäºæ¼ åè¦å¯ä¹å°ç8å²å­¤å¥³ï¼èº«è¾¹è¿...",
       "status": "Ongoing",
       "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/91beab31105704e8503242c46eeda4f7~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501114&x-signature=ZIzZnLWkDILJkrG7DTkN3z8PIBY%3D",
       "last_chapter_time": "1774402230",
       "rank_change": "new"
     },
     {
-      "hot_rank": 43,
-      "book_id": "7453455826318003225",
-      "book_name": "想吃绝户？没门，暴富养崽爽翻天",
-      "author": "是小七丫",
-      "tags": [
-        "种田",
-        "古代言情",
-        "空间",
-        "美食",
-        "发家致富"
-      ],
-      "abstract": "又名（想吃绝户？没门，暴富养崽爽翻天）【穿越+种田+美食+空间+经商+日常+采药+背靠大山】看赵小雨...",
-      "status": "Ongoing",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2o73064329ff5f369b269634898a8a0653~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501115&x-signature=fN7bi5qWO6PGwVYWnDJmZvKsD9c%3D",
-      "last_chapter_time": "1774369739",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 45,
-      "book_id": "6766914169691180045",
-      "book_name": "重生八零：媳妇有点辣",
-      "author": "宝妆成",
-      "tags": [
-        "年代",
-        "现代言情",
-        "重生",
-        "种田",
-        "虐渣"
-      ],
-      "abstract": "父母早逝，家境贫寒，姿色平平，夏晓兰抓了一手烂牌，奋斗了小20年，她当上跨国公司高管，终于将人生的逆...",
-      "status": "Completed",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/fee800006131b7ae5e6c~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501117&x-signature=Uk%2Bp3V2RdQsyN25Ow79JMn7FyHY%3D",
-      "last_chapter_time": "1576664097",
-      "rank_change": "new"
-    },
-    {
       "hot_rank": 53,
       "book_id": "7603339445898578968",
-      "book_name": "和老板一夜失控，买到过期避孕药",
-      "author": "开心是我",
+      "book_name": "åèæ¿ä¸å¤å¤±æ§ï¼ä¹°å°è¿æé¿å­è¯",
+      "author": "å¼å¿æ¯æ",
       "tags": [
-        "豪门总裁",
-        "现代言情",
-        "萌宝",
-        "甜宠",
-        "先婚后爱"
+        "è±ªé¨æ»è£",
+        "ç°ä»£è¨æ",
+        "èå®",
+        "çå® ",
+        "åå©åç±"
       ],
-      "abstract": "刚开分，还会涨，放心啦~【甜宠+萌宝+先婚后爱+轻松日常+养崽日常】钟意是靳沉身边唯一的女秘书。因为...",
+      "abstract": "åå¼åï¼è¿ä¼æ¶¨ï¼æ¾å¿å¦~ãçå® +èå®+åå©åç±+è½»æ¾æ¥å¸¸+å»å´½æ¥å¸¸ãéææ¯é³æ²èº«è¾¹å¯ä¸çå¥³ç§ä¹¦ãå ä¸º...",
       "status": "Ongoing",
       "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/p2o45207203161ec1c80c889c0c504e220a~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501118&x-signature=1I%2BlSOMy5g7BAvX3BGHA7eE%2F%2Ftg%3D",
       "last_chapter_time": "1774369457",
       "rank_change": "new"
     },
     {
-      "hot_rank": 54,
-      "book_id": "6589910664997768206",
-      "book_name": "宠妻成狂：闪婚总裁太霸道",
-      "author": "红鸾心儿",
-      "tags": [
-        "豪门总裁",
-        "现代言情",
-        "宠妻",
-        "豪门世家",
-        "日久生情"
-      ],
-      "abstract": "莫名失身，还被撞破，人生没有最惨，更惨的是她睡得是传闻中最变态的富少封以漠，还收到了乌龙“妊娠”诊断...",
-      "status": "Completed",
-      "thumb_url": "https://p3-novel-sign.byteimg.com/a14900048d7acfd219ea~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501119&x-signature=WzUbTNnjXFGaYpfVW6gqLlL4DQY%3D",
-      "last_chapter_time": "1605235588",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 56,
-      "book_id": "7615077963591060505",
-      "book_name": "逐玉：赘婿",
-      "author": "序初一",
-      "tags": [
-        "女频衍生",
-        "强强",
-        "同人",
-        "古色古香",
-        "衍生"
-      ],
-      "abstract": "屠户女追野猪捡回个重伤美男，本想让他干活抵债，谁知这“赘婿”竟是落难侯爷——从此杀猪刀配麒麟剑，小娘...",
-      "status": "Ongoing",
-      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/ec19499b562be7fe56f2be93caea65d2~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501121&x-signature=mRup8WHNDSfSjKpZYKEqYxpuUwg%3D",
-      "last_chapter_time": "1774338034",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 57,
-      "book_id": "7508934595518139454",
-      "book_name": "她醉酒进错房，京圈大佬一夜沦陷",
-      "author": "妖铃",
-      "tags": [
-        "豪门总裁",
-        "现代言情",
-        "总裁",
-        "甜宠",
-        "一见钟情"
-      ],
-      "abstract": "【甜宠+双洁+男主一见钟情到发疯索爱】矜贵闷骚的集团大总裁vs清纯漂亮的小白花员工林媛参加朋友生日聚...",
-      "status": "Completed",
-      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/p2o9ece370486de7bdda10106418d83c406~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501122&x-signature=sqEOruIWzo4uOB3prVeIwff%2BVtY%3D",
-      "last_chapter_time": "1774241953",
-      "rank_change": "new"
-    },
-    {
       "hot_rank": 60,
       "book_id": "7578747185097886745",
-      "book_name": "被扫地出门，奶娘入公府成人上人",
-      "author": "袖里春",
+      "book_name": "è¢«æ«å°åºé¨ï¼å¥¶å¨å¥å¬åºæäººä¸äºº",
+      "author": "è¢éæ¥",
       "tags": [
-        "宫斗宅斗",
-        "古代言情",
-        "穿越",
-        "今穿古",
-        "大佬"
+        "å®«æå®æ",
+        "å¤ä»£è¨æ",
+        "ç©¿è¶",
+        "ä»ç©¿å¤",
+        "å¤§ä½¬"
       ],
-      "abstract": "（评分新出会涨）【穿越+养崽+宅斗+训犬+狗血爽+雄竞修罗场+多男主万人迷+女主有自己事业】夫君头七...",
+      "abstract": "ï¼è¯åæ°åºä¼æ¶¨ï¼ãç©¿è¶+å»å´½+å®æ+è®­ç¬+çè¡ç½+éç«ä¿®ç½åº+å¤ç·ä¸»ä¸äººè¿·+å¥³ä¸»æèªå·±äºä¸ãå¤«åå¤´ä¸...",
       "status": "Ongoing",
       "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/p2ob39b3ed1d1c10418eb465cb77c11a4b7~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501123&x-signature=GxTe9huluhawwwqocn1VQsZ9SA0%3D",
       "last_chapter_time": "1774389675",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 65,
-      "book_id": "7605488680806927422",
-      "book_name": "校花重生：开局逼睡学霸",
-      "author": "佛说放下",
-      "tags": [
-        "青春甜宠",
-        "现代言情",
-        "重生",
-        "学霸",
-        "甜宠"
-      ],
-      "abstract": "【明星重生+校园+校花+学霸+纯爱+轻松+暗恋成真+女追男+日常+甜宠】身为三线女星的陆灵菲病死医院...",
-      "status": "Ongoing",
-      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/p2of7db5e0f9b96f48d5d6fbadc1b472911~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501125&x-signature=ekITcbNQ8Uftb2ra8MAI808PIKQ%3D",
-      "last_chapter_time": "1774408212",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 66,
-      "book_id": "7570729668664364094",
-      "book_name": "禁止侵入",
-      "author": "橦肆",
-      "tags": [
-        "豪门总裁",
-        "现代言情",
-        "总裁",
-        "大小姐",
-        "双洁"
-      ],
-      "abstract": "（已完结）纯恨的【对抗路】、假到死的【忠犬系】、只想弄死对方的【尾骨】、拉断筋的【极限拉扯】。人前，...",
-      "status": "Completed",
-      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/5f9ad3baabd40c828616f3cbc020c170~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1774501126&x-signature=Bk1CBei%2BNr3r0oRLRzHaecG5OuY%3D",
-      "last_chapter_time": "1774188666",
       "rank_change": "new"
     }
   ]
