@@ -244,6 +244,14 @@
     margin-bottom: 3px;
     display: flex; align-items: center; gap: 6px;
   }
+  .score-badge {
+    display: inline-flex; align-items: center;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px;
+    background: #fff7ed; border: 1px solid #fdba74; color: #c2410c;
+    white-space: nowrap; cursor: default; font-family: 'DM Mono', monospace;
+  }
+  .score-badge.loading { background: #f9fafb; border-color: #e5e7eb; color: #bbb; }
   .rank-change { font-size: 10px; font-weight: 600; }
   .rank-change.up   { color: var(--green); }
   .rank-change.down { color: var(--accent); }
@@ -1283,6 +1291,28 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 
+// Score loading
+function loadScoresForCards(books) {
+  if (typeof window.tmFetchScore !== 'function') {
+    // Userscript not loaded — hide all loading badges
+    books.forEach(b => {
+      const el = document.getElementById(`score-${b.book_id}`);
+      if (el) el.remove();
+    });
+    return;
+  }
+  books.forEach(b => {
+    const el = document.getElementById(`score-${b.book_id}`);
+    if (!el) return;
+    window.tmFetchScore(b.book_id)
+      .then(score => {
+        if (!el.isConnected) return;
+        if (score) { el.className = 'score-badge'; el.textContent = '⭐' + score; }
+        else el.remove();
+      })
+      .catch(() => { if (el.isConnected) el.remove(); });
+  });
+}
 
 // Formatting helpers
 
@@ -1324,7 +1354,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   <div class="book-card${isRead ? ' is-read' : ''}" data-id="${book.book_id}" data-name="${(book.book_name||'').toLowerCase()}" data-pending-read="">
     ${thumb}
     <div class="book-info">
-      <div class="book-rank notranslate">#${book.hot_rank || '?'} ${rc}</div>
+      <div class="book-rank notranslate" id="rank-${book.book_id}">#${book.hot_rank || '?'} ${rc}<span class="score-badge loading" id="score-${book.book_id}">⭐…</span></div>
       <div class="book-name" title="${book.book_name}">${book.book_name}</div>
       <div class="book-author notranslate">${book.author || ''}</div>
       <a href="https://fanqienovel.com/page/${book.book_id}" target="_blank" rel="noopener" class="book-id-link notranslate">#${book.book_id}</a>
@@ -1397,6 +1427,7 @@ async function loadDaily() {
       return;
     }
     container.innerHTML = allBooks.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
+    loadScoresForCards(allBooks);
   } catch(e) {
     container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${e.message}</div>`;
   }
@@ -1561,6 +1592,12 @@ function renderCatPanels() {
     </div>` + (html || `<div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện nào.</div>`);
   }
   panelsEl.innerHTML = html;
+  // Collect all rendered books from loaded catData for score loading
+  const renderedBooks = [];
+  for (const [, { data }] of entriesToShow) {
+    renderedBooks.push(...(data.books || []));
+  }
+  loadScoresForCards(renderedBooks);
 }
 
 function togglePanel(catId) {
