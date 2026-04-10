@@ -243,6 +243,7 @@
     font-size: 10px; color: var(--muted);
     margin-bottom: 3px;
     display: flex; align-items: center; gap: 6px;
+    flex-wrap: nowrap; white-space: nowrap; overflow: hidden;
   }
   .score-badge {
     display: inline-flex; align-items: center;
@@ -739,7 +740,9 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════
 // Config
+// ══════════════════════════════════════════
 let CFG = { user: '', repo: '', token: '' };
 
 const CATEGORY_NAMES = {
@@ -989,9 +992,9 @@ function openSetup() {
   document.getElementById('setup-overlay').classList.remove('hidden');
 }
 
-
+// ══════════════════════════════════════════
 // Toast
-
+// ══════════════════════════════════════════
 let _toastTimer;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
@@ -1001,9 +1004,9 @@ function toast(msg, type = '') {
   _toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
 
-
+// ══════════════════════════════════════════
 // Tabs
-
+// ══════════════════════════════════════════
 function switchTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1011,9 +1014,9 @@ function switchTab(id, btn) {
   btn.classList.add('active');
 }
 
-
+// ══════════════════════════════════════════
 // GitHub raw content fetch
-
+// ══════════════════════════════════════════
 function b64DecodeUTF8(b64) {
   const binary = atob(b64.replace(/\n/g, ''));
   const bytes = new Uint8Array(binary.length);
@@ -1079,9 +1082,9 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
 }
 
-
+// ══════════════════════════════════════════
 // Read list helpers
-
+// ══════════════════════════════════════════
 // In-memory pending marks per session
 const pendingRead = { daily: new Set(), category: new Set() };
 
@@ -1260,7 +1263,7 @@ async function submitRead(tab) {
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
-    // Cleanup history/cache in background
+    // Cleanup history/cache in background (don't await — let UI update first)
     cleanupAfterRead(justRead);
     // Mark cards visually
     document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
@@ -1291,31 +1294,46 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 
-// Score loading
+// ══════════════════════════════════════════
+// Score loading (via Tampermonkey userscript)
+// ══════════════════════════════════════════
 function loadScoresForCards(books) {
-  if (typeof window.tmFetchScore !== 'function') {
-    // Userscript not loaded — hide all loading badges
+  // Poll up to 3s for the userscript to expose tmFetchScore
+  let attempts = 0;
+  const maxAttempts = 15; // 15 × 200ms = 3s
+  function tryLoad() {
+    const fetchFn = window.tmFetchScore;
+    if (typeof fetchFn !== 'function') {
+      if (++attempts >= maxAttempts) {
+        // Userscript not available — remove all loading badges
+        books.forEach(b => {
+          const el = document.getElementById(`score-${b.book_id}`);
+          if (el) el.remove();
+        });
+      } else {
+        setTimeout(tryLoad, 200);
+      }
+      return;
+    }
+    // Fetch all scores concurrently
     books.forEach(b => {
       const el = document.getElementById(`score-${b.book_id}`);
-      if (el) el.remove();
+      if (!el) return;
+      fetchFn(b.book_id)
+        .then(score => {
+          if (!el.isConnected) return;
+          if (score) { el.className = 'score-badge'; el.textContent = '⭐' + score; }
+          else el.remove();
+        })
+        .catch(() => { if (el.isConnected) el.remove(); });
     });
-    return;
   }
-  books.forEach(b => {
-    const el = document.getElementById(`score-${b.book_id}`);
-    if (!el) return;
-    window.tmFetchScore(b.book_id)
-      .then(score => {
-        if (!el.isConnected) return;
-        if (score) { el.className = 'score-badge'; el.textContent = '⭐' + score; }
-        else el.remove();
-      })
-      .catch(() => { if (el.isConnected) el.remove(); });
-  });
+  tryLoad();
 }
 
+// ══════════════════════════════════════════
 // Formatting helpers
-
+// ══════════════════════════════════════════
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -1354,7 +1372,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   <div class="book-card${isRead ? ' is-read' : ''}" data-id="${book.book_id}" data-name="${(book.book_name||'').toLowerCase()}" data-pending-read="">
     ${thumb}
     <div class="book-info">
-      <div class="book-rank notranslate" id="rank-${book.book_id}">#${book.hot_rank || '?'} ${rc}<span class="score-badge loading" id="score-${book.book_id}">⭐…</span></div>
+      <div class="book-rank notranslate" id="rank-${book.book_id}"><span>#${book.hot_rank || '?'}</span>${rc}<span class="score-badge loading" id="score-${book.book_id}">⭐…</span></div>
       <div class="book-name" title="${book.book_name}">${book.book_name}</div>
       <div class="book-author notranslate">${book.author || ''}</div>
       <a href="https://fanqienovel.com/page/${book.book_id}" target="_blank" rel="noopener" class="book-id-link notranslate">#${book.book_id}</a>
@@ -1368,9 +1386,9 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   </div>`;
 }
 
-
+// ══════════════════════════════════════════
 // DAILY TAB
-
+// ══════════════════════════════════════════
 let dailyReadSet = new Set();
 
 async function loadDaily() {
@@ -1449,9 +1467,9 @@ async function triggerDailyScrape() {
   }
 }
 
-
+// ══════════════════════════════════════════
 // CATEGORY TAB
-
+// ══════════════════════════════════════════
 let catData = {};      // { categoryId: { data, readSet } }
 let activeCatIds = []; // currently loaded category IDs
 
@@ -1652,9 +1670,9 @@ async function triggerCatScrape() {
   }
 }
 
-
+// ══════════════════════════════════════════
 // Fetch history (localStorage)
-
+// ══════════════════════════════════════════
 const FH_KEY = 'fq_fetch_history';
 
 function loadFetchHistory() {
@@ -1730,9 +1748,9 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-
+// ══════════════════════════════════════════
 // Abstract modal
-
+// ══════════════════════════════════════════
 // Store book data for modal lookup
 const _bookRegistry = {};
 
@@ -1800,9 +1818,9 @@ function closeAbstractOnBg(e) {
   if (e.target === document.getElementById('abstract-modal')) closeAbstract();
 }
 
-
+// ══════════════════════════════════════════
 // Init
-
+// ══════════════════════════════════════════
 async function detectExistingCategories() {
   // List data/ folder via GitHub Contents API to find category_*.json files
   try {
