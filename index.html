@@ -145,6 +145,7 @@
 
   /* ── Main layout ── */
   main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+  body.has-read-bar main { padding-bottom: 80px; }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
@@ -383,16 +384,60 @@
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     margin-bottom: 20px;
   }
-  .cat-toolbar select {
+  /* ── Custom category select ── */
+  .cat-select-wrap { position: relative; min-width: 200px; }
+  .cat-select-trigger {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
     padding: 8px 12px;
     border: 1.5px solid var(--border2);
     border-radius: var(--radius);
     font-family: 'DM Sans', sans-serif;
     font-size: 13px; background: var(--surface); color: var(--text);
-    outline: none; cursor: pointer;
+    cursor: pointer; user-select: none;
     transition: border-color .15s;
+    white-space: nowrap; overflow: hidden;
   }
-  .cat-toolbar select:focus { border-color: var(--accent); }
+  .cat-select-trigger:hover,
+  .cat-select-wrap.open .cat-select-trigger { border-color: var(--accent); }
+  .cat-select-trigger-text { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .cat-select-arrow { font-size: 10px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+  .cat-select-wrap.open .cat-select-arrow { transform: rotate(180deg); }
+
+  .cat-select-dropdown {
+    display: none;
+    position: absolute; top: calc(100% + 4px); left: 0;
+    min-width: 100%; width: max-content; max-width: 320px;
+    background: var(--surface);
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 600; overflow: hidden;
+  }
+  .cat-select-wrap.open .cat-select-dropdown { display: block; }
+  .cat-select-search {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .cat-select-search input {
+    flex: 1; border: none; outline: none; background: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px; color: var(--text);
+  }
+  .cat-select-search input::placeholder { color: var(--muted); }
+  .cat-select-list { max-height: 260px; overflow-y: auto; }
+  .cat-select-option {
+    padding: 8px 12px;
+    font-size: 13px; cursor: pointer;
+    transition: background .1s;
+  }
+  .cat-select-option:hover { background: var(--bg); }
+  .cat-select-option.selected { color: var(--accent); font-weight: 600; }
+  .cat-select-option.hidden { display: none; }
+  .cat-select-empty {
+    padding: 16px 12px; text-align: center;
+    font-size: 13px; color: var(--muted); display: none;
+  }
   .search-wrap { position: relative; flex: 1; min-width: 180px; }
   .search-wrap input {
     width: 100%; padding: 8px 12px 8px 34px;
@@ -512,13 +557,13 @@
 
   /* ── Read list submit ── */
   .read-submit-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
     background: var(--surface);
-    border: 1.5px solid var(--border2);
-    border-radius: var(--radius-lg);
-    padding: 16px 20px;
+    border-top: 1.5px solid var(--border2);
+    padding: 12px 24px;
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap;
-    margin-bottom: 20px;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.08);
   }
   .read-submit-info { font-size: 13px; }
   .read-submit-info strong { color: var(--accent); }
@@ -623,9 +668,20 @@
 
     <!-- Toolbar -->
     <div class="cat-toolbar">
-      <select id="cat-select" onchange="onCatChange()">
-        <option value="">-- Chọn danh mục --</option>
-      </select>
+      <div class="cat-select-wrap" id="cat-select-wrap">
+        <div class="cat-select-trigger" id="cat-select-trigger" onclick="toggleCatSelect(event)">
+          <span class="cat-select-trigger-text" id="cat-select-label">-- Chọn danh mục --</span>
+          <span class="cat-select-arrow">▼</span>
+        </div>
+        <div class="cat-select-dropdown" id="cat-select-dropdown">
+          <div class="cat-select-search">
+            <span>🔍</span>
+            <input id="cat-select-input" type="text" placeholder="Tìm danh mục…" oninput="filterCatOptions()" autocomplete="off" />
+          </div>
+          <div class="cat-select-list" id="cat-select-list"></div>
+          <div class="cat-select-empty" id="cat-select-empty">Không tìm thấy danh mục.</div>
+        </div>
+      </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
         <input id="cat-search" type="text" placeholder="Tìm tên truyện hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
@@ -675,9 +731,7 @@
 </div>
 
 <script>
-// ══════════════════════════════════════════
 // Config
-// ══════════════════════════════════════════
 let CFG = { user: '', repo: '', token: '' };
 
 const CATEGORY_NAMES = {
@@ -697,7 +751,6 @@ const CATEGORY_NAMES = {
 37: 'xuyên qua',
 40: 'hải đảo',
 43: 'giới giải trí',
-61: 'trinh thám',
 61: 'trinh thám huyền nghi',
 69: 'phát sóng trực tiếp',
 70: 'vô hạn lưu',
@@ -805,7 +858,6 @@ const CATEGORIES = [
 { id: 37, name: 'xuyên qua' },
 { id: 40, name: 'hải đảo' },
 { id: 43, name: 'giới giải trí' },
-{ id: 61, name: 'trinh thám' },
 { id: 61, name: 'trinh thám huyền nghi' },
 { id: 69, name: 'phát sóng trực tiếp' },
 { id: 70, name: 'vô hạn lưu' },
@@ -929,9 +981,9 @@ function openSetup() {
   document.getElementById('setup-overlay').classList.remove('hidden');
 }
 
-// ══════════════════════════════════════════
+
 // Toast
-// ══════════════════════════════════════════
+
 let _toastTimer;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
@@ -941,9 +993,9 @@ function toast(msg, type = '') {
   _toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
 
-// ══════════════════════════════════════════
+
 // Tabs
-// ══════════════════════════════════════════
+
 function switchTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -951,9 +1003,9 @@ function switchTab(id, btn) {
   btn.classList.add('active');
 }
 
-// ══════════════════════════════════════════
+
 // GitHub raw content fetch
-// ══════════════════════════════════════════
+
 function b64DecodeUTF8(b64) {
   const binary = atob(b64.replace(/\n/g, ''));
   const bytes = new Uint8Array(binary.length);
@@ -1019,18 +1071,21 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
 }
 
-// ══════════════════════════════════════════
+
 // Read list helpers
-// ══════════════════════════════════════════
+
 // In-memory pending marks per session
 const pendingRead = { daily: new Set(), category: new Set() };
 
 function updateReadBar(tab) {
   const count = pendingRead[tab].size;
-  // id prefix: 'daily' → 'daily', 'category' → 'cat'
   const prefix = tab === 'category' ? 'cat' : tab;
-  document.getElementById(`${prefix}-read-bar`).style.display = count > 0 ? '' : 'none';
+  const bar = document.getElementById(`${prefix}-read-bar`);
+  bar.style.display = count > 0 ? '' : 'none';
   document.getElementById(`${prefix}-marked-count`).textContent = count;
+  // Toggle body class for padding when any bar is visible
+  const anyVisible = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
+  document.body.classList.toggle('has-read-bar', anyVisible);
 }
 
 async function runFullCleanup() {
@@ -1197,7 +1252,7 @@ async function submitRead(tab) {
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
-    // Cleanup history/cache in background (don't await — let UI update first)
+    // Cleanup history/cache in background
     cleanupAfterRead(justRead);
     // Mark cards visually
     document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
@@ -1228,9 +1283,9 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 
-// ══════════════════════════════════════════
+
 // Formatting helpers
-// ══════════════════════════════════════════
+
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -1283,9 +1338,9 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   </div>`;
 }
 
-// ══════════════════════════════════════════
+
 // DAILY TAB
-// ══════════════════════════════════════════
+
 let dailyReadSet = new Set();
 
 async function loadDaily() {
@@ -1363,24 +1418,69 @@ async function triggerDailyScrape() {
   }
 }
 
-// ══════════════════════════════════════════
+
 // CATEGORY TAB
-// ══════════════════════════════════════════
+
 let catData = {};      // { categoryId: { data, readSet } }
 let activeCatIds = []; // currently loaded category IDs
 
+// ── Slug helper: strip Vietnamese diacritics for accent-insensitive search ──
+function slugify(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase();
+}
+
+// Custom cat-select state
+let _catSelectValue = '';
+
 function initCatSelect() {
-  const sel = document.getElementById('cat-select');
+  const list = document.getElementById('cat-select-list');
   CATEGORIES.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.id; opt.textContent = c.name;
-    sel.appendChild(opt);
+    const el = document.createElement('div');
+    el.className = 'cat-select-option';
+    el.dataset.value = c.id;
+    el.dataset.slug = slugify(c.name);
+    el.textContent = c.name;
+    el.onclick = () => selectCatOption(c.id, c.name);
+    list.appendChild(el);
   });
 }
 
+function toggleCatSelect(e) {
+  e.stopPropagation();
+  const wrap = document.getElementById('cat-select-wrap');
+  const isOpen = wrap.classList.toggle('open');
+  if (isOpen) {
+    const input = document.getElementById('cat-select-input');
+    input.value = '';
+    filterCatOptions();
+    setTimeout(() => input.focus(), 50);
+  }
+}
+
+function filterCatOptions() {
+  const q = slugify(document.getElementById('cat-select-input').value);
+  const options = document.querySelectorAll('#cat-select-list .cat-select-option');
+  let visibleCount = 0;
+  options.forEach(opt => {
+    const match = !q || opt.dataset.slug.includes(q);
+    opt.classList.toggle('hidden', !match);
+    if (match) visibleCount++;
+  });
+  document.getElementById('cat-select-empty').style.display = visibleCount === 0 ? 'block' : 'none';
+}
+
+function selectCatOption(id, name) {
+  _catSelectValue = id;
+  document.getElementById('cat-select-label').textContent = name;
+  document.querySelectorAll('#cat-select-list .cat-select-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.value == id);
+  });
+  document.getElementById('cat-select-wrap').classList.remove('open');
+  onCatChange();
+}
+
 async function onCatChange() {
-  const sel = document.getElementById('cat-select');
-  const id = sel.value;
+  const id = _catSelectValue;
   document.getElementById('cat-scrape-btn').disabled = !id;
   if (!id) return;
   await loadCategory(parseInt(id));
@@ -1398,7 +1498,7 @@ async function loadCategory(catId) {
       ]);
       catData[catId] = { data, readSet: new Set(readArr.map(String)) };
       registerBooks(data.books || []);
-      recordFetch(catId);
+      recordFetch(catId, data.update_time);
     } catch(e) {
       panelsEl.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi: ${e.message}</div>`;
       return;
@@ -1418,7 +1518,7 @@ function renderCatPanels() {
 
   // When searching: show all loaded categories sorted by match count
   // When not searching: only show selected category
-  const selectedId = document.getElementById('cat-select').value;
+  const selectedId = _catSelectValue;
   const entriesToShow = query
     ? Object.entries(catData)
     : (selectedId ? Object.entries(catData).filter(([id]) => id == selectedId) : []);
@@ -1430,7 +1530,6 @@ function renderCatPanels() {
 
   let html = '';
   let totalMatches = 0;
-  const allEntries = [...entriesToShow]; // for summary
   for (const [catId, { data, readSet }] of entriesToShow) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
     let books = data.books || [];
@@ -1457,7 +1556,6 @@ function renderCatPanels() {
   if (query) {
     const h = loadFetchHistory();
     const totalCats = Object.keys(h).length;
-    const matchedCats = html === '' ? 0 : (html.match(/cat-panel/g) || []).length / 2;
     html = `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;">
       Tìm thấy ${totalMatches} truyện trong ${Object.keys(catData).length}/${totalCats} danh mục đã tải
     </div>` + (html || `<div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện nào.</div>`);
@@ -1496,8 +1594,7 @@ async function filterCatBooks() {
 }
 
 async function triggerCatScrape() {
-  const sel = document.getElementById('cat-select');
-  const catId = sel.value;
+  const catId = _catSelectValue;
   if (!catId) return;
 
   const btn = document.getElementById('cat-scrape-btn');
@@ -1518,9 +1615,9 @@ async function triggerCatScrape() {
   }
 }
 
-// ══════════════════════════════════════════
+
 // Fetch history (localStorage)
-// ══════════════════════════════════════════
+
 const FH_KEY = 'fq_fetch_history';
 
 function loadFetchHistory() {
@@ -1532,10 +1629,14 @@ function saveFetchHistory(h) {
   localStorage.setItem(FH_KEY, JSON.stringify(h));
 }
 
-function recordFetch(catId) {
+function recordFetch(catId, updateTime) {
   const h = loadFetchHistory();
   const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-  h[catId] = { name, date: new Date().toISOString() };
+  // Use the data's update_time if provided, otherwise fall back to now
+  const date = updateTime
+    ? new Date(updateTime.replace(' ', 'T')).toISOString()
+    : new Date().toISOString();
+  h[catId] = { name, date };
   saveFetchHistory(h);
   renderFetchHistory();
 }
@@ -1567,24 +1668,34 @@ function toggleFetchHistory(e) {
 
 function jumpToCategory(catId) {
   document.getElementById('fh-dropdown').classList.remove('open');
-  // Select in dropdown and load
-  const sel = document.getElementById('cat-select');
-  sel.value = catId;
-  document.getElementById('cat-scrape-btn').disabled = false;
-  loadCategory(parseInt(catId));
+  const cat = CATEGORIES.find(c => c.id == catId);
+  if (cat) selectCatOption(cat.id, cat.name);
 }
 
-// Close dropdown when clicking outside
+// Close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
   const wrap = document.getElementById('fh-wrap');
   if (wrap && !wrap.contains(e.target)) {
     document.getElementById('fh-dropdown').classList.remove('open');
   }
+  const catWrap = document.getElementById('cat-select-wrap');
+  if (catWrap && !catWrap.contains(e.target)) {
+    catWrap.classList.remove('open');
+  }
 });
 
-// ══════════════════════════════════════════
+// Warn before closing tab if there are unsaved marks
+window.addEventListener('beforeunload', (e) => {
+  const hasUnsaved = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
+  if (hasUnsaved) {
+    e.preventDefault();
+    e.returnValue = 'Bạn có sách đã đánh dấu nhưng chưa lưu. Bạn có chắc muốn rời trang?';
+  }
+});
+
+
 // Abstract modal
-// ══════════════════════════════════════════
+
 // Store book data for modal lookup
 const _bookRegistry = {};
 
@@ -1652,9 +1763,9 @@ function closeAbstractOnBg(e) {
   if (e.target === document.getElementById('abstract-modal')) closeAbstract();
 }
 
-// ══════════════════════════════════════════
+
 // Init
-// ══════════════════════════════════════════
+
 async function detectExistingCategories() {
   // List data/ folder via GitHub Contents API to find category_*.json files
   try {
