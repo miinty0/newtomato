@@ -15,4 +15,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: categories-result
-          path: categories_result.txt
+          path: |
+            categories.json
+            categories.txt
