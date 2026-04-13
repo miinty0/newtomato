@@ -570,8 +570,8 @@
     background: var(--surface);
     border-top: 1.5px solid var(--border2);
     padding: 12px 24px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; flex-wrap: wrap;
     box-shadow: 0 -4px 16px rgba(0,0,0,.08);
   }
   .read-submit-info { font-size: 13px; }
@@ -1659,7 +1659,7 @@ async function triggerCatScrape() {
   try {
     // Trigger GitHub Actions with category input if workflow supports it,
     // otherwise show manual instruction
-    await ghDispatchWorkflow('scrape.yml', { category_id: catId });
+    await ghDispatchWorkflow('scrape.yml', { category_id: String(catId) });
     recordFetch(catId);
     toast(`Đã kích hoạt scrape danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
   } catch(e) {
@@ -1857,7 +1857,7 @@ async function detectExistingCategories() {
 async function initApp() {
   initCatSelect();
   renderFetchHistory();
-  detectExistingCategories(); // async, runs in background
+  detectExistingCategories();
   loadDaily();
 }
 
