@@ -1,6 +1,7 @@
 const https = require('https');
 const http  = require('http');
 const fs    = require('fs');
+
 // ── Config ──
 const BASE    = 'fanqienovel.com';
 const API     = `https://${BASE}/api`;
@@ -11,42 +12,57 @@ const HEADERS = {
 };
 const DELAY_MS       = 500;
 const MAX_4XX_ERRORS = 3;
+
 // ── CLI args: node scan-categories.js [start] [end] ──
 const CAT_START = parseInt(process.argv[2], 10) || 1;
 const CAT_END   = parseInt(process.argv[3], 10) || 1000;
+
 // ── Helpers ──
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 function httpGet(url, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
-    lib.get(url, { headers: { ...HEADERS, ...extraHeaders }, timeout: 20000 }, res => {
+    const req = lib.get(url, { headers: { ...HEADERS, ...extraHeaders }, timeout: 60000 }, res => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location)
         return httpGet(res.headers.location, extraHeaders).then(resolve).catch(reject);
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => resolve({ status: res.statusCode, data }));
-    }).on('error', reject).on('timeout', () => reject(new Error('timeout')));
+      const chunks = [];
+      res.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+      res.on('end', () => {
+        const data = Buffer.concat(chunks).toString('utf-8');
+        resolve({ status: res.statusCode, data });
+      });
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
   });
 }
+
 // ── Push file to GitHub repo ──
 async function ghPushFile(filename, content) {
   const token = process.env.GITHUB_TOKEN;
   const repo  = process.env.GITHUB_REPOSITORY; // "owner/repo"
   if (!token || !repo) { console.log('No GITHUB_TOKEN/GITHUB_REPOSITORY — skipping push'); return; }
+
   const url = `https://api.github.com/repos/${repo}/contents/${filename}`;
   const b64  = Buffer.from(content, 'utf-8').toString('base64');
+
   // Get existing SHA if file already exists (needed for update)
   let sha;
   try {
     const getRes = await httpGet(url, { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' });
     if (getRes.status === 200) sha = JSON.parse(getRes.data).sha;
   } catch(e) {}
+
   const body = JSON.stringify({ message: `scan-categories: update ${filename}`, content: b64, ...(sha ? { sha } : {}) });
+
   return new Promise((resolve, reject) => {
     const u = new URL(url);
     const req = require('https').request({ hostname: u.hostname, path: u.pathname, method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body),
+        'User-Agent': 'scan-categories-script' }
     }, res => {
       let d = ''; res.on('data', c => d += c);
       res.on('end', () => res.statusCode < 300 ? resolve() : reject(new Error(`HTTP ${res.statusCode}: ${d}`)));
@@ -55,6 +71,7 @@ async function ghPushFile(filename, content) {
     req.write(body); req.end();
   });
 }
+
 // ── Fetch first book_id for a category ──
 async function fetchFirstBookId(categoryId) {
   const params = new URLSearchParams({
@@ -63,13 +80,24 @@ async function fetchFirstBookId(categoryId) {
     creation_status: -1, word_count: -1,
     book_type: -1, sort: -1,
   });
-  const res = await httpGet(`${API}/author/library/book_list/v0/?${params}`, { Accept: 'application/json' });
-  if (res.status !== 200) return null;
-  const json = JSON.parse(res.data);
-  const list = json?.data?.book_list;
-  if (!list || list.length === 0) return null;
-  return String(list[0].book_id);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await httpGet(`${API}/author/library/book_list/v0/?${params}`, { Accept: 'application/json' });
+      if (res.status === 429) { await sleep(60000); continue; }
+      if (res.status >= 500)  { await sleep(5000 * attempt); continue; }
+      if (res.status !== 200) return null;
+      const json = JSON.parse(res.data);
+      const list = json?.data?.book_list;
+      if (!list || list.length === 0) return null;
+      return String(list[0].book_id);
+    } catch(e) {
+      if (attempt < 3) { await sleep(2000 * attempt); continue; }
+      throw e;
+    }
+  }
+  return null;
 }
+
 // ── Parse categoryV2 from detail page ──
 function parseCategoryV2(html) {
   const match = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*\r?\n/);
@@ -83,6 +111,7 @@ function parseCategoryV2(html) {
       .filter(c => c.ObjectId !== undefined);
   } catch(e) { return []; }
 }
+
 // ── Main ──
 async function main() {
   // Load all existing categories_*.json to skip already-known ObjectIds
@@ -96,10 +125,14 @@ async function main() {
   }
   if (existing.length > 0)
     console.log(`Loaded ${Object.keys(catMap).length} existing ObjectIds from: ${existing.join(', ')}\n`);
+
   let consecutive4xx = 0;
   const total = CAT_END - CAT_START + 1;
+
   console.log(`Scanning category_id ${CAT_START} → ${CAT_END} (${total} categories)...\n`);
+
   for (let catId = CAT_START; catId <= CAT_END; catId++) {
+
     // Step A: get first book_id for this category
     let bookId = null;
     try {
@@ -109,11 +142,13 @@ async function main() {
       await sleep(DELAY_MS);
       continue;
     }
+
     if (!bookId) {
       process.stdout.write(`  cat ${catId}/${CAT_END}: no books — skip\n`);
       await sleep(200);
       continue;
     }
+
     // Step B: fetch detail page
     let res;
     try {
@@ -123,6 +158,7 @@ async function main() {
       await sleep(DELAY_MS);
       continue;
     }
+
     if (res.status >= 400 && res.status < 500) {
       consecutive4xx++;
       console.log(`  cat ${catId}: HTTP ${res.status} (4xx count: ${consecutive4xx}/${MAX_4XX_ERRORS})`);
@@ -134,9 +170,11 @@ async function main() {
       continue;
     }
     consecutive4xx = 0;
+
     // Step C: parse & store only new ObjectIds
     const cats = parseCategoryV2(res.data);
     const allKnown = cats.length > 0 && cats.every(c => catMap[c.ObjectId]);
+
     if (allKnown) {
       process.stdout.write(`  cat ${catId}/${CAT_END}: all ${cats.length} ObjectIds already known — skip\n`);
     } else {
@@ -149,15 +187,20 @@ async function main() {
       }
       process.stdout.write(`  cat ${catId}/${CAT_END}: book ${bookId} | +${newCount} new | total: ${Object.keys(catMap).length}\n`);
     }
+
     await sleep(DELAY_MS + Math.floor(Math.random() * 200));
   }
+
   // ── Save results ──
   const entries = Object.entries(catMap)
     .map(([id, info]) => ({ id: Number(id), name: info.Name, desc: info.ExternalDesc }))
     .sort((a, b) => a.id - b.id);
+
   const suffix = `_${CAT_START}-${CAT_END}`;
+
   console.log(`\n${'='.repeat(70)}`);
   console.log(`Found ${entries.length} unique categories\n`);
+
   const jsonContent = JSON.stringify(entries, null, 2);
   fs.writeFileSync(`categories${suffix}.json`, jsonContent, 'utf-8');
   console.log(`Saved → categories${suffix}.json`);
@@ -165,6 +208,7 @@ async function main() {
     await ghPushFile(`categories${suffix}.json`, jsonContent);
     console.log(`Pushed → categories${suffix}.json to repo`);
   } catch(e) { console.log(`Push failed: ${e.message}`); }
+
   const idW   = Math.max(4,  ...entries.map(e => String(e.id).length));
   const nameW = Math.max(8,  ...entries.map(e => e.name.length));
   const lines = [
@@ -179,6 +223,8 @@ async function main() {
   ];
   fs.writeFileSync(`categories${suffix}.txt`, lines.join('\n'), 'utf-8');
   console.log(`Saved → categories${suffix}.txt\n`);
+
   console.log(lines.slice(0, entries.length + 2).join('\n'));
 }
+
 main().catch(e => { console.error(e); process.exit(1); });
