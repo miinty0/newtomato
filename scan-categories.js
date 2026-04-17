@@ -11,6 +11,8 @@ const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
   'Accept-Encoding': 'gzip, deflate, br',
+  'Referer': `https://${BASE}/`,
+  'Origin': `https://${BASE}`,
 };
 const DELAY_MS       = 500;
 const MAX_4XX_ERRORS = 3;
@@ -105,7 +107,7 @@ async function fetchFirstBookId(categoryId) {
       try {
         json = JSON.parse(res.data);
       } catch(e) {
-        console.log(`  cat ${catId ?? '?'}: JSON parse error (${e.message}) — body preview: ${res.data.slice(0, 120)}`);
+        console.log(`  JSON parse error (${e.message}) — status: ${res.status} — body preview: ${res.data.slice(0, 300)}`);
         if (attempt < 3) { await sleep(2000 * attempt); continue; }
         return null;
       }
