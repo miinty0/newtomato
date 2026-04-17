@@ -1,7 +1,6 @@
 const https = require('https');
 const http  = require('http');
 const fs    = require('fs');
-
 // ── Config ──
 const BASE    = 'fanqienovel.com';
 const API     = `https://${BASE}/api`;
@@ -10,13 +9,13 @@ const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 };
-const MAX_CATEGORY_ID = 1000;
-const DELAY_MS        = 500;
-const MAX_4XX_ERRORS  = 3;
-
+const DELAY_MS       = 500;
+const MAX_4XX_ERRORS = 3;
+// ── CLI args: node scan-categories.js [start] [end] ──
+const CAT_START = parseInt(process.argv[2], 10) || 1;
+const CAT_END   = parseInt(process.argv[3], 10) || 1000;
 // ── Helpers ──
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 function httpGet(url, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const lib = url.startsWith('https') ? https : http;
@@ -27,6 +26,33 @@ function httpGet(url, extraHeaders = {}) {
       res.on('data', c => data += c);
       res.on('end', () => resolve({ status: res.statusCode, data }));
     }).on('error', reject).on('timeout', () => reject(new Error('timeout')));
+  });
+}
+// ── Push file to GitHub repo ──
+async function ghPushFile(filename, content) {
+  const token = process.env.GITHUB_TOKEN;
+  const repo  = process.env.GITHUB_REPOSITORY; // "owner/repo"
+  if (!token || !repo) { console.log('No GITHUB_TOKEN/GITHUB_REPOSITORY — skipping push'); return; }
+  const url = `https://api.github.com/repos/${repo}/contents/${filename}`;
+  const b64  = Buffer.from(content, 'utf-8').toString('base64');
+  // Get existing SHA if file already exists (needed for update)
+  let sha;
+  try {
+    const getRes = await httpGet(url, { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json' });
+    if (getRes.status === 200) sha = JSON.parse(getRes.data).sha;
+  } catch(e) {}
+  const body = JSON.stringify({ message: `scan-categories: update ${filename}`, content: b64, ...(sha ? { sha } : {}) });
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = require('https').request({ hostname: u.hostname, path: u.pathname, method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => res.statusCode < 300 ? resolve() : reject(new Error(`HTTP ${res.statusCode}: ${d}`)));
+    });
+    req.on('error', reject);
+    req.write(body); req.end();
   });
 }
 // ── Fetch first book_id for a category ──
@@ -59,12 +85,21 @@ function parseCategoryV2(html) {
 }
 // ── Main ──
 async function main() {
-  const catMap = {}; // ObjectId → { Name, ExternalDesc }
+  // Load all existing categories_*.json to skip already-known ObjectIds
+  const catMap = {};
+  const existing = fs.readdirSync('.').filter(f => /^categories_\d+-\d+\.json$/.test(f));
+  for (const file of existing) {
+    try {
+      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      for (const e of data) catMap[e.id] = { Name: e.name, ExternalDesc: e.desc };
+    } catch(e) {}
+  }
+  if (existing.length > 0)
+    console.log(`Loaded ${Object.keys(catMap).length} existing ObjectIds from: ${existing.join(', ')}\n`);
   let consecutive4xx = 0;
-
-  console.log(`Scanning category_id 1 → ${MAX_CATEGORY_ID}...\n`);
-  console.log('Logic: fetch first book of each category → parse its categoryV2 → skip if all ObjectIds already known\n');
-  for (let catId = 1; catId <= MAX_CATEGORY_ID; catId++) {
+  const total = CAT_END - CAT_START + 1;
+  console.log(`Scanning category_id ${CAT_START} → ${CAT_END} (${total} categories)...\n`);
+  for (let catId = CAT_START; catId <= CAT_END; catId++) {
     // Step A: get first book_id for this category
     let bookId = null;
     try {
@@ -75,7 +110,7 @@ async function main() {
       continue;
     }
     if (!bookId) {
-      process.stdout.write(`  cat ${catId}/${MAX_CATEGORY_ID}: no books — skip\n`);
+      process.stdout.write(`  cat ${catId}/${CAT_END}: no books — skip\n`);
       await sleep(200);
       continue;
     }
@@ -103,7 +138,7 @@ async function main() {
     const cats = parseCategoryV2(res.data);
     const allKnown = cats.length > 0 && cats.every(c => catMap[c.ObjectId]);
     if (allKnown) {
-      process.stdout.write(`  cat ${catId}/${MAX_CATEGORY_ID}: all ${cats.length} ObjectIds already known — skip\n`);
+      process.stdout.write(`  cat ${catId}/${CAT_END}: all ${cats.length} ObjectIds already known — skip\n`);
     } else {
       let newCount = 0;
       for (const c of cats) {
@@ -112,7 +147,7 @@ async function main() {
           newCount++;
         }
       }
-      process.stdout.write(`  cat ${catId}/${MAX_CATEGORY_ID}: book ${bookId} | +${newCount} new ObjectIds | total: ${Object.keys(catMap).length}\n`);
+      process.stdout.write(`  cat ${catId}/${CAT_END}: book ${bookId} | +${newCount} new | total: ${Object.keys(catMap).length}\n`);
     }
     await sleep(DELAY_MS + Math.floor(Math.random() * 200));
   }
@@ -120,12 +155,16 @@ async function main() {
   const entries = Object.entries(catMap)
     .map(([id, info]) => ({ id: Number(id), name: info.Name, desc: info.ExternalDesc }))
     .sort((a, b) => a.id - b.id);
+  const suffix = `_${CAT_START}-${CAT_END}`;
   console.log(`\n${'='.repeat(70)}`);
   console.log(`Found ${entries.length} unique categories\n`);
-  // categories.json
-  fs.writeFileSync('categories.json', JSON.stringify(entries, null, 2), 'utf-8');
-  console.log('Saved → categories.json');
-  // categories.txt
+  const jsonContent = JSON.stringify(entries, null, 2);
+  fs.writeFileSync(`categories${suffix}.json`, jsonContent, 'utf-8');
+  console.log(`Saved → categories${suffix}.json`);
+  try {
+    await ghPushFile(`categories${suffix}.json`, jsonContent);
+    console.log(`Pushed → categories${suffix}.json to repo`);
+  } catch(e) { console.log(`Push failed: ${e.message}`); }
   const idW   = Math.max(4,  ...entries.map(e => String(e.id).length));
   const nameW = Math.max(8,  ...entries.map(e => e.name.length));
   const lines = [
@@ -138,9 +177,8 @@ async function main() {
     ...entries.map(e => `  ${e.id}: '${e.name}',  // ${e.desc}`),
     '};',
   ];
-  fs.writeFileSync('categories.txt', lines.join('\n'), 'utf-8');
-  console.log('Saved → categories.txt\n');
+  fs.writeFileSync(`categories${suffix}.txt`, lines.join('\n'), 'utf-8');
+  console.log(`Saved → categories${suffix}.txt\n`);
   console.log(lines.slice(0, entries.length + 2).join('\n'));
 }
-
 main().catch(e => { console.error(e); process.exit(1); });
