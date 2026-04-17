@@ -1,6 +1,7 @@
 const https = require('https');
 const http  = require('http');
 const fs    = require('fs');
+const zlib  = require('zlib');
 
 // ── Config ──
 const BASE    = 'fanqienovel.com';
@@ -9,6 +10,7 @@ const PAGE    = `https://${BASE}/page`;
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+  'Accept-Encoding': 'gzip, deflate, br',
 };
 const DELAY_MS       = 500;
 const MAX_4XX_ERRORS = 3;
@@ -26,12 +28,25 @@ function httpGet(url, extraHeaders = {}) {
     const req = lib.get(url, { headers: { ...HEADERS, ...extraHeaders }, timeout: 60000 }, res => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location)
         return httpGet(res.headers.location, extraHeaders).then(resolve).catch(reject);
+
       const chunks = [];
-      res.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
-      res.on('end', () => {
+      const encoding = res.headers['content-encoding'] || '';
+      let stream = res;
+
+      if (encoding.includes('br')) {
+        stream = res.pipe(zlib.createBrotliDecompress());
+      } else if (encoding.includes('gzip')) {
+        stream = res.pipe(zlib.createGunzip());
+      } else if (encoding.includes('deflate')) {
+        stream = res.pipe(zlib.createInflate());
+      }
+
+      stream.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+      stream.on('end', () => {
         const data = Buffer.concat(chunks).toString('utf-8');
         resolve({ status: res.statusCode, data });
       });
+      stream.on('error', reject);
       res.on('error', reject);
     });
     req.on('error', reject);
@@ -86,7 +101,14 @@ async function fetchFirstBookId(categoryId) {
       if (res.status === 429) { await sleep(60000); continue; }
       if (res.status >= 500)  { await sleep(5000 * attempt); continue; }
       if (res.status !== 200) return null;
-      const json = JSON.parse(res.data);
+      let json;
+      try {
+        json = JSON.parse(res.data);
+      } catch(e) {
+        console.log(`  cat ${catId ?? '?'}: JSON parse error (${e.message}) — body preview: ${res.data.slice(0, 120)}`);
+        if (attempt < 3) { await sleep(2000 * attempt); continue; }
+        return null;
+      }
       const list = json?.data?.book_list;
       if (!list || list.length === 0) return null;
       return String(list[0].book_id);
@@ -116,6 +138,7 @@ function parseCategoryV2(html) {
 async function main() {
   // Load all existing categories_*.json to skip already-known ObjectIds
   const catMap = {};
+  const newIds = new Set(); // track only IDs discovered in this run
   const existing = fs.readdirSync('.').filter(f => /^categories_\d+-\d+\.json$/.test(f));
   for (const file of existing) {
     try {
@@ -182,6 +205,7 @@ async function main() {
       for (const c of cats) {
         if (!catMap[c.ObjectId]) {
           catMap[c.ObjectId] = { Name: c.Name, ExternalDesc: c.ExternalDesc };
+          newIds.add(c.ObjectId);
           newCount++;
         }
       }
@@ -192,39 +216,42 @@ async function main() {
   }
 
   // ── Save results ──
+  // JSON = full merged superset (all runs); TXT = only this run's new entries
   const entries = Object.entries(catMap)
     .map(([id, info]) => ({ id: Number(id), name: info.Name, desc: info.ExternalDesc }))
     .sort((a, b) => a.id - b.id);
 
+  const newEntries = entries.filter(e => newIds.has(e.id));
+
   const suffix = `_${CAT_START}-${CAT_END}`;
 
   console.log(`\n${'='.repeat(70)}`);
-  console.log(`Found ${entries.length} unique categories\n`);
+  console.log(`Found ${newEntries.length} new categories this run (${entries.length} total across all runs)\n`);
 
   const jsonContent = JSON.stringify(entries, null, 2);
   fs.writeFileSync(`categories${suffix}.json`, jsonContent, 'utf-8');
-  console.log(`Saved → categories${suffix}.json`);
+  console.log(`Saved → categories${suffix}.json (all ${entries.length} entries)`);
   try {
     await ghPushFile(`categories${suffix}.json`, jsonContent);
     console.log(`Pushed → categories${suffix}.json to repo`);
   } catch(e) { console.log(`Push failed: ${e.message}`); }
 
-  const idW   = Math.max(4,  ...entries.map(e => String(e.id).length));
-  const nameW = Math.max(8,  ...entries.map(e => e.name.length));
+  const idW   = Math.max(4,  ...newEntries.map(e => String(e.id).length));
+  const nameW = Math.max(8,  ...newEntries.map(e => e.name.length));
   const lines = [
     `${'ID'.padStart(idW)}  ${'NAME'.padEnd(nameW)}  DESC`,
     `${'-'.repeat(idW)}  ${'-'.repeat(nameW)}  ${'-'.repeat(40)}`,
-    ...entries.map(e => `${String(e.id).padStart(idW)}  ${e.name.padEnd(nameW)}  ${e.desc}`),
+    ...newEntries.map(e => `${String(e.id).padStart(idW)}  ${e.name.padEnd(nameW)}  ${e.desc}`),
     '',
     '// Copy-paste vào CATEGORY_NAMES trong index.html:',
     'const CATEGORY_NAMES = {',
-    ...entries.map(e => `  ${e.id}: '${e.name}',  // ${e.desc}`),
+    ...newEntries.map(e => `  ${e.id}: '${e.name}',  // ${e.desc}`),
     '};',
   ];
   fs.writeFileSync(`categories${suffix}.txt`, lines.join('\n'), 'utf-8');
-  console.log(`Saved → categories${suffix}.txt\n`);
+  console.log(`Saved → categories${suffix}.txt (this run only)\n`);
 
-  console.log(lines.slice(0, entries.length + 2).join('\n'));
+  console.log(lines.slice(0, newEntries.length + 2).join('\n'));
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
