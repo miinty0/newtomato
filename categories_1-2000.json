@@ -1,1982 +1,1982 @@
 [
-  {
-    "id": 1,
-    "name": "都市",
-    "desc": "都市里还发生哪些神奇故事？"
-  },
-  {
-    "id": 2,
-    "name": "都市生活",
-    "desc": "繁华都市，人间烟火"
-  },
-  {
-    "id": 3,
-    "name": "现代言情",
-    "desc": "爱你是我做过最正确的事"
-  },
-  {
-    "id": 4,
-    "name": "校园",
-    "desc": "校园里没说完的青春"
-  },
-  {
-    "id": 5,
-    "name": "古代言情",
-    "desc": "独行此世间，幸得一心人"
-  },
-  {
-    "id": 6,
-    "name": "奇幻",
-    "desc": "在西方世界施展奥术与魔法"
-  },
-  {
-    "id": 7,
-    "name": "玄幻",
-    "desc": "一起进入奇幻世界"
-  },
-  {
-    "id": 8,
-    "name": "科幻末世",
-    "desc": "在科学的基础上，人类真的很敢想"
-  },
-  {
-    "id": 9,
-    "name": "仙侠",
-    "desc": "不走寻常路的仙侠传奇"
-  },
-  {
-    "id": 10,
-    "name": "悬疑",
-    "desc": "烧脑推理强力来袭"
-  },
-  {
-    "id": 11,
-    "name": "乡村",
-    "desc": "田园风光里的酸甜苦辣"
-  },
-  {
-    "id": 12,
-    "name": "历史",
-    "desc": "以史为镜，可以知兴替"
-  },
-  {
-    "id": 13,
-    "name": "军事",
-    "desc": "1"
-  },
-  {
-    "id": 15,
-    "name": "体育",
-    "desc": "热血竞技无处不在"
-  },
-  {
-    "id": 16,
-    "name": "武侠",
-    "desc": "快意恩仇，一笑而过"
-  },
-  {
-    "id": 17,
-    "name": "鉴宝",
-    "desc": "古玩宝贝 一网打尽"
-  },
-  {
-    "id": 19,
-    "name": "系统",
-    "desc": "绑定系统后获得金手指"
-  },
-  {
-    "id": 20,
-    "name": "神豪",
-    "desc": "主角成为超级富豪"
-  },
-  {
-    "id": 21,
-    "name": "修真",
-    "desc": "\"情节中涉及修真/修佛/修武等元素的剧集\n* 纯修武（纯武侠）、纯修佛（传统佛教）不属于修真，只有修武、修佛被纳入超自然修炼、追求超凡入圣的框架时才打修真\""
-  },
-  {
-    "id": 23,
-    "name": "种田",
-    "desc": "朴实生活，在田间打造金山银山"
-  },
-  {
-    "id": 24,
-    "name": "快穿",
-    "desc": "在不同世界左右横跳真爽"
-  },
-  {
-    "id": 25,
-    "name": "赘婿",
-    "desc": "上门女婿大展宏图"
-  },
-  {
-    "id": 26,
-    "name": "神医",
-    "desc": "悬壶济世，妙手回春"
-  },
-  {
-    "id": 27,
-    "name": "战神赘婿",
-    "desc": "让一让，无敌战神来了！"
-  },
-  {
-    "id": 28,
-    "name": "萌宝",
-    "desc": "淘气萌宝，在线发糖"
-  },
-  {
-    "id": 29,
-    "name": "总裁",
-    "desc": "总裁，夫人她竟然......"
-  },
-  {
-    "id": 30,
-    "name": "宠妻",
-    "desc": "感受宇宙最甜宠爱"
-  },
-  {
-    "id": 31,
-    "name": "其他",
-    "desc": "无"
-  },
-  {
-    "id": 32,
-    "name": "幻想言情",
-    "desc": "超越时空种族与你相拥"
-  },
-  {
-    "id": 34,
-    "name": "婚恋",
-    "desc": "指小说男女主先结婚后恋爱的作品"
-  },
-  {
-    "id": 36,
-    "name": "重生",
-    "desc": "看主角重生后改变命途"
-  },
-  {
-    "id": 37,
-    "name": "穿越",
-    "desc": "平行世界，爱能穿越"
-  },
-  {
-    "id": 39,
-    "name": "二次元",
-    "desc": "欢迎来到二次元的世界"
-  },
-  {
-    "id": 40,
-    "name": "海岛",
-    "desc": "从荒岛求生到人生巅峰"
-  },
-  {
-    "id": 42,
-    "name": "奶爸",
-    "desc": "新时代奶爸的带娃技巧"
-  },
-  {
-    "id": 43,
-    "name": "娱乐圈",
-    "desc": "感受一下娱乐圈的灯红酒绿"
-  },
-  {
-    "id": 44,
-    "name": "空间",
-    "desc": "主角携带随身空间"
-  },
-  {
-    "id": 45,
-    "name": "影视小说",
-    "desc": "影视画面之外的文字魅力"
-  },
-  {
-    "id": 46,
-    "name": "诗歌散文",
-    "desc": "诗歌和散文，梦想与远方"
-  },
-  {
-    "id": 47,
-    "name": "文学小说",
-    "desc": "国内外经典文学一网打尽"
-  },
-  {
-    "id": 48,
-    "name": "生活",
-    "desc": "看很多书，过好这一生"
-  },
-  {
-    "id": 50,
-    "name": "社会科学",
-    "desc": "为你精选优质社科书籍"
-  },
-  {
-    "id": 51,
-    "name": "名著经典",
-    "desc": "名著经典"
-  },
-  {
-    "id": 52,
-    "name": "科技",
-    "desc": "探寻科技的奥秘"
-  },
-  {
-    "id": 53,
-    "name": "经济管理",
-    "desc": "经管类专业书籍集锦"
-  },
-  {
-    "id": 54,
-    "name": "教育",
-    "desc": "助人成材的宝藏书籍"
-  },
-  {
-    "id": 56,
-    "name": "成功励志",
-    "desc": "每天鼓励自己一点点"
-  },
-  {
-    "id": 57,
-    "name": "游戏动漫",
-    "desc": "游戏动漫"
-  },
-  {
-    "id": 61,
-    "name": "推理",
-    "desc": "真相只有一个"
-  },
-  {
-    "id": 62,
-    "name": "文化历史",
-    "desc": "以史为镜，可以知兴替"
-  },
-  {
-    "id": 66,
-    "name": "洪荒",
-    "desc": "来自上古神话的爱恨情仇"
-  },
-  {
-    "id": 67,
-    "name": "三国",
-    "desc": "三国之乱，烽火连天不休"
-  },
-  {
-    "id": 68,
-    "name": "末世",
-    "desc": "末日来临的极端世界"
-  },
-  {
-    "id": 69,
-    "name": "直播",
-    "desc": "围观主播的日常生活"
-  },
-  {
-    "id": 70,
-    "name": "无限流",
-    "desc": "无限闯关，下个任务是什么？"
-  },
-  {
-    "id": 71,
-    "name": "诸天万界",
-    "desc": "一起穿梭在诸天万界"
-  },
-  {
-    "id": 72,
-    "name": "兽世",
-    "desc": "兽人的世界也很可爱"
-  },
-  {
-    "id": 73,
-    "name": "大唐",
-    "desc": "繁华世间，绝美大唐"
-  },
-  {
-    "id": 74,
-    "name": "宠物",
-    "desc": "这个萌宠真可爱"
-  },
-  {
-    "id": 75,
-    "name": "外卖",
-    "desc": "争当最强外卖员"
-  },
-  {
-    "id": 76,
-    "name": "清穿",
-    "desc": "穿越到清朝可以干什么"
-  },
-  {
-    "id": 77,
-    "name": "星际",
-    "desc": "星际穿越，见证奇迹"
-  },
-  {
-    "id": 78,
-    "name": "美食",
-    "desc": "厨神驾到，满目珍馐"
-  },
-  {
-    "id": 79,
-    "name": "年代",
-    "desc": "穿越到旧年代创造新财富"
-  },
-  {
-    "id": 80,
-    "name": "剑道",
-    "desc": "以剑入道，直指苍穹"
-  },
-  {
-    "id": 81,
-    "name": "盗墓",
-    "desc": "共度地下寻宝之旅"
-  },
-  {
-    "id": 82,
-    "name": "学霸",
-    "desc": "围观学霸的日常操作"
-  },
-  {
-    "id": 83,
-    "name": "公主",
-    "desc": "了不起的公主殿下"
-  },
-  {
-    "id": 84,
-    "name": "皇后",
-    "desc": "步步经营终得母仪天下"
-  },
-  {
-    "id": 85,
-    "name": "王妃",
-    "desc": "最是无情帝王家"
-  },
-  {
-    "id": 86,
-    "name": "女强",
-    "desc": "女王驾到，又A又飒"
-  },
-  {
-    "id": 87,
-    "name": "皇叔",
-    "desc": "男主竟是我皇叔"
-  },
-  {
-    "id": 88,
-    "name": "嫡女",
-    "desc": "开局拿到嫡女身份"
-  },
-  {
-    "id": 89,
-    "name": "精灵",
-    "desc": "欢迎来到精灵世界"
-  },
-  {
-    "id": 90,
-    "name": "天才",
-    "desc": "天赋异禀主角的不凡人生"
-  },
-  {
-    "id": 91,
-    "name": "多女主",
-    "desc": "浪漫迭起的旅途"
-  },
-  {
-    "id": 92,
-    "name": "腹黑",
-    "desc": "于不动声色中织就算无遗策的罗网"
-  },
-  {
-    "id": 93,
-    "name": "扮猪吃虎",
-    "desc": "ta只是看起来很弱小"
-  },
-  {
-    "id": 94,
-    "name": "团宠",
-    "desc": "被大佬围着宠"
-  },
-  {
-    "id": 95,
-    "name": "虐文",
-    "desc": "看了这些我化身水龙头"
-  },
-  {
-    "id": 96,
-    "name": "甜宠",
-    "desc": "我看完已经傻笑三个小时了"
-  },
-  {
-    "id": 97,
-    "name": "战争",
-    "desc": "谨记历史，祈愿和平"
-  },
-  {
-    "id": 98,
-    "name": "中国名著",
-    "desc": "纵览古今传世名篇"
-  },
-  {
-    "id": 99,
-    "name": "外国名著",
-    "desc": "外国作家著就的名著"
-  },
-  {
-    "id": 100,
-    "name": "灵异",
-    "desc": "前方高能！肾上腺素飙升"
-  },
-  {
-    "id": 113,
-    "name": "戏曲",
-    "desc": "各类传统戏曲国粹艺术"
-  },
-  {
-    "id": 116,
-    "name": "国学",
-    "desc": "弘扬传统国学"
-  },
-  {
-    "id": 120,
-    "name": "影视",
-    "desc": "影视"
-  },
-  {
-    "id": 124,
-    "name": "都市修真",
-    "desc": "我在都市学修仙"
-  },
-  {
-    "id": 125,
-    "name": "家庭",
-    "desc": "描写现代家庭生活"
-  },
-  {
-    "id": 126,
-    "name": "明朝",
-    "desc": "明朝那些故事"
-  },
-  {
-    "id": 127,
-    "name": "职场",
-    "desc": "关爱当代打工人，人人有责"
-  },
-  {
-    "id": 134,
-    "name": "艺术",
-    "desc": "人类文明的风景"
-  },
-  {
-    "id": 135,
-    "name": "哲学",
-    "desc": "哲学理论"
-  },
-  {
-    "id": 142,
-    "name": "法律",
-    "desc": "实用法律知识集合"
-  },
-  {
-    "id": 146,
-    "name": "心理",
-    "desc": "了解自己，直面心灵"
-  },
-  {
-    "id": 165,
-    "name": "悬疑推理",
-    "desc": "烧脑推理，真相悬疑"
-  },
-  {
-    "id": 166,
-    "name": "科幻小说",
-    "desc": "在科学的基础上畅想无限可能"
-  },
-  {
-    "id": 168,
-    "name": "青春文学",
-    "desc": "青春是每个人都走过的路"
-  },
-  {
-    "id": 193,
-    "name": "体育竞技",
-    "desc": "脚本新增"
-  },
-  {
-    "id": 225,
-    "name": "胎教早教",
-    "desc": "培养孩子兴趣"
-  },
-  {
-    "id": 241,
-    "name": "历史文化",
-    "desc": "历史是文明的缩影"
-  },
-  {
-    "id": 246,
-    "name": "宫斗宅斗",
-    "desc": "霸气女主的生存之道"
-  },
-  {
-    "id": 247,
-    "name": "医术",
-    "desc": "凭借绝世医术混得风生水起"
-  },
-  {
-    "id": 248,
-    "name": "玄幻言情",
-    "desc": "八荒六合，为爱俯身"
-  },
-  {
-    "id": 253,
-    "name": "古言脑洞",
-    "desc": "穿越后拿个金手指再谈恋爱"
-  },
-  {
-    "id": 257,
-    "name": "玄幻脑洞",
-    "desc": "神通广大的主角们"
-  },
-  {
-    "id": 258,
-    "name": "传统玄幻",
-    "desc": "入坑玄幻的经典小说"
-  },
-  {
-    "id": 259,
-    "name": "奇幻仙侠",
-    "desc": "在幻想的世界里，修仙问道，学奥术魔法"
-  },
-  {
-    "id": 261,
-    "name": "都市日常",
-    "desc": "轻松愉快的都市二三事"
-  },
-  {
-    "id": 262,
-    "name": "都市脑洞",
-    "desc": "脑洞大开的都市离奇故事"
-  },
-  {
-    "id": 263,
-    "name": "都市种田",
-    "desc": "苦心经营终成世界首富"
-  },
-  {
-    "id": 265,
-    "name": "先婚后爱",
-    "desc": "婚后热恋，甜度加倍"
-  },
-  {
-    "id": 266,
-    "name": "马甲",
-    "desc": "掉马甲爽文集合地"
-  },
-  {
-    "id": 267,
-    "name": "现言脑洞",
-    "desc": "恋爱，但不走寻常路"
-  },
-  {
-    "id": 268,
-    "name": "现言复仇",
-    "desc": "现代言情打脸复仇"
-  },
-  {
-    "id": 272,
-    "name": "历史脑洞",
-    "desc": "穿越到古代有金手指"
-  },
-  {
-    "id": 273,
-    "name": "历史古代",
-    "desc": "立足历史大框架"
-  },
-  {
-    "id": 274,
-    "name": "两性",
-    "desc": "男女相处了解之道"
-  },
-  {
-    "id": 275,
-    "name": "双男主",
-    "desc": "世间繁杂，愿所爱皆成真"
-  },
-  {
-    "id": 291,
-    "name": "宗教",
-    "desc": "宗教内容"
-  },
-  {
-    "id": 297,
-    "name": "青春",
-    "desc": "青春时光"
-  },
-  {
-    "id": 302,
-    "name": "动作",
-    "desc": "又称为惊险动作片(Action-Adventure Films)，是以强烈紧张的惊险动作和视听张力为核心的影视作品类型。具备巨大的冲击力、持续的高效动能、一系列外在惊险动作和事件。------明显的打"
-  },
-  {
-    "id": 304,
-    "name": "爱情",
-    "desc": "爱情片是以表现爱情为核心，并以男女主人公在爱情发生的过程中克服误会、曲折和坎坷等阻力为叙事线索，最终达到理想的大团圆结局或悲剧性离散结局的影视作品。"
-  },
-  {
-    "id": 305,
-    "name": "犯罪",
-    "desc": "犯罪片一般指有警匪活动的影视作品。所有剧情作品里，犯罪片必定侧重犯罪事实和情节，而非一带而过。"
-  },
-  {
-    "id": 322,
-    "name": "惊悚",
-    "desc": "\"主要以灵异、怪诞、神秘、罪行为题材，利用错综复杂的心理变态、或精神分裂状态来制造惊悚效果（多为心理上的刺激） \""
-  },
-  {
-    "id": 323,
-    "name": "历史短故事",
-    "desc": "历史背景下的小人物生活百态"
-  },
-  {
-    "id": 324,
-    "name": "战争短故事",
-    "desc": "战争中的小故事"
-  },
-  {
-    "id": 325,
-    "name": "自然探险",
-    "desc": "野外、动物与自然"
-  },
-  {
-    "id": 326,
-    "name": "现实生活",
-    "desc": "人间真实，道尽辛酸"
-  },
-  {
-    "id": 345,
-    "name": "高等教育",
-    "desc": "高等教育阶段的知识"
-  },
-  {
-    "id": 367,
-    "name": "奥特同人",
-    "desc": "为了守护永恒的光与正义！"
-  },
-  {
-    "id": 368,
-    "name": "火影",
-    "desc": "为成为最强而努力"
-  },
-  {
-    "id": 369,
-    "name": "反派",
-    "desc": "可爱炫酷又迷人的反派主角"
-  },
-  {
-    "id": 370,
-    "name": "海贼",
-    "desc": "大海会铭记每一段传奇"
-  },
-  {
-    "id": 371,
-    "name": "神奇宝贝",
-    "desc": "童年回忆皮卡皮卡"
-  },
-  {
-    "id": 372,
-    "name": "网游",
-    "desc": "我在游戏里叱咤风云的日子"
-  },
-  {
-    "id": 373,
-    "name": "西游衍生",
-    "desc": "妖怪！吃俺老孙一棒！"
-  },
-  {
-    "id": 374,
-    "name": "漫威",
-    "desc": "能力越大，责任越大"
-  },
-  {
-    "id": 375,
-    "name": "特种兵",
-    "desc": "你能想象特种兵有多强吗"
-  },
-  {
-    "id": 376,
-    "name": "龙珠",
-    "desc": "到异世界成为强者"
-  },
-  {
-    "id": 377,
-    "name": "大秦",
-    "desc": "体验属于你的大秦生活"
-  },
-  {
-    "id": 378,
-    "name": "女帝",
-    "desc": "不是傻白甜，叫我女王大人"
-  },
-  {
-    "id": 379,
-    "name": "求生",
-    "desc": "为了生存能做些什么？"
-  },
-  {
-    "id": 380,
-    "name": "病娇",
-    "desc": "嘘 你逃不出我的手掌心"
-  },
-  {
-    "id": 381,
-    "name": "聊天群",
-    "desc": "没有聊天群不能连通的世界"
-  },
-  {
-    "id": 382,
-    "name": "穿书",
-    "desc": "穿书之后，怎么不按套路出牌？"
-  },
-  {
-    "id": 383,
-    "name": "九叔",
-    "desc": "和九叔一起打僵尸"
-  },
-  {
-    "id": 384,
-    "name": "无敌",
-    "desc": "过五关斩六将的无敌爽文"
-  },
-  {
-    "id": 385,
-    "name": "校花",
-    "desc": "解锁和校花谈恋爱"
-  },
-  {
-    "id": 387,
-    "name": "青梅竹马",
-    "desc": "上天欠我一个青梅竹马"
-  },
-  {
-    "id": 388,
-    "name": "女扮男装",
-    "desc": "巾帼不让须眉"
-  },
-  {
-    "id": 389,
-    "name": "单女主",
-    "desc": "拒绝后宫，女主只有一个"
-  },
-  {
-    "id": 390,
-    "name": "民国",
-    "desc": "回到那个风华绝代的时期"
-  },
-  {
-    "id": 391,
-    "name": "无女主",
-    "desc": "不谈恋爱，只搞事业"
-  },
-  {
-    "id": 392,
-    "name": "无CP",
-    "desc": "恋爱不是生活的全部"
-  },
-  {
-    "id": 395,
-    "name": "现言甜宠",
-    "desc": "满世界都是甜腻粉泡泡"
-  },
-  {
-    "id": 396,
-    "name": "都市青春",
-    "desc": "校园暗恋往事"
-  },
-  {
-    "id": 397,
-    "name": "外国文学",
-    "desc": "国外优质文学集合地"
-  },
-  {
-    "id": 398,
-    "name": "古代文学",
-    "desc": "古代经典文学品读"
-  },
-  {
-    "id": 399,
-    "name": "当代文学",
-    "desc": "触摸当代文坛的亮点"
-  },
-  {
-    "id": 400,
-    "name": "现实小说",
-    "desc": "以现实为根基的小说创作"
-  },
-  {
-    "id": 401,
-    "name": "文学理论",
-    "desc": "了解文本，更懂文学"
-  },
-  {
-    "id": 402,
-    "name": "中国历史",
-    "desc": "泱泱华夏，璀璨明珠"
-  },
-  {
-    "id": 403,
-    "name": "世界历史",
-    "desc": "了解历史长河进程"
-  },
-  {
-    "id": 404,
-    "name": "历史传记",
-    "desc": "严肃严谨的传记作品"
-  },
-  {
-    "id": 405,
-    "name": "人文社科",
-    "desc": "可以开阔眼界的书单"
-  },
-  {
-    "id": 406,
-    "name": "哲学宗教",
-    "desc": "哲学与宗教内容"
-  },
-  {
-    "id": 407,
-    "name": "心理学",
-    "desc": "多读心理，悦纳自己"
-  },
-  {
-    "id": 408,
-    "name": "政治军事",
-    "desc": "军政书籍"
-  },
-  {
-    "id": 409,
-    "name": "人物传记",
-    "desc": "总有人类群星闪耀时"
-  },
-  {
-    "id": 410,
-    "name": "个人成长",
-    "desc": "你会成为更好的自己"
-  },
-  {
-    "id": 411,
-    "name": "思维智商",
-    "desc": "养成良性思维"
-  },
-  {
-    "id": 412,
-    "name": "人际交往",
-    "desc": "享受与人的乐趣"
-  },
-  {
-    "id": 413,
-    "name": "文化艺术",
-    "desc": "谈美论美感受美"
-  },
-  {
-    "id": 414,
-    "name": "孕产",
-    "desc": "新手妈妈的第一课"
-  },
-  {
-    "id": 415,
-    "name": "亲子家教",
-    "desc": "父母与孩子共同成长"
-  },
-  {
-    "id": 416,
-    "name": "保健养生",
-    "desc": "科学保健，合理养生"
-  },
-  {
-    "id": 417,
-    "name": "运动健身",
-    "desc": "常运动 常年轻"
-  },
-  {
-    "id": 418,
-    "name": "时尚美妆",
-    "desc": "都市丽人实用指南"
-  },
-  {
-    "id": 419,
-    "name": "美食休闲",
-    "desc": "没有什么是美食解决不了的"
-  },
-  {
-    "id": 420,
-    "name": "家居旅游",
-    "desc": "热爱生活，从家开始"
-  },
-  {
-    "id": 421,
-    "name": "风水占卜",
-    "desc": "生活处处有��学"
-  },
-  {
-    "id": 423,
-    "name": "经典国学",
-    "desc": "经典国学文化一网打尽"
-  },
-  {
-    "id": 425,
-    "name": "搞笑",
-    "desc": "搞笑"
-  },
-  {
-    "id": 428,
-    "name": "萌宠",
-    "desc": "这个萌宠真可爱"
-  },
-  {
-    "id": 452,
-    "name": "架空",
-    "desc": "架空世界看我为所欲为"
-  },
-  {
-    "id": 453,
-    "name": "开局",
-    "desc": "叮！您的大礼包已经到账"
-  },
-  {
-    "id": 454,
-    "name": "可盐可甜",
-    "desc": "又甜又飒"
-  },
-  {
-    "id": 455,
-    "name": "天作之合",
-    "desc": "全天下你俩最配"
-  },
-  {
-    "id": 456,
-    "name": "情有独钟",
-    "desc": "只对你有感觉的极致爱恋"
-  },
-  {
-    "id": 457,
-    "name": "虐渣",
-    "desc": "前方渣男渣女请避让"
-  },
-  {
-    "id": 458,
-    "name": "护短",
-    "desc": "宇宙终极护妻/夫狂魔"
-  },
-  {
-    "id": 459,
-    "name": "古灵精怪",
-    "desc": "活泼可爱 奇奇怪怪"
-  },
-  {
-    "id": 460,
-    "name": "独宠",
-    "desc": "弱水三千 只取一瓢饮"
-  },
-  {
-    "id": 461,
-    "name": "群穿",
-    "desc": "集体穿行更有趣"
-  },
-  {
-    "id": 462,
-    "name": "古穿今",
-    "desc": "古代人的现代之旅"
-  },
-  {
-    "id": 463,
-    "name": "今穿古",
-    "desc": "在古代我疯狂输出"
-  },
-  {
-    "id": 464,
-    "name": "异世穿越",
-    "desc": "平行世界，爱能穿越"
-  },
-  {
-    "id": 465,
-    "name": "综漫",
-    "desc": "二次元彩蛋大爆发"
-  },
-  {
-    "id": 466,
-    "name": "闪婚",
-    "desc": "闪婚之后的甜蜜生活"
-  },
-  {
-    "id": 467,
-    "name": "隐婚",
-    "desc": "外表高冷竟然结婚多年"
-  },
-  {
-    "id": 468,
-    "name": "冰山",
-    "desc": "冰山下的柔情"
-  },
-  {
-    "id": 469,
-    "name": "双面",
-    "desc": "意想不到的反差萌"
-  },
-  {
-    "id": 470,
-    "name": "替身",
-    "desc": "谁是谁的白月光"
-  },
-  {
-    "id": 471,
-    "name": "契约婚姻",
-    "desc": "一纸婚书捆住两厢心事"
-  },
-  {
-    "id": 473,
-    "name": "豪门世家",
-    "desc": "总裁，夫人她竟然......"
-  },
-  {
-    "id": 474,
-    "name": "日久生情",
-    "desc": "幸得岁月长，未曾错过你"
-  },
-  {
-    "id": 475,
-    "name": "破镜重圆",
-    "desc": "破镜重圆时，有比初遇更剔透的光。\n"
-  },
-  {
-    "id": 476,
-    "name": "双向奔赴",
-    "desc": "山海皆可平"
-  },
-  {
-    "id": 477,
-    "name": "一见钟情",
-    "desc": "只是在人群中多看了你一眼"
-  },
-  {
-    "id": 478,
-    "name": "强强",
-    "desc": "终极对决 看得过瘾"
-  },
-  {
-    "id": 479,
-    "name": "带球跑",
-    "desc": "爹地，妈咪又逃跑了"
-  },
-  {
-    "id": 480,
-    "name": "逃婚",
-    "desc": "新人逃婚了怎么办"
-  },
-  {
-    "id": 481,
-    "name": "虐恋情深",
-    "desc": "开篇就哭成水龙头"
-  },
-  {
-    "id": 482,
-    "name": "暗恋",
-    "desc": "一直默默站在你身后"
-  },
-  {
-    "id": 483,
-    "name": "相爱相杀",
-    "desc": "要多抓马有多抓马"
-  },
-  {
-    "id": 484,
-    "name": "HE",
-    "desc": "谁能拒绝圆满结局呢"
-  },
-  {
-    "id": 485,
-    "name": "职场商战",
-    "desc": "商界纵横，如何登上巅峰？"
-  },
-  {
-    "id": 486,
-    "name": "明星",
-    "desc": "娱乐圈恋爱指南"
-  },
-  {
-    "id": 487,
-    "name": "医生",
-    "desc": "好看的医生文点这里"
-  },
-  {
-    "id": 488,
-    "name": "律师",
-    "desc": "法学精英的恋爱生活"
-  },
-  {
-    "id": 490,
-    "name": "厨娘",
-    "desc": "妙手厨娘，在线下蛊"
-  },
-  {
-    "id": 491,
-    "name": "毒医",
-    "desc": "满级毒医无人敢惹"
-  },
-  {
-    "id": 492,
-    "name": "将军",
-    "desc": "战场内外的反差人设"
-  },
-  {
-    "id": 493,
-    "name": "钓鱼",
-    "desc": "体验悠闲的海边生活"
-  },
-  {
-    "id": 494,
-    "name": "囤物资",
-    "desc": "末世之中疯狂囤物资"
-  },
-  {
-    "id": 495,
-    "name": "四合院",
-    "desc": "加入四合院共谱未来华章"
-  },
-  {
-    "id": 496,
-    "name": "国运",
-    "desc": "绑定国运系统，搅动天下风云"
-  },
-  {
-    "id": 497,
-    "name": "武将",
-    "desc": "英雄不问出处"
-  },
-  {
-    "id": 498,
-    "name": "皇帝",
-    "desc": "身为天子多年，朕乏了"
-  },
-  {
-    "id": 500,
-    "name": "断层",
-    "desc": "穿越到文明断层期大展身手"
-  },
-  {
-    "id": 501,
-    "name": "宋朝",
-    "desc": "穿越到宋朝能干点什么？"
-  },
-  {
-    "id": 502,
-    "name": "宫廷侯爵",
-    "desc": "权势遮天，尔虞我诈"
-  },
-  {
-    "id": 503,
-    "name": "清朝",
-    "desc": "带你看身在清朝的故事"
-  },
-  {
-    "id": 504,
-    "name": "抗战谍战",
-    "desc": "用密电与胆识编织的秘密棋局"
-  },
-  {
-    "id": 505,
-    "name": "破案",
-    "desc": "刑侦破案，刻不容缓"
-  },
-  {
-    "id": 506,
-    "name": "神探",
-    "desc": "见证顶级神探的精彩推理"
-  },
-  {
-    "id": 507,
-    "name": "谍战",
-    "desc": "乱中坚守信仰，暗处祈愿光明"
-  },
-  {
-    "id": 508,
-    "name": "电竞",
-    "desc": "电子竞技也有柔情"
-  },
-  {
-    "id": 509,
-    "name": "游戏主播",
-    "desc": "直播打游戏的那些年"
-  },
-  {
-    "id": 510,
-    "name": "绝地逃生",
-    "desc": "绝地逃生"
-  },
-  {
-    "id": 511,
-    "name": "东方玄幻",
-    "desc": "融合东方经典传统文化"
-  },
-  {
-    "id": 512,
-    "name": "异世大陆",
-    "desc": "幻想世界的神奇大陆"
-  },
-  {
-    "id": 513,
-    "name": "高武世界",
-    "desc": "最强武力即是一切"
-  },
-  {
-    "id": 514,
-    "name": "灵气复苏",
-    "desc": "看天地异变能量崛起"
-  },
-  {
-    "id": 515,
-    "name": "末日求生",
-    "desc": "在恶劣环境中奋力崛起"
-  },
-  {
-    "id": 516,
-    "name": "都市异能",
-    "desc": "都市传说之我有超能力"
-  },
-  {
-    "id": 517,
-    "name": "修仙",
-    "desc": "修仙路漫漫，来看修仙传"
-  },
-  {
-    "id": 518,
-    "name": "特工",
-    "desc": "任务成功全靠他斗智斗勇"
-  },
-  {
-    "id": 519,
-    "name": "大小姐",
-    "desc": "大小姐驾到通通闪开"
-  },
-  {
-    "id": 520,
-    "name": "大佬",
-    "desc": "能力超群 权势滔天"
-  },
-  {
-    "id": 521,
-    "name": "作精",
-    "desc": "人见人爱小作精"
-  },
-  {
-    "id": 522,
-    "name": "打脸",
-    "desc": "看完整个心情都舒畅了"
-  },
-  {
-    "id": 523,
-    "name": "前世今生",
-    "desc": "三生三世也斩不断的记忆"
-  },
-  {
-    "id": 524,
-    "name": "双重生",
-    "desc": "我和我的cp一起重生了"
-  },
-  {
-    "id": 525,
-    "name": "古籍",
-    "desc": "典藏古籍，传世宝藏"
-  },
-  {
-    "id": 537,
-    "name": "惊悚游戏",
-    "desc": "莫名进入惊悚游戏，还好我是主角"
-  },
-  {
-    "id": 538,
-    "name": "同人",
-    "desc": "他们的另一种可能由你书写"
-  },
-  {
-    "id": 539,
-    "name": "悬疑脑洞",
-    "desc": "环环相扣挑战心理极限"
-  },
-  {
-    "id": 557,
-    "name": "逃荒",
-    "desc": "我逃荒之后东山再起的传奇人生"
-  },
-  {
-    "id": 558,
-    "name": "仕途",
-    "desc": "燕雀安知鸿鹄之志"
-  },
-  {
-    "id": 590,
-    "name": "替嫁",
-    "desc": "女主代替别人嫁给男主"
-  },
-  {
-    "id": 597,
-    "name": "爽文",
-    "desc": "爽文"
-  },
-  {
-    "id": 598,
-    "name": "异能",
-    "desc": "异能"
-  },
-  {
-    "id": 615,
-    "name": "白月光",
-    "desc": "白月光"
-  },
-  {
-    "id": 616,
-    "name": "追妻火葬场",
-    "desc": "追妻火葬场"
-  },
-  {
-    "id": 620,
-    "name": "救赎",
-    "desc": "救赎"
-  },
-  {
-    "id": 658,
-    "name": "天灾",
-    "desc": "天灾末日，一片惶恐"
-  },
-  {
-    "id": 675,
-    "name": "荒野求生",
-    "desc": "荒野求生"
-  },
-  {
-    "id": 676,
-    "name": "锦鲤",
-    "desc": "锦鲤"
-  },
-  {
-    "id": 702,
-    "name": "双洁",
-    "desc": "一生一世一双人"
-  },
-  {
-    "id": 704,
-    "name": "双女主",
-    "desc": "女孩子之间的感情如此美好"
-  },
-  {
-    "id": 705,
-    "name": "克苏鲁",
-    "desc": "深水、远古生物，以及你未知的恐惧"
-  },
-  {
-    "id": 718,
-    "name": "动漫衍生",
-    "desc": "游戏动漫同人文"
-  },
-  {
-    "id": 721,
-    "name": "学校教育",
-    "desc": "词典、教辅工具书 应有尽有"
-  },
-  {
-    "id": 722,
-    "name": "成人教育",
-    "desc": "不断学习 是一生的使命"
-  },
-  {
-    "id": 731,
-    "name": "封神",
-    "desc": "千古悠悠封神榜，故土传说永不灭"
-  },
-  {
-    "id": 737,
-    "name": "大叔",
-    "desc": "大叔的魅力"
-  },
-  {
-    "id": 745,
-    "name": "星光璀璨",
-    "desc": "千金总裁的极限拉扯"
-  },
-  {
-    "id": 746,
-    "name": "游戏体育",
-    "desc": "竞技战场欢迎所有人"
-  },
-  {
-    "id": 747,
-    "name": "女频悬疑",
-    "desc": "迷雾未散 步步向你"
-  },
-  {
-    "id": 748,
-    "name": "豪门总裁",
-    "desc": "集团大boss偏偏爱上我"
-  },
-  {
-    "id": 749,
-    "name": "青春甜宠",
-    "desc": "青春甜宠"
-  },
-  {
-    "id": 750,
-    "name": "职场婚恋",
-    "desc": "工作第二 恋爱要紧"
-  },
-  {
-    "id": 751,
-    "name": "悬疑灵异",
-    "desc": "世上总藏着那些诡异事"
-  },
-  {
-    "id": 754,
-    "name": "现实情感",
-    "desc": "现实情感"
-  },
-  {
-    "id": 755,
-    "name": "脑洞",
-    "desc": "脑洞"
-  },
-  {
-    "id": 757,
-    "name": "现代",
-    "desc": "现代世界那些事"
-  },
-  {
-    "id": 758,
-    "name": "古代",
-    "desc": "古代"
-  },
-  {
-    "id": 760,
-    "name": "大女主",
-    "desc": "命运掌握在自己手中"
-  },
-  {
-    "id": 772,
-    "name": "西幻",
-    "desc": "西幻"
-  },
-  {
-    "id": 778,
-    "name": "搞笑轻松",
-    "desc": "搞笑沙雕文风，让你轻松一刻"
-  },
-  {
-    "id": 826,
-    "name": "黑道",
-    "desc": "黑道"
-  },
-  {
-    "id": 828,
-    "name": "基建",
-    "desc": "这就是我打造的天下"
-  },
-  {
-    "id": 829,
-    "name": "年下",
-    "desc": "年下也可以很会撩"
-  },
-  {
-    "id": 830,
-    "name": "升级流",
-    "desc": "修炼、进阶、升级，直到顶峰"
-  },
-  {
-    "id": 832,
-    "name": "科举",
-    "desc": "十年寒窗苦读，助我平步青云"
-  },
-  {
-    "id": 834,
-    "name": "1v1",
-    "desc": "我的世界，从来只有你一个"
-  },
-  {
-    "id": 835,
-    "name": "养成",
-    "desc": "养成的快乐到底谁懂！"
-  },
-  {
-    "id": 837,
-    "name": "争霸",
-    "desc": "天下风云，任君搅动"
-  },
-  {
-    "id": 838,
-    "name": "无后宫",
-    "desc": "无后宫，深情挂，或我独自帅气"
-  },
-  {
-    "id": 840,
-    "name": "发家致富",
-    "desc": "拼搏百天，终成一代传奇"
-  },
-  {
-    "id": 841,
-    "name": "群像",
-    "desc": "刻画每个有血有肉的灵魂"
-  },
-  {
-    "id": 842,
-    "name": "追妻",
-    "desc": "追妻路上，道阻且长"
-  },
-  {
-    "id": 844,
-    "name": "真假千金",
-    "desc": "真假大小姐双双驾到，到底要怎么办"
-  },
-  {
-    "id": 846,
-    "name": "黑化",
-    "desc": "有时候，杀伐果决是保护自己的唯一手段"
-  },
-  {
-    "id": 847,
-    "name": "养崽",
-    "desc": "团宠宝宝萌炸了"
-  },
-  {
-    "id": 848,
-    "name": "年龄差",
-    "desc": "年龄是/不是问题？"
-  },
-  {
-    "id": 850,
-    "name": "无脑爽",
-    "desc": "超级无敌纯爽文"
-  },
-  {
-    "id": 851,
-    "name": "规则怪谈",
-    "desc": "请遵循所有规则，否则，嘘......."
-  },
-  {
-    "id": 852,
-    "name": "魂穿",
-    "desc": "熟悉的灵魂和我的新身体"
-  },
-  {
-    "id": 853,
-    "name": "白切黑",
-    "desc": "是可爱的天使，也是恶魔的低吟"
-  },
-  {
-    "id": 854,
-    "name": "黑科技",
-    "desc": "年纪轻轻我靠黑科技攻略全世界"
-  },
-  {
-    "id": 856,
-    "name": "全能",
-    "desc": "六边形战士，就是一个爽字！"
-  },
-  {
-    "id": 857,
-    "name": "斩神",
-    "desc": "前方华夏，神明禁行，遇神杀神！"
-  },
-  {
-    "id": 858,
-    "name": "轻小说",
-    "desc": "越读越轻松的二次元小说"
-  },
-  {
-    "id": 859,
-    "name": "宝可梦",
-    "desc": "真的就是你了，我的精灵球！"
-  },
-  {
-    "id": 860,
-    "name": "相互救赎",
-    "desc": "我们相拥，就是彼此的光"
-  },
-  {
-    "id": 862,
-    "name": "家长里短",
-    "desc": "叽叽喳喳的幸福日常"
-  },
-  {
-    "id": 863,
-    "name": "戏精",
-    "desc": "每天不加戏我浑身难受"
-  },
-  {
-    "id": 864,
-    "name": "副本",
-    "desc": "叮！您的副本任务已开启"
-  },
-  {
-    "id": 865,
-    "name": "忠犬",
-    "desc": "谁能拒绝可怜小狗"
-  },
-  {
-    "id": 867,
-    "name": "捉鬼",
-    "desc": "捉鬼技法千千万"
-  },
-  {
-    "id": 868,
-    "name": "剑修",
-    "desc": "法术千变万化，看我一剑破之"
-  },
-  {
-    "id": 869,
-    "name": "废土",
-    "desc": "黄沙废土，动荡侵袭"
-  },
-  {
-    "id": 871,
-    "name": "第一人称",
-    "desc": "沉浸式感受故事"
-  },
-  {
-    "id": 872,
-    "name": "追夫",
-    "desc": "虐夫一时爽，追夫火葬场"
-  },
-  {
-    "id": 874,
-    "name": "卡牌",
-    "desc": "关于我��用卡牌成为天下第一的故事"
-  },
-  {
-    "id": 877,
-    "name": "古色古香",
-    "desc": "今月也曾照古人"
-  },
-  {
-    "id": 941,
-    "name": "文学经典",
-    "desc": "读书之乐何处寻，数点梅花天地心"
-  },
-  {
-    "id": 947,
-    "name": "养生健康",
-    "desc": "养生健康知识"
-  },
-  {
-    "id": 948,
-    "name": "社会文化",
-    "desc": "社会文化与文明传承"
-  },
-  {
-    "id": 951,
-    "name": "历史人物",
-    "desc": "中外历史人物传记"
-  },
-  {
-    "id": 954,
-    "name": "政治人物",
-    "desc": "政治领域人物传记"
-  },
-  {
-    "id": 955,
-    "name": "文艺名人",
-    "desc": "文艺领域人物传记"
-  },
-  {
-    "id": 956,
-    "name": "政治理论",
-    "desc": "政治理论书籍"
-  },
-  {
-    "id": 958,
-    "name": "家庭育儿",
-    "desc": "家庭育儿常识与方法"
-  },
-  {
-    "id": 959,
-    "name": "绘画",
-    "desc": "绘画技法与赏析"
-  },
-  {
-    "id": 960,
-    "name": "生活百科",
-    "desc": "生活百科与生活方式"
-  },
-  {
-    "id": 970,
-    "name": "精品小说",
-    "desc": "优质的故事类出版物"
-  },
-  {
-    "id": 972,
-    "name": "情感小说",
-    "desc": "人生就是一场情感历程"
-  },
-  {
-    "id": 975,
-    "name": "传统文化",
-    "desc": "千年传承，文化根基"
-  },
-  {
-    "id": 978,
-    "name": "教育学习",
-    "desc": "助人成材的知识书籍"
-  },
-  {
-    "id": 991,
-    "name": "国内影视",
-    "desc": "国内影视小说"
-  },
-  {
-    "id": 995,
-    "name": "励志提升",
-    "desc": "世上无难事，只要肯攀登"
-  },
-  {
-    "id": 998,
-    "name": "理财",
-    "desc": "理财常识与手段"
-  },
-  {
-    "id": 1003,
-    "name": "战神",
-    "desc": "描述237"
-  },
-  {
-    "id": 1012,
-    "name": "纯爱",
-    "desc": "纯爱"
-  },
-  {
-    "id": 1013,
-    "name": "玄幻仙侠",
-    "desc": "描述63"
-  },
-  {
-    "id": 1014,
-    "name": "都市高武",
-    "desc": "现代都市中，世界观中有灵气复苏、御兽、异能、修炼等各种超凡元素的非正常都市背景。"
-  },
-  {
-    "id": 1015,
-    "name": "女频衍生",
-    "desc": "影视剧或古籍女频同人小说"
-  },
-  {
-    "id": 1016,
-    "name": "男频衍生",
-    "desc": "影视剧男频同人小说"
-  },
-  {
-    "id": 1017,
-    "name": "民国言情",
-    "desc": "民国背景的女频作品"
-  },
-  {
-    "id": 1021,
-    "name": "都市爱情",
-    "desc": "描述46"
-  },
-  {
-    "id": 1034,
-    "name": "如懿衍生",
-    "desc": "花式打开《如懿传》"
-  },
-  {
-    "id": 1035,
-    "name": "甄嬛衍生",
-    "desc": "本宫来晚了，才看到这么多好文章"
-  },
-  {
-    "id": 1036,
-    "name": "红楼衍生",
-    "desc": "满纸荒唐言，一把辛酸泪"
-  },
-  {
-    "id": 1037,
-    "name": "公版衍生",
-    "desc": "在经典公版书里，我们还能读出什么？"
-  },
-  {
-    "id": 1048,
-    "name": "女性成长",
-    "desc": "现代背景下，以女主主观意愿上的成长、互助等为主线的故事"
-  },
-  {
-    "id": 1058,
-    "name": "综影视",
-    "desc": "3个及以上影视剧的同人文"
-  },
-  {
-    "id": 1060,
-    "name": "十日衍生",
-    "desc": "终焉不止，回响不灭"
-  },
-  {
-    "id": 1062,
-    "name": "斩神衍生",
-    "desc": "大夏境内，神明禁行"
-  },
-  {
-    "id": 1079,
-    "name": "衍生",
-    "desc": "衍生作品"
-  },
-  {
-    "id": 1092,
-    "name": "科幻",
-    "desc": "描述77"
-  },
-  {
-    "id": 1139,
-    "name": "古风世情",
-    "desc": "古代女子的谋略与风华"
-  },
-  {
-    "id": 1140,
-    "name": "东方仙侠",
-    "desc": "不走寻常路的仙侠传奇"
-  },
-  {
-    "id": 1141,
-    "name": "西方奇幻",
-    "desc": "在西方世界施展奥术与魔法"
-  },
-  {
-    "id": 1148,
-    "name": "刑侦破案",
-    "desc": "描述70"
-  },
-  {
-    "id": 1152,
-    "name": "军阀",
-    "desc": "描述281"
-  },
-  {
-    "id": 1168,
-    "name": "末世求生",
-    "desc": "描述95"
-  },
-  {
-    "id": 1169,
-    "name": "悬疑恋爱",
-    "desc": "迷雾未散步步向你"
-  },
-  {
-    "id": 1172,
-    "name": "江湖武侠",
-    "desc": "描述66"
-  },
-  {
-    "id": 1180,
-    "name": "种田经营",
-    "desc": "描述59"
-  },
-  {
-    "id": 1181,
-    "name": "医疗",
-    "desc": "描述85"
-  },
-  {
-    "id": 1182,
-    "name": "冒险",
-    "desc": "描述86"
-  },
-  {
-    "id": 1183,
-    "name": "灾难",
-    "desc": "描述90"
-  },
-  {
-    "id": 1186,
-    "name": "商战",
-    "desc": "这是描述18"
-  },
-  {
-    "id": 1189,
-    "name": "AI觉醒",
-    "desc": "描述156"
-  },
-  {
-    "id": 1191,
-    "name": "暴富",
-    "desc": "描述158"
-  },
-  {
-    "id": 1192,
-    "name": "嫡庶之争",
-    "desc": "描述159"
-  },
-  {
-    "id": 1196,
-    "name": "商业联姻",
-    "desc": "描述164"
-  },
-  {
-    "id": 1200,
-    "name": "双向救赎",
-    "desc": "描述167"
-  },
-  {
-    "id": 1207,
-    "name": "大男主",
-    "desc": "角色"
-  },
-  {
-    "id": 1211,
-    "name": "嫔妃",
-    "desc": "描述190"
-  },
-  {
-    "id": 1219,
-    "name": "恐怖惊悚",
-    "desc": "常见一些至少悬念恐怖惊悚的剧情，多在犯罪题材，如《鱿鱼游戏》"
-  },
-  {
-    "id": 1235,
-    "name": "家国情怀",
-    "desc": "描述173"
-  },
-  {
-    "id": 1243,
-    "name": "生存游戏",
-    "desc": "描述183"
-  },
-  {
-    "id": 1317,
-    "name": "古言权谋",
-    "desc": "古代女子的谋略与风华"
-  },
-  {
-    "id": 1387,
-    "name": "追夫火葬场",
-    "desc": "女主前期虐男主，后期追夫的故事"
-  },
-  {
-    "id": 1455,
-    "name": "风水秘术",
-    "desc": "蕴含民俗、风水、道术、旁门之类神秘秘术元素的小说"
-  },
-  {
-    "id": 1456,
-    "name": "位尊权重",
-    "desc": "男主人设出身京圈，本身背景雄厚，拥有强大势力、财富，地位举足轻重，多设定与女主身份差距悬殊，但是为爱俯身低头"
-  },
-  {
-    "id": 1457,
-    "name": "男二上位",
-    "desc": "原本作为男配的男二，成功逆袭上位，成为与女主在一起的男主，人设多为超级深情，暗恋多年等讨喜设定"
-  },
-  {
-    "id": 1458,
-    "name": "代嫁代娶",
-    "desc": "在现代/古代背景下，主角因自身主动选择或是阴差阳错等原因，顶替他人完成婚嫁，从而被卷入斗争和情感纠葛中。"
-  },
-  {
-    "id": 1459,
-    "name": "攻略反派",
-    "desc": "在现代/宫廷/宅院背景下，女主为了自身生存或达成某种目的，攻略反派男主，和反派男主开展一段感情纠葛。"
-  },
-  {
-    "id": 1460,
-    "name": "都市江湖",
-    "desc": "男主混黑道的、因为混黑道入狱的、社会大哥等，或者走偏门灰色地带赚偏财的"
-  }
+{
+"id": 1,
+"name": "Đô thị",
+"desc": "Đô thị còn phát sinh này đó thần kỳ chuyện xưa?"
+},
+{
+"id": 2,
+"name": "Đô thị sinh hoạt",
+"desc": "Phồn hoa đô thị, nhân gian pháo hoa"
+},
+{
+"id": 3,
+"name": "Hiện đại ngôn tình",
+"desc": "Ái ngươi là ta đã làm chính xác nhất sự"
+},
+{
+"id": 4,
+"name": "Vườn trường",
+"desc": "Vườn trường chưa nói xong thanh xuân"
+},
+{
+"id": 5,
+"name": "Cổ đại ngôn tình",
+"desc": "Độc hành này thế gian, hạnh đến một lòng người"
+},
+{
+"id": 6,
+"name": "Kỳ ảo",
+"desc": "Ở phương tây thế giới thi triển áo thuật cùng ma pháp"
+},
+{
+"id": 7,
+"name": "Huyền huyễn",
+"desc": "Cùng nhau tiến vào kỳ ảo thế giới"
+},
+{
+"id": 8,
+"name": "Khoa học viễn tưởng mạt thế",
+"desc": "Ở khoa học cơ sở thượng, nhân loại thật sự thực dám tưởng"
+},
+{
+"id": 9,
+"name": "Tiên hiệp",
+"desc": "Không đi tầm thường lộ tiên hiệp truyền kỳ"
+},
+{
+"id": 10,
+"name": "Huyền nghi",
+"desc": "Thiêu não trinh thám cường lực đột kích"
+},
+{
+"id": 11,
+"name": "Nông thôn",
+"desc": "Điền viên phong cảnh chua ngọt đắng cay"
+},
+{
+"id": 12,
+"name": "Lịch sử",
+"desc": "Lấy sử vì kính, có thể biết hưng thế"
+},
+{
+"id": 13,
+"name": "Quân sự",
+"desc": "1"
+},
+{
+"id": 15,
+"name": "Thể dục",
+"desc": "Nhiệt huyết cạnh kỹ không chỗ không ở"
+},
+{
+"id": 16,
+"name": "Võ hiệp",
+"desc": "Khoái ý ân cừu, cười mà qua"
+},
+{
+"id": 17,
+"name": "Giám bảo",
+"desc": "Đồ cổ bảo bối một lưới bắt hết"
+},
+{
+"id": 19,
+"name": "Hệ thống",
+"desc": "Trói định hệ thống sau đạt được bàn tay vàng"
+},
+{
+"id": 20,
+"name": "Thần hào",
+"desc": "Vai chính trở thành siêu cấp phú hào"
+},
+{
+"id": 21,
+"name": "Tu chân",
+"desc": "Tình tiết trung đề cập tu chân / tu Phật / tu võ chờ nguyên tố kịch tập"
+},
+{
+"id": 23,
+"name": "Làm ruộng",
+"desc": "Giản dị sinh hoạt, ở đồng ruộng chế tạo núi vàng núi bạc"
+},
+{
+"id": 24,
+"name": "Mau xuyên",
+"desc": "Ở bất đồng thế giới tả hữu hoành nhảy thật sảng"
+},
+{
+"id": 25,
+"name": "Người ở rể",
+"desc": "Tới cửa con rể đại triển hoành đồ"
+},
+{
+"id": 26,
+"name": "Thần y",
+"desc": "Hành y tế thế, diệu thủ hồi xuân"
+},
+{
+"id": 27,
+"name": "Chiến thần người ở rể",
+"desc": "Nhường một chút, vô địch chiến thần tới!"
+},
+{
+"id": 28,
+"name": "Manh bảo",
+"desc": "Bướng bỉnh manh bảo, tại tuyến phát đường"
+},
+{
+"id": 29,
+"name": "Tổng tài",
+"desc": "Tổng tài, phu nhân nàng thế nhưng......"
+},
+{
+"id": 30,
+"name": "Sủng thê",
+"desc": "Cảm thụ vũ trụ nhất ngọt sủng ái"
+},
+{
+"id": 31,
+"name": "Mặt khác",
+"desc": "Vô"
+},
+{
+"id": 32,
+"name": "Ảo tưởng ngôn tình",
+"desc": "Siêu việt thời không chủng tộc cùng ngươi ôm nhau"
+},
+{
+"id": 34,
+"name": "Tình yêu và hôn nhân",
+"desc": "Chỉ tiểu thuyết nam nữ chủ trước kết hôn sau luyến ái tác phẩm"
+},
+{
+"id": 36,
+"name": "Trọng sinh",
+"desc": "Xem vai chính trọng sinh sau thay đổi mệnh đồ"
+},
+{
+"id": 37,
+"name": "Xuyên qua",
+"desc": "Song song thế giới, ái có thể xuyên qua"
+},
+{
+"id": 39,
+"name": "Thế giới giả tưởng",
+"desc": "Hoan nghênh đi vào thế giới giả tưởng thế giới"
+},
+{
+"id": 40,
+"name": "Hải đảo",
+"desc": "Từ hoang đảo cầu sinh đến đỉnh cao nhân sinh"
+},
+{
+"id": 42,
+"name": "Nãi ba",
+"desc": "Tân thời đại nãi ba mang oa kỹ xảo"
+},
+{
+"id": 43,
+"name": "Giới giải trí",
+"desc": "Cảm thụ một chút giới giải trí xa hoa truỵ lạc"
+},
+{
+"id": 44,
+"name": "Không gian",
+"desc": "Vai chính mang theo tùy thân không gian"
+},
+{
+"id": 45,
+"name": "Phim ảnh tiểu thuyết",
+"desc": "Phim ảnh hình ảnh ở ngoài văn tự mị lực"
+},
+{
+"id": 46,
+"name": "Thơ ca văn xuôi",
+"desc": "Thơ ca cùng văn xuôi, mộng tưởng cùng phương xa"
+},
+{
+"id": 47,
+"name": "Văn học tiểu thuyết",
+"desc": "Trong ngoài nước kinh điển văn học một lưới bắt hết"
+},
+{
+"id": 48,
+"name": "Sinh hoạt",
+"desc": "Xem rất nhiều thư, quá hảo cả đời này"
+},
+{
+"id": 50,
+"name": "Khoa học xã hội",
+"desc": "Vì ngươi tinh tuyển chất lượng tốt xã khoa thư tịch"
+},
+{
+"id": 51,
+"name": "Danh tác kinh điển",
+"desc": "Danh tác kinh điển"
+},
+{
+"id": 52,
+"name": "Khoa học kỹ thuật",
+"desc": "Tìm kiếm khoa học kỹ thuật huyền bí"
+},
+{
+"id": 53,
+"name": "Kinh tế quản lý",
+"desc": "Quản lý loại chuyên nghiệp thư tịch tuyển tập"
+},
+{
+"id": 54,
+"name": "Giáo dục",
+"desc": "Trợ người thành tài bảo tàng thư tịch"
+},
+{
+"id": 56,
+"name": "Thành công dốc lòng",
+"desc": "Mỗi ngày cổ vũ chính mình một chút"
+},
+{
+"id": 57,
+"name": "Trò chơi manga anime",
+"desc": "Trò chơi manga anime"
+},
+{
+"id": 61,
+"name": "Trinh thám",
+"desc": "Chân tướng chỉ có một cái"
+},
+{
+"id": 62,
+"name": "Văn hóa lịch sử",
+"desc": "Lấy sử vì kính, có thể biết hưng thế"
+},
+{
+"id": 66,
+"name": "Hồng Hoang",
+"desc": "Đến từ thượng cổ thần thoại yêu hận tình thù"
+},
+{
+"id": 67,
+"name": "Tam quốc",
+"desc": "Tam quốc chi loạn, phong hỏa liên thiên không thôi"
+},
+{
+"id": 68,
+"name": "Mạt thế",
+"desc": "Tận thế tiến đến cực đoan thế giới"
+},
+{
+"id": 69,
+"name": "Phát sóng trực tiếp",
+"desc": "Vây xem chủ bá sinh hoạt hằng ngày"
+},
+{
+"id": 70,
+"name": "Vô hạn lưu",
+"desc": "Vô hạn sấm quan, sau nhiệm vụ là cái gì?"
+},
+{
+"id": 71,
+"name": "Chư thiên vạn giới",
+"desc": "Cùng nhau xuyên qua ở chư thiên vạn giới"
+},
+{
+"id": 72,
+"name": "Thú thế",
+"desc": "Thú nhân thế giới cũng thực đáng yêu"
+},
+{
+"id": 73,
+"name": "Đại Đường",
+"desc": "Phồn hoa thế gian, tuyệt mỹ Đại Đường"
+},
+{
+"id": 74,
+"name": "Sủng vật",
+"desc": "Cái này manh sủng thật đáng yêu"
+},
+{
+"id": 75,
+"name": "Cơm hộp",
+"desc": "Tranh đương mạnh nhất cơm hộp viên"
+},
+{
+"id": 76,
+"name": "Thanh xuyên",
+"desc": "Xuyên qua đến Thanh triều có thể làm gì"
+},
+{
+"id": 77,
+"name": "Tinh tế",
+"desc": "Tinh tế xuyên qua, chứng kiến kỳ tích"
+},
+{
+"id": 78,
+"name": "Mỹ thực",
+"desc": "Trù Thần giá lâm, trước mắt món ăn trân quý"
+},
+{
+"id": 79,
+"name": "Niên đại",
+"desc": "Xuyên qua đến năm cũ đại sáng tạo tân tài phú"
+},
+{
+"id": 80,
+"name": "Kiếm đạo",
+"desc": "Lấy kiếm nhập đạo, thẳng chỉ trời cao"
+},
+{
+"id": 81,
+"name": "Trộm mộ",
+"desc": "Cộng độ ngầm tìm bảo chi lữ"
+},
+{
+"id": 82,
+"name": "Học bá",
+"desc": "Vây xem học bá hằng ngày thao tác"
+},
+{
+"id": 83,
+"name": "Công chúa",
+"desc": "Ghê gớm công chúa điện hạ"
+},
+{
+"id": 84,
+"name": "Hoàng hậu",
+"desc": "Từng bước kinh doanh chung đến mẫu nghi thiên hạ"
+},
+{
+"id": 85,
+"name": "Vương phi",
+"desc": "Vô tình nhất là nhà đế vương"
+},
+{
+"id": 86,
+"name": "Nữ cường",
+"desc": "Nữ vương giá lâm, lại A lại táp"
+},
+{
+"id": 87,
+"name": "Hoàng thúc",
+"desc": "Nam chủ lại là ta hoàng thúc"
+},
+{
+"id": 88,
+"name": "Đích nữ",
+"desc": "Khai cục bắt được đích nữ thân phận"
+},
+{
+"id": 89,
+"name": "Tinh linh",
+"desc": "Hoan nghênh đi vào tinh linh thế giới"
+},
+{
+"id": 90,
+"name": "Thiên tài",
+"desc": "Thiên phú dị bẩm vai chính bất phàm nhân sinh"
+},
+{
+"id": 91,
+"name": "Nhiều nữ chủ",
+"desc": "Lãng mạn thay nhau nổi lên lữ đồ"
+},
+{
+"id": 92,
+"name": "Phúc hắc",
+"desc": "Với bất động thanh sắc trung dệt liền tính toán không bỏ sót lưới"
+},
+{
+"id": 93,
+"name": "Giả heo ăn hổ",
+"desc": "ta chỉ là thoạt nhìn thực nhỏ yếu"
+},
+{
+"id": 94,
+"name": "Đoàn sủng",
+"desc": "Bị đại lão vây quanh sủng"
+},
+{
+"id": 95,
+"name": "Ngược văn",
+"desc": "Nhìn này đó ta hóa thân vòi nước"
+},
+{
+"id": 96,
+"name": "Ngọt sủng",
+"desc": "Ta xem xong đã ngây ngô cười ba cái giờ"
+},
+{
+"id": 97,
+"name": "Chiến tranh",
+"desc": "Ghi nhớ lịch sử, kỳ nguyện hoà bình"
+},
+{
+"id": 98,
+"name": "Trung Quốc danh tác",
+"desc": "Tha hồ xem cổ kim truyền lại đời sau danh thiên"
+},
+{
+"id": 99,
+"name": "Ngoại quốc danh tác",
+"desc": "Ngoại quốc tác gia liền danh tác"
+},
+{
+"id": 100,
+"name": "Thần quái",
+"desc": "Phía trước năng lượng cao! Adrenalin tiêu thăng"
+},
+{
+"id": 113,
+"name": "Hí khúc",
+"desc": "Các loại truyền thống hí khúc quốc tuý nghệ thuật"
+},
+{
+"id": 116,
+"name": "Quốc học",
+"desc": "Phát huy mạnh truyền thống quốc học"
+},
+{
+"id": 120,
+"name": "Phim ảnh",
+"desc": "Phim ảnh"
+},
+{
+"id": 124,
+"name": "Đô thị tu chân",
+"desc": "Ta ở đô thị học tu tiên"
+},
+{
+"id": 125,
+"name": "Gia đình",
+"desc": "Miêu tả hiện đại gia đình sinh hoạt"
+},
+{
+"id": 126,
+"name": "Minh triều",
+"desc": "Minh triều những cái đó chuyện xưa"
+},
+{
+"id": 127,
+"name": "Chức trường",
+"desc": "Quan ái đương đại làm công người, mỗi người có trách"
+},
+{
+"id": 134,
+"name": "Nghệ thuật",
+"desc": "Nhân loại văn minh phong cảnh"
+},
+{
+"id": 135,
+"name": "Triết học",
+"desc": "Triết học lý luận"
+},
+{
+"id": 142,
+"name": "Pháp luật",
+"desc": "Thực dụng pháp luật tri thức tập hợp"
+},
+{
+"id": 146,
+"name": "Tâm lý",
+"desc": "Hiểu biết chính mình, trực diện tâm linh"
+},
+{
+"id": 165,
+"name": "Huyền nghi trinh thám",
+"desc": "Thiêu não trinh thám, chân tướng huyền nghi"
+},
+{
+"id": 166,
+"name": "Khoa học viễn tưởng tiểu thuyết",
+"desc": "Ở khoa học cơ sở thượng mặc sức tưởng tượng vô hạn khả năng"
+},
+{
+"id": 168,
+"name": "Thanh xuân văn học",
+"desc": "Thanh xuân là mỗi người đều đi qua lộ"
+},
+{
+"id": 193,
+"name": "Thể dục cạnh kỹ",
+"desc": "Kịch bản gốc tân tăng"
+},
+{
+"id": 225,
+"name": "Thai giáo sớm giáo",
+"desc": "Bồi dưỡng hài tử hứng thú"
+},
+{
+"id": 241,
+"name": "Lịch sử văn hóa",
+"desc": "Lịch sử là văn minh ảnh thu nhỏ"
+},
+{
+"id": 246,
+"name": "Cung đấu trạch đấu",
+"desc": "Khí phách nữ chủ sinh tồn chi đạo"
+},
+{
+"id": 247,
+"name": "Y thuật",
+"desc": "Bằng vào tuyệt thế y thuật hỗn đến hô mưa gọi gió"
+},
+{
+"id": 248,
+"name": "Huyền huyễn ngôn tình",
+"desc": "Bát Hoang Lục Hợp, vì ái cúi người"
+},
+{
+"id": 253,
+"name": "Cổ ngôn não động",
+"desc": "Xuyên qua sau lấy cái bàn tay vàng bàn lại luyến ái"
+},
+{
+"id": 257,
+"name": "Huyền huyễn não động",
+"desc": "Thần thông quảng đại vai chính nhóm"
+},
+{
+"id": 258,
+"name": "Truyền thống huyền huyễn",
+"desc": "Nhập hố huyền huyễn kinh điển tiểu thuyết"
+},
+{
+"id": 259,
+"name": "Kỳ ảo tiên hiệp",
+"desc": "Ở ảo tưởng trong thế giới, tu tiên vấn đạo, học áo thuật ma pháp"
+},
+{
+"id": 261,
+"name": "Đô thị hằng ngày",
+"desc": "Nhẹ nhàng vui sướng đô thị nhị tam sự"
+},
+{
+"id": 262,
+"name": "Đô thị não động",
+"desc": "Não động mở rộng ra đô thị ly kỳ chuyện xưa"
+},
+{
+"id": 263,
+"name": "Đô thị làm ruộng",
+"desc": "Khổ tâm kinh doanh chung thành thế giới nhà giàu số một"
+},
+{
+"id": 265,
+"name": "Cưới trước yêu sau",
+"desc": "Hôn sau tình yêu cuồng nhiệt, ngọt độ gấp bội"
+},
+{
+"id": 266,
+"name": "Áo choàng",
+"desc": "Rớt áo lót sảng văn tập hợp mà"
+},
+{
+"id": 267,
+"name": "Hiện ngôn não động",
+"desc": "Luyến ái, nhưng không đi tầm thường lộ"
+},
+{
+"id": 268,
+"name": "Hiện ngôn báo thù",
+"desc": "Hiện đại ngôn tình vả mặt báo thù"
+},
+{
+"id": 272,
+"name": "Lịch sử não động",
+"desc": "Xuyên qua đến cổ đại có bàn tay vàng"
+},
+{
+"id": 273,
+"name": "Lịch sử cổ đại",
+"desc": "Dừng chân lịch sử đại dàn giáo"
+},
+{
+"id": 274,
+"name": "Lưỡng tính",
+"desc": "Nam nữ ở chung hiểu biết chi đạo"
+},
+{
+"id": 275,
+"name": "Song nam chủ",
+"desc": "Thế gian phức tạp, nguyện sở ái toàn trở thành sự thật"
+},
+{
+"id": 291,
+"name": "Tôn giáo",
+"desc": "Tôn giáo nội dung"
+},
+{
+"id": 297,
+"name": "Thanh xuân",
+"desc": "Thanh xuân thời gian"
+},
+{
+"id": 302,
+"name": "Động tác",
+"desc": "Lại xưng là mạo hiểm động tác phiến (Action-Adventure Films), này đây mãnh liệt khẩn trương mạo hiểm động tác cùng nghe nhìn sức dãn vì trung tâm tác phẩm điện ảnh loại hình. Cụ bị thật lớn lực đánh vào, liên tục hiệu suất cao động năng, một loạt ngoại tại mạo hiểm động tác cùng sự kiện. ------ rõ ràng đánh"
+},
+{
+"id": 304,
+"name": "Tình yêu",
+"desc": "Tình yêu phiến này đây biểu hiện tình yêu vì trung tâm, cũng lấy nam nữ chủ ở tình yêu phát sinh trong quá trình khắc phục hiểu lầm, khúc chiết cùng nhấp nhô chờ lực cản vì tự sự manh mối, cuối cùng đạt tới lý tưởng đại đoàn viên kết cục hoặc bi kịch tính ly tán kết cục tác phẩm điện ảnh."
+},
+{
+"id": 305,
+"name": "Phạm tội",
+"desc": "Phạm tội phiến giống nhau chỉ có cảnh phỉ hoạt động tác phẩm điện ảnh. Sở hữu cốt truyện tác phẩm, phạm tội phiến nhất định trọng điểm phạm tội sự thật cùng tình tiết, mà phi vùng mà qua."
+},
+{
+"id": 322,
+"name": "Kinh tủng",
+"desc": "Chủ yếu lấy thần quái, quái đản, thần bí, hành vi phạm tội vì đề tài, lợi dụng rắc rối phức tạp tâm lý biến thái, hoặc tinh thần phân liệt trạng thái tới chế tạo kinh tủng hiệu quả ( nhiều vì tâm lý thượng kích thích )"
+},
+{
+"id": 323,
+"name": "Lịch sử đoản chuyện xưa",
+"desc": "Lịch sử bối cảnh hạ tiểu nhân vật sinh hoạt trăm thái"
+},
+{
+"id": 324,
+"name": "Chiến tranh đoản chuyện xưa",
+"desc": "Trong chiến tranh tiểu chuyện xưa"
+},
+{
+"id": 325,
+"name": "Tự nhiên thám hiểm",
+"desc": "Dã ngoại, động vật cùng tự nhiên"
+},
+{
+"id": 326,
+"name": "Hiện thực sinh hoạt",
+"desc": "Nhân gian chân thật, nói tẫn chua xót"
+},
+{
+"id": 345,
+"name": "Giáo dục cao đẳng",
+"desc": "Giáo dục cao đẳng giai đoạn tri thức"
+},
+{
+"id": 367,
+"name": "Áo đặc đồng nghiệp",
+"desc": "Vì bảo hộ vĩnh hằng quang cùng chính nghĩa!"
+},
+{
+"id": 368,
+"name": "Hỏa ảnh",
+"desc": "Vì trở thành mạnh nhất mà nỗ lực"
+},
+{
+"id": 369,
+"name": "Vai ác",
+"desc": "Đáng yêu huyễn khốc lại mê người vai ác vai chính"
+},
+{
+"id": 370,
+"name": "Hải tặc",
+"desc": "Biển rộng sẽ ghi khắc mỗi một đoạn truyền kỳ"
+},
+{
+"id": 371,
+"name": "Bảo bối thần kỳ",
+"desc": "Thơ ấu hồi ức da tạp da tạp"
+},
+{
+"id": 372,
+"name": "Võng du",
+"desc": "Ta ở trong trò chơi oai phong một cõi nhật tử"
+},
+{
+"id": 373,
+"name": "Tây du diễn sinh",
+"desc": "Yêu quái! Ăn yêm lão tôn một bổng!"
+},
+{
+"id": 374,
+"name": "Marvel",
+"desc": "Năng lực càng lớn, trách nhiệm càng lớn"
+},
+{
+"id": 375,
+"name": "Bộ đội đặc chủng",
+"desc": "Ngươi có thể tưởng tượng bộ đội đặc chủng có bao nhiêu cường sao"
+},
+{
+"id": 376,
+"name": "Long châu",
+"desc": "Đến dị thế giới trở thành cường giả"
+},
+{
+"id": 377,
+"name": "Đại Tần",
+"desc": "Thể nghiệm thuộc về ngươi Đại Tần sinh hoạt"
+},
+{
+"id": 378,
+"name": "Nữ đế",
+"desc": "Không phải ngốc bạch ngọt, kêu ta nữ vương đại nhân"
+},
+{
+"id": 379,
+"name": "Cầu sinh",
+"desc": "Vì sinh tồn có thể làm chút cái gì?"
+},
+{
+"id": 380,
+"name": "Bệnh kiều",
+"desc": "Hư ngươi trốn không thoát lòng bàn tay của ta"
+},
+{
+"id": 381,
+"name": "Group chat",
+"desc": "Không có group chat không thể liên thông thế giới"
+},
+{
+"id": 382,
+"name": "Xuyên thư",
+"desc": "Xuyên thư lúc sau, như thế nào không ấn kịch bản ra bài?"
+},
+{
+"id": 383,
+"name": "Cửu thúc",
+"desc": "Cùng cửu thúc cùng nhau đánh cương thi"
+},
+{
+"id": 384,
+"name": "Vô địch",
+"desc": "Vượt năm ải, chém sáu tướng vô địch sảng văn"
+},
+{
+"id": 385,
+"name": "Giáo hoa",
+"desc": "Giải khóa cùng giáo hoa yêu đương"
+},
+{
+"id": 387,
+"name": "Thanh mai trúc mã",
+"desc": "Trời cao thiếu ta một cái thanh mai trúc mã"
+},
+{
+"id": 388,
+"name": "Nữ giả nam trang",
+"desc": "Cân quắc không nhường tu mi"
+},
+{
+"id": 389,
+"name": "Đơn nữ chủ",
+"desc": "Cự tuyệt hậu cung, nữ chủ chỉ có một cái"
+},
+{
+"id": 390,
+"name": "Dân quốc",
+"desc": "Trở lại cái kia phong hoa tuyệt đại thời kỳ"
+},
+{
+"id": 391,
+"name": "Vô nữ chủ",
+"desc": "Không yêu đương, chỉ làm sự nghiệp"
+},
+{
+"id": 392,
+"name": "Vô CP",
+"desc": "Luyến ái không phải sinh hoạt toàn bộ"
+},
+{
+"id": 395,
+"name": "Hiện ngôn ngọt sủng",
+"desc": "Mãn thế giới đều là ngọt nị phấn phao phao"
+},
+{
+"id": 396,
+"name": "Đô thị thanh xuân",
+"desc": "Vườn trường yêu thầm chuyện cũ"
+},
+{
+"id": 397,
+"name": "Ngoại quốc văn học",
+"desc": "Nước ngoài chất lượng tốt văn học tập hợp mà"
+},
+{
+"id": 398,
+"name": "Cổ đại văn học",
+"desc": "Cổ đại kinh điển văn học phẩm đọc"
+},
+{
+"id": 399,
+"name": "Đương đại văn học",
+"desc": "Chạm đến đương đại văn đàn lượng điểm"
+},
+{
+"id": 400,
+"name": "Hiện thực tiểu thuyết",
+"desc": "Lấy hiện thực vi căn cơ tiểu thuyết sáng tác"
+},
+{
+"id": 401,
+"name": "Văn học lý luận",
+"desc": "Hiểu biết văn bản, càng hiểu văn học"
+},
+{
+"id": 402,
+"name": "Trung Quốc lịch sử",
+"desc": "Mênh mông Hoa Hạ, lộng lẫy minh châu"
+},
+{
+"id": 403,
+"name": "Thế giới lịch sử",
+"desc": "Hiểu biết lịch sử sông dài tiến trình"
+},
+{
+"id": 404,
+"name": "Lịch sử truyện ký",
+"desc": "Nghiêm túc nghiêm cẩn truyện ký tác phẩm"
+},
+{
+"id": 405,
+"name": "Nhân văn xã khoa",
+"desc": "Có thể trống trải tầm mắt thư đơn"
+},
+{
+"id": 406,
+"name": "Triết học tôn giáo",
+"desc": "Triết học cùng tôn giáo nội dung"
+},
+{
+"id": 407,
+"name": "Tâm lý học",
+"desc": "Nhiều đọc tâm lý, duyệt nạp chính mình"
+},
+{
+"id": 408,
+"name": "Chính trị quân sự",
+"desc": "Quân chính thư tịch"
+},
+{
+"id": 409,
+"name": "Nhân vật truyện ký",
+"desc": "Luôn có nhân loại đàn tinh lóng lánh khi"
+},
+{
+"id": 410,
+"name": "Cá nhân trưởng thành",
+"desc": "Ngươi sẽ trở thành càng tốt chính mình"
+},
+{
+"id": 411,
+"name": "Tư duy chỉ số thông minh",
+"desc": "Dưỡng thành tốt tư duy"
+},
+{
+"id": 412,
+"name": "Nhân tế kết giao",
+"desc": "Hưởng thụ cùng người lạc thú"
+},
+{
+"id": 413,
+"name": "Văn hóa nghệ thuật",
+"desc": "Nói mỹ luận mỹ cảm chịu mỹ"
+},
+{
+"id": 414,
+"name": "Dựng sản",
+"desc": "Tay mới mụ mụ đệ nhất khóa"
+},
+{
+"id": 415,
+"name": "Thân tử gia giáo",
+"desc": "Cha mẹ cùng hài tử cộng đồng trưởng thành"
+},
+{
+"id": 416,
+"name": "Bảo vệ sức khoẻ dưỡng sinh",
+"desc": "Khoa học bảo vệ sức khoẻ, hợp lý dưỡng sinh"
+},
+{
+"id": 417,
+"name": "Vận động tập thể hình",
+"desc": "Thường vận động hàng năm nhẹ"
+},
+{
+"id": 418,
+"name": "Thời thượng mỹ trang",
+"desc": "Đô thị mỹ nhân thực dụng chỉ nam"
+},
+{
+"id": 419,
+"name": "Mỹ thực hưu nhàn",
+"desc": "Không có gì là mỹ thực giải quyết không được"
+},
+{
+"id": 420,
+"name": "Ở nhà du lịch",
+"desc": "Nhiệt ái sinh hoạt, từ gia bắt đầu"
+},
+{
+"id": 421,
+"name": "Phong thuỷ bói toán",
+"desc": "Sinh hoạt nơi chốn có �� học"
+},
+{
+"id": 423,
+"name": "Kinh điển quốc học",
+"desc": "Kinh điển quốc học văn hóa một lưới bắt hết"
+},
+{
+"id": 425,
+"name": "Khôi hài",
+"desc": "Khôi hài"
+},
+{
+"id": 428,
+"name": "Manh sủng",
+"desc": "Cái này manh sủng thật đáng yêu"
+},
+{
+"id": 452,
+"name": "Hư cấu",
+"desc": "Thế giới giả tưởng xem ta muốn làm gì thì làm"
+},
+{
+"id": 453,
+"name": "Khai cục",
+"desc": "Đinh! Ngài đại lễ bao đã đến trướng"
+},
+{
+"id": 454,
+"name": "Khả muối khả ngọt",
+"desc": "Lại ngọt lại táp"
+},
+{
+"id": 455,
+"name": "Duyên trời tác hợp",
+"desc": "Khắp thiên hạ hai ngươi nhất xứng"
+},
+{
+"id": 456,
+"name": "Yêu sâu sắc",
+"desc": "Chỉ đối với ngươi có cảm giác cực hạn yêu say đắm"
+},
+{
+"id": 457,
+"name": "Ngược tra",
+"desc": "Phía trước tra nam tra nữ thỉnh né tránh"
+},
+{
+"id": 458,
+"name": "Bênh vực người mình",
+"desc": "Vũ trụ chung cực hộ thê / phu cuồng ma"
+},
+{
+"id": 459,
+"name": "Cổ linh tinh quái",
+"desc": "Hoạt bát đáng yêu kỳ kỳ quái quái"
+},
+{
+"id": 460,
+"name": "Độc sủng",
+"desc": "Ba ngàn con sông chỉ lấy một gáo uống"
+},
+{
+"id": 461,
+"name": "Đàn xuyên",
+"desc": "Tập thể đi qua càng thú vị"
+},
+{
+"id": 462,
+"name": "Cổ xuyên kim",
+"desc": "Cổ đại người hiện đại chi lữ"
+},
+{
+"id": 463,
+"name": "Nay xuyên cổ",
+"desc": "Ở cổ đại ta điên cuồng phát ra"
+},
+{
+"id": 464,
+"name": "Dị thế xuyên qua",
+"desc": "Song song thế giới, ái có thể xuyên qua"
+},
+{
+"id": 465,
+"name": "Tổng mạn",
+"desc": "Thế giới giả tưởng trứng màu đại bùng nổ"
+},
+{
+"id": 466,
+"name": "Lóe hôn",
+"desc": "Lóe hôn lúc sau ngọt ngào sinh hoạt"
+},
+{
+"id": 467,
+"name": "Ẩn hôn",
+"desc": "Bề ngoài cao lãnh thế nhưng kết hôn nhiều năm"
+},
+{
+"id": 468,
+"name": "Băng sơn",
+"desc": "Băng sơn hạ nhu tình"
+},
+{
+"id": 469,
+"name": "Hai mặt",
+"desc": "Không tưởng được tương phản manh"
+},
+{
+"id": 470,
+"name": "Thế thân",
+"desc": "Ai là ai bạch nguyệt quang"
+},
+{
+"id": 471,
+"name": "Khế ước hôn nhân",
+"desc": "Một giấy hôn thư bó trụ hai bên tâm sự"
+},
+{
+"id": 473,
+"name": "Hào môn thế gia",
+"desc": "Tổng tài, phu nhân nàng thế nhưng......"
+},
+{
+"id": 474,
+"name": "Lâu ngày sinh tình",
+"desc": "Hạnh đến năm tháng trường, chưa từng bỏ lỡ ngươi"
+},
+{
+"id": 475,
+"name": "Gương vỡ lại lành",
+"desc": "Gương vỡ lại lành khi, có so sơ ngộ càng trong sáng quang."
+},
+{
+"id": 476,
+"name": "Song hướng lao tới",
+"desc": "Sơn hải đều có thể bình"
+},
+{
+"id": 477,
+"name": "Nhất kiến chung tình",
+"desc": "Chỉ là ở trong đám người nhìn nhiều ngươi liếc mắt một cái"
+},
+{
+"id": 478,
+"name": "Cường cường",
+"desc": "Chung cực quyết đấu thấy qua nghiện"
+},
+{
+"id": 479,
+"name": "Mang cầu chạy",
+"desc": "Daddy, mommy lại chạy trốn"
+},
+{
+"id": 480,
+"name": "Đào hôn",
+"desc": "Tân nhân đào hôn làm sao bây giờ"
+},
+{
+"id": 481,
+"name": "Ngược luyến tình thâm",
+"desc": "Khúc dạo đầu liền khóc thành vòi nước"
+},
+{
+"id": 482,
+"name": "Yêu thầm",
+"desc": "Vẫn luôn yên lặng đứng ở ngươi phía sau"
+},
+{
+"id": 483,
+"name": "Tương ái tương sát",
+"desc": "Muốn nhiều trảo mã có bao nhiêu trảo mã"
+},
+{
+"id": 484,
+"name": "HE",
+"desc": "Ai có thể cự tuyệt viên mãn kết cục đâu"
+},
+{
+"id": 485,
+"name": "Chức trường thương chiến",
+"desc": "Thương giới tung hoành, như thế nào bước lên đỉnh?"
+},
+{
+"id": 486,
+"name": "Minh tinh",
+"desc": "Giới giải trí luyến ái chỉ nam"
+},
+{
+"id": 487,
+"name": "Bác sĩ",
+"desc": "Đẹp bác sĩ văn điểm nơi này"
+},
+{
+"id": 488,
+"name": "Luật sư",
+"desc": "Luật học tinh anh luyến ái sinh hoạt"
+},
+{
+"id": 490,
+"name": "Đầu bếp nữ",
+"desc": "Diệu thủ đầu bếp nữ, tại tuyến hạ cổ"
+},
+{
+"id": 491,
+"name": "Độc y",
+"desc": "Mãn cấp độc y không người dám chọc"
+},
+{
+"id": 492,
+"name": "Tướng quân",
+"desc": "Chiến trường trong ngoài tương phản nhân thiết"
+},
+{
+"id": 493,
+"name": "Câu cá",
+"desc": "Thể nghiệm nhàn nhã bờ biển sinh hoạt"
+},
+{
+"id": 494,
+"name": "Độn vật tư",
+"desc": "Mạt thế bên trong điên cuồng độn vật tư"
+},
+{
+"id": 495,
+"name": "Tứ hợp viện",
+"desc": "Gia nhập tứ hợp viện cộng phổ tương lai thơ văn hoa mỹ"
+},
+{
+"id": 496,
+"name": "Vận mệnh quốc gia",
+"desc": "Trói định vận mệnh quốc gia hệ thống, quấy thiên hạ phong vân"
+},
+{
+"id": 497,
+"name": "Võ tướng",
+"desc": "Anh hùng không hỏi xuất xứ"
+},
+{
+"id": 498,
+"name": "Hoàng đế",
+"desc": "Thân là thiên tử nhiều năm, trẫm mệt mỏi"
+},
+{
+"id": 500,
+"name": "Phay đứt gãy",
+"desc": "Xuyên qua đến văn minh phay đứt gãy kỳ đại triển thân thủ"
+},
+{
+"id": 501,
+"name": "Tống triều",
+"desc": "Xuyên qua đến Tống triều có thể làm điểm cái gì?"
+},
+{
+"id": 502,
+"name": "Cung đình hầu tước",
+"desc": "Quyền thế che trời, ngươi lừa ta gạt"
+},
+{
+"id": 503,
+"name": "Thanh triều",
+"desc": "Mang ngươi xem đang ở Thanh triều chuyện xưa"
+},
+{
+"id": 504,
+"name": "Kháng chiến điệp chiến",
+"desc": "Dùng mật điện cùng gan dạ sáng suốt bện bí mật ván cờ"
+},
+{
+"id": 505,
+"name": "Phá án",
+"desc": "Hình trinh phá án, cấp bách"
+},
+{
+"id": 506,
+"name": "Thần thám",
+"desc": "Chứng kiến đỉnh cấp thần thám xuất sắc trinh thám"
+},
+{
+"id": 507,
+"name": "Điệp chiến",
+"desc": "Loạn trung kiên thủ tín ngưỡng, chỗ tối kỳ nguyện quang minh"
+},
+{
+"id": 508,
+"name": "Điện cạnh",
+"desc": "Điện tử cạnh kỹ cũng có nhu tình"
+},
+{
+"id": 509,
+"name": "Trò chơi chủ bá",
+"desc": "Phát sóng trực tiếp chơi game những cái đó năm"
+},
+{
+"id": 510,
+"name": "Tuyệt địa chạy trốn",
+"desc": "Tuyệt địa chạy trốn"
+},
+{
+"id": 511,
+"name": "Phương đông huyền huyễn",
+"desc": "Dung hợp phương đông kinh điển truyền thống văn hóa"
+},
+{
+"id": 512,
+"name": "Dị thế đại lục",
+"desc": "Ảo tưởng thế giới thần kỳ đại lục"
+},
+{
+"id": 513,
+"name": "Cao võ thế giới",
+"desc": "Mạnh nhất vũ lực tức là hết thảy"
+},
+{
+"id": 514,
+"name": "Linh khí sống lại",
+"desc": "Xem bầu trời mà dị biến năng lượng quật khởi"
+},
+{
+"id": 515,
+"name": "Tận thế cầu sinh",
+"desc": "Ở ác liệt hoàn cảnh trung ra sức quật khởi"
+},
+{
+"id": 516,
+"name": "Đô thị dị năng",
+"desc": "Đô thị truyền thuyết chi ta có siêu năng lực"
+},
+{
+"id": 517,
+"name": "Tu tiên",
+"desc": "Tu tiên lộ từ từ, tới xem tu tiên truyền"
+},
+{
+"id": 518,
+"name": "Đặc công",
+"desc": "Nhiệm vụ thành công toàn dựa hắn đấu trí đấu dũng"
+},
+{
+"id": 519,
+"name": "Đại tiểu thư",
+"desc": "Đại tiểu thư giá lâm toàn bộ tránh ra"
+},
+{
+"id": 520,
+"name": "Đại lão",
+"desc": "Năng lực siêu quần quyền thế ngập trời"
+},
+{
+"id": 521,
+"name": "Làm tinh",
+"desc": "Người gặp người thích tiểu làm tinh"
+},
+{
+"id": 522,
+"name": "Vả mặt",
+"desc": "Xem xong cả tâm tình đều thoải mái"
+},
+{
+"id": 523,
+"name": "Kiếp trước kiếp này",
+"desc": "Tam sinh tam thế cũng chém không đứt ký ức"
+},
+{
+"id": 524,
+"name": "Song trọng sinh",
+"desc": "Ta cùng ta cp cùng nhau trọng sinh"
+},
+{
+"id": 525,
+"name": "Sách cổ",
+"desc": "Điển tàng sách cổ, truyền lại đời sau bảo tàng"
+},
+{
+"id": 537,
+"name": "Kinh tủng trò chơi",
+"desc": "Mạc danh tiến vào kinh tủng trò chơi, còn hảo ta là vai chính"
+},
+{
+"id": 538,
+"name": "Đồng nghiệp",
+"desc": "Bọn họ khác một loại khả năng từ ngươi viết"
+},
+{
+"id": 539,
+"name": "Huyền nghi não động",
+"desc": "Hoàn hoàn tương khấu khiêu chiến tâm lý cực hạn"
+},
+{
+"id": 557,
+"name": "Chạy nạn",
+"desc": "Ta chạy nạn lúc sau Đông Sơn tái khởi truyền kỳ nhân sinh"
+},
+{
+"id": 558,
+"name": "Con đường làm quan",
+"desc": "Chim yến tước an biết chí lớn"
+},
+{
+"id": 590,
+"name": "Thế gả",
+"desc": "Nữ chủ thay thế người khác gả cho nam chủ"
+},
+{
+"id": 597,
+"name": "Sảng văn",
+"desc": "Sảng văn"
+},
+{
+"id": 598,
+"name": "Dị năng",
+"desc": "Dị năng"
+},
+{
+"id": 615,
+"name": "Bạch nguyệt quang",
+"desc": "Bạch nguyệt quang"
+},
+{
+"id": 616,
+"name": "Truy thê hỏa táng tràng",
+"desc": "Truy thê hỏa táng tràng"
+},
+{
+"id": 620,
+"name": "Cứu rỗi",
+"desc": "Cứu rỗi"
+},
+{
+"id": 658,
+"name": "Thiên tai",
+"desc": "Thiên tai tận thế, một mảnh sợ hãi"
+},
+{
+"id": 675,
+"name": "Hoang dã cầu sinh",
+"desc": "Hoang dã cầu sinh"
+},
+{
+"id": 676,
+"name": "Cẩm lý",
+"desc": "Cẩm lý"
+},
+{
+"id": 702,
+"name": "Song khiết",
+"desc": "Nhất sinh nhất thế nhất song nhân"
+},
+{
+"id": 704,
+"name": "Song nữ chủ",
+"desc": "Nữ hài tử chi gian cảm tình như thế tốt đẹp"
+},
+{
+"id": 705,
+"name": "Cthulhu",
+"desc": "Nước sâu, viễn cổ sinh vật, cùng với ngươi không biết sợ hãi"
+},
+{
+"id": 718,
+"name": "Manga anime diễn sinh",
+"desc": "Trò chơi manga anime đồng nhân văn"
+},
+{
+"id": 721,
+"name": "Trường học giáo dục",
+"desc": "Từ điển, giáo phụ sách tham khảo cái gì cần có đều có"
+},
+{
+"id": 722,
+"name": "Giáo dục dành cho người lớn",
+"desc": "Không ngừng học tập là cả đời sứ mệnh"
+},
+{
+"id": 731,
+"name": "Phong thần",
+"desc": "Thiên cổ từ từ Phong Thần Bảng, cố thổ truyền thuyết vĩnh bất diệt"
+},
+{
+"id": 737,
+"name": "Đại thúc",
+"desc": "Đại thúc mị lực"
+},
+{
+"id": 745,
+"name": "Tinh quang lộng lẫy",
+"desc": "Thiên kim tổng tài cực hạn lôi kéo"
+},
+{
+"id": 746,
+"name": "Trò chơi thể dục",
+"desc": "Cạnh kỹ chiến trường hoan nghênh mọi người"
+},
+{
+"id": 747,
+"name": "Nữ tần huyền nghi",
+"desc": "Sương mù chưa tán từng bước hướng ngươi"
+},
+{
+"id": 748,
+"name": "Hào môn tổng tài",
+"desc": "Tập đoàn đại Boss cố tình yêu ta"
+},
+{
+"id": 749,
+"name": "Thanh xuân ngọt sủng",
+"desc": "Thanh xuân ngọt sủng"
+},
+{
+"id": 750,
+"name": "Chức trường tình yêu và hôn nhân",
+"desc": "Công tác đệ nhị luyến ái quan trọng"
+},
+{
+"id": 751,
+"name": "Huyền nghi thần quái",
+"desc": "Trên đời tổng cất giấu những cái đó quỷ dị sự"
+},
+{
+"id": 754,
+"name": "Hiện thực tình cảm",
+"desc": "Hiện thực tình cảm"
+},
+{
+"id": 755,
+"name": "Não động",
+"desc": "Não động"
+},
+{
+"id": 757,
+"name": "Hiện đại",
+"desc": "Thế giới hiện đại những cái đó sự"
+},
+{
+"id": 758,
+"name": "Cổ đại",
+"desc": "Cổ đại"
+},
+{
+"id": 760,
+"name": "Đại nữ chủ",
+"desc": "Vận mệnh nắm giữ ở chính mình trong tay"
+},
+{
+"id": 772,
+"name": "Tây huyễn",
+"desc": "Tây huyễn"
+},
+{
+"id": 778,
+"name": "Khôi hài nhẹ nhàng",
+"desc": "Khôi hài sa điêu văn phong, làm ngươi nhẹ nhàng một khắc"
+},
+{
+"id": 826,
+"name": "Hắc đạo",
+"desc": "Hắc đạo"
+},
+{
+"id": 828,
+"name": "Xây dựng",
+"desc": "Đây là ta chế tạo thiên hạ"
+},
+{
+"id": 829,
+"name": "Niên hạ",
+"desc": "Niên hạ cũng có thể rất biết liêu"
+},
+{
+"id": 830,
+"name": "Thăng cấp lưu",
+"desc": "Tu luyện, tiến giai, thăng cấp, thẳng đến đỉnh núi"
+},
+{
+"id": 832,
+"name": "Khoa cử",
+"desc": "Mười năm gian khổ học tập khổ đọc, trợ ta bình bộ thanh vân"
+},
+{
+"id": 834,
+"name": "1v1",
+"desc": "Ta thế giới, trước nay chỉ có ngươi một cái"
+},
+{
+"id": 835,
+"name": "Dưỡng thành",
+"desc": "Dưỡng thành vui sướng rốt cuộc ai hiểu!"
+},
+{
+"id": 837,
+"name": "Tranh bá",
+"desc": "Thiên hạ phong vân, nhậm quân quấy"
+},
+{
+"id": 838,
+"name": "Vô hậu cung",
+"desc": "Vô hậu cung, thâm tình quải, hoặc ta một mình soái khí"
+},
+{
+"id": 840,
+"name": "Làm giàu",
+"desc": "Giao tranh trăm thiên, chung thành một thế hệ truyền kỳ"
+},
+{
+"id": 841,
+"name": "Hình tượng",
+"desc": "Khắc hoạ mỗi cái có máu có thịt linh hồn"
+},
+{
+"id": 842,
+"name": "Truy thê",
+"desc": "Truy thê trên đường, đường dài lại gian nan"
+},
+{
+"id": 844,
+"name": "Thật giả thiên kim",
+"desc": "Thật giả đại tiểu thư song song giá lâm, rốt cuộc phải làm sao bây giờ"
+},
+{
+"id": 846,
+"name": "Hắc hóa",
+"desc": "Có đôi khi, sát phạt quả quyết là bảo hộ chính mình duy nhất thủ đoạn"
+},
+{
+"id": 847,
+"name": "Dưỡng nhãi con",
+"desc": "Đoàn sủng bảo bảo manh tạc"
+},
+{
+"id": 848,
+"name": "Tuổi tác kém",
+"desc": "Tuổi tác là / không là vấn đề?"
+},
+{
+"id": 850,
+"name": "Ngốc nghếch sảng",
+"desc": "Siêu cấp vô địch thuần sảng văn"
+},
+{
+"id": 851,
+"name": "Quy tắc quái đàm",
+"desc": "Thỉnh tuần hoàn sở hữu quy tắc, nếu không, hư......."
+},
+{
+"id": 852,
+"name": "Hồn xuyên",
+"desc": "Quen thuộc linh hồn cùng ta thân thể mới"
+},
+{
+"id": 853,
+"name": "Bạch thiết hắc",
+"desc": "Là đáng yêu thiên sứ, cũng là ác ma than nhẹ"
+},
+{
+"id": 854,
+"name": "Công nghệ đen",
+"desc": "Tuổi còn trẻ ta dựa công nghệ đen công lược toàn thế giới"
+},
+{
+"id": 856,
+"name": "Toàn năng",
+"desc": "Hình lục giác chiến sĩ, chính là một cái sảng tự!"
+},
+{
+"id": 857,
+"name": "Trảm thần",
+"desc": "Phía trước Hoa Hạ, thần minh cấm hành, gặp thần sát thần!"
+},
+{
+"id": 858,
+"name": "Nhẹ tiểu thuyết",
+"desc": "Càng đọc càng nhẹ nhàng thế giới giả tưởng tiểu thuyết"
+},
+{
+"id": 859,
+"name": "Bảo nhưng mộng",
+"desc": "Thật sự chính là ngươi, ta tinh linh cầu!"
+},
+{
+"id": 860,
+"name": "Lẫn nhau cứu rỗi",
+"desc": "Chúng ta ôm nhau, chính là lẫn nhau quang"
+},
+{
+"id": 862,
+"name": "Chuyện nhà",
+"desc": "Ríu rít hạnh phúc hằng ngày"
+},
+{
+"id": 863,
+"name": "Diễn tinh",
+"desc": "Mỗi ngày không thêm diễn ta cả người khó chịu"
+},
+{
+"id": 864,
+"name": "Phó bản",
+"desc": "Đinh! Ngài phó bản nhiệm vụ đã mở ra"
+},
+{
+"id": 865,
+"name": "Trung khuyển",
+"desc": "Ai có thể cự tuyệt đáng thương tiểu cẩu"
+},
+{
+"id": 867,
+"name": "Bắt quỷ",
+"desc": "Bắt quỷ kỹ xảo ngàn ngàn vạn"
+},
+{
+"id": 868,
+"name": "Kiếm tu",
+"desc": "Pháp thuật thiên biến vạn hóa, xem ta nhất kiếm phá chi"
+},
+{
+"id": 869,
+"name": "Phế thổ",
+"desc": "Cát vàng phế thổ, rung chuyển xâm nhập"
+},
+{
+"id": 871,
+"name": "Ngôi thứ nhất",
+"desc": "Đắm chìm thức cảm thụ chuyện xưa"
+},
+{
+"id": 872,
+"name": "Truy phu",
+"desc": "Ngược phu nhất thời sảng, truy phu hỏa táng tràng"
+},
+{
+"id": 874,
+"name": "Thẻ bài",
+"desc": "Về ta �� dùng thẻ bài trở thành thiên hạ đệ nhất chuyện xưa"
+},
+{
+"id": 877,
+"name": "Cổ kính",
+"desc": "Nay nguyệt cũng từng chiếu cổ nhân"
+},
+{
+"id": 941,
+"name": "Văn học kinh điển",
+"desc": "Đọc sách chi nhạc nơi nào tìm, số điểm hoa mai thiên địa tâm"
+},
+{
+"id": 947,
+"name": "Dưỡng sinh khỏe mạnh",
+"desc": "Dưỡng sinh khỏe mạnh tri thức"
+},
+{
+"id": 948,
+"name": "Xã hội văn hóa",
+"desc": "Xã hội văn hóa cùng văn minh truyền thừa"
+},
+{
+"id": 951,
+"name": "Lịch sử nhân vật",
+"desc": "Trung ngoại lịch sử nhân vật truyện ký"
+},
+{
+"id": 954,
+"name": "Chính trị nhân vật",
+"desc": "Chính trị lĩnh vực nhân vật truyện ký"
+},
+{
+"id": 955,
+"name": "Văn nghệ danh nhân",
+"desc": "Văn nghệ lĩnh vực nhân vật truyện ký"
+},
+{
+"id": 956,
+"name": "Chính trị lý luận",
+"desc": "Chính trị lý luận thư tịch"
+},
+{
+"id": 958,
+"name": "Gia đình dục nhi",
+"desc": "Gia đình dục nhi thường thức cùng phương pháp"
+},
+{
+"id": 959,
+"name": "Hội họa",
+"desc": "Hội họa kỹ xảo cùng thưởng tích"
+},
+{
+"id": 960,
+"name": "Sinh hoạt bách khoa",
+"desc": "Sinh hoạt bách khoa cùng cách sống"
+},
+{
+"id": 970,
+"name": "Tinh phẩm tiểu thuyết",
+"desc": "Chất lượng tốt chuyện xưa loại ấn phẩm"
+},
+{
+"id": 972,
+"name": "Tình cảm tiểu thuyết",
+"desc": "Nhân sinh chính là một hồi tình cảm lịch trình"
+},
+{
+"id": 975,
+"name": "Truyền thống văn hóa",
+"desc": "Ngàn năm truyền thừa, văn hóa căn cơ"
+},
+{
+"id": 978,
+"name": "Giáo dục học tập",
+"desc": "Trợ người thành tài tri thức thư tịch"
+},
+{
+"id": 991,
+"name": "Quốc nội phim ảnh",
+"desc": "Quốc nội phim ảnh tiểu thuyết"
+},
+{
+"id": 995,
+"name": "Dốc lòng tăng lên",
+"desc": "Trên đời vô việc khó, chỉ cần chịu trèo lên"
+},
+{
+"id": 998,
+"name": "Quản lý tài sản",
+"desc": "Quản lý tài sản thường thức cùng thủ đoạn"
+},
+{
+"id": 1003,
+"name": "Chiến thần",
+"desc": "Miêu tả 237"
+},
+{
+"id": 1012,
+"name": "Thuần ái",
+"desc": "Thuần ái"
+},
+{
+"id": 1013,
+"name": "Huyền huyễn tiên hiệp",
+"desc": "Miêu tả 63"
+},
+{
+"id": 1014,
+"name": "Đô thị cao võ",
+"desc": "Hiện đại đô thị trung, thế giới quan trung có linh khí sống lại, ngự thú, dị năng, tu luyện chờ các loại siêu phàm nguyên tố phi bình thường đô thị bối cảnh."
+},
+{
+"id": 1015,
+"name": "Nữ tần diễn sinh",
+"desc": "Phim ảnh kịch hoặc sách cổ nữ tần đồng nhân tiểu thuyết"
+},
+{
+"id": 1016,
+"name": "Nam tần diễn sinh",
+"desc": "Phim ảnh kịch nam tần đồng nhân tiểu thuyết"
+},
+{
+"id": 1017,
+"name": "Dân quốc ngôn tình",
+"desc": "Dân quốc bối cảnh nữ tần tác phẩm"
+},
+{
+"id": 1021,
+"name": "Đô thị tình yêu",
+"desc": "Miêu tả 46"
+},
+{
+"id": 1034,
+"name": "Như ý diễn sinh",
+"desc": "Hoa thức mở ra 《 như ý truyện 》"
+},
+{
+"id": 1035,
+"name": "Chân Hoàn diễn sinh",
+"desc": "Bổn cung đã tới chậm, mới nhìn đến nhiều như vậy hảo văn chương"
+},
+{
+"id": 1036,
+"name": "Hồng lâu diễn sinh",
+"desc": "Đầy trang những chuyện hoang đường, tràn lan nước mắt bao nhường chua cay"
+},
+{
+"id": 1037,
+"name": "Công bản diễn sinh",
+"desc": "Ở kinh điển công bản trong sách, chúng ta còn có thể đọc ra cái gì?"
+},
+{
+"id": 1048,
+"name": "Nữ tính trưởng thành",
+"desc": "Hiện đại bối cảnh hạ, lấy nữ chủ chủ quan ý nguyện thượng trưởng thành, hỗ trợ chờ là chủ tuyến chuyện xưa"
+},
+{
+"id": 1058,
+"name": "Tổng phim ảnh",
+"desc": "3 cái cập trở lên phim ảnh kịch đồng nhân văn"
+},
+{
+"id": 1060,
+"name": "10 ngày diễn sinh",
+"desc": "Chung yên không ngừng, tiếng vọng bất diệt"
+},
+{
+"id": 1062,
+"name": "Trảm thần diễn sinh",
+"desc": "Đại hạ cảnh nội, thần minh cấm hành"
+},
+{
+"id": 1079,
+"name": "Diễn sinh",
+"desc": "Diễn sinh tác phẩm"
+},
+{
+"id": 1092,
+"name": "Khoa học viễn tưởng",
+"desc": "Miêu tả 77"
+},
+{
+"id": 1139,
+"name": "Cổ phong tình đời",
+"desc": "Cổ đại nữ tử mưu lược cùng phong hoa"
+},
+{
+"id": 1140,
+"name": "Phương đông tiên hiệp",
+"desc": "Không đi tầm thường lộ tiên hiệp truyền kỳ"
+},
+{
+"id": 1141,
+"name": "Phương tây kỳ ảo",
+"desc": "Ở phương tây thế giới thi triển áo thuật cùng ma pháp"
+},
+{
+"id": 1148,
+"name": "Hình trinh phá án",
+"desc": "Miêu tả 70"
+},
+{
+"id": 1152,
+"name": "Quân phiệt",
+"desc": "Miêu tả 281"
+},
+{
+"id": 1168,
+"name": "Mạt thế cầu sinh",
+"desc": "Miêu tả 95"
+},
+{
+"id": 1169,
+"name": "Huyền nghi luyến ái",
+"desc": "Sương mù chưa tản bộ bước hướng ngươi"
+},
+{
+"id": 1172,
+"name": "Giang hồ võ hiệp",
+"desc": "Miêu tả 66"
+},
+{
+"id": 1180,
+"name": "Làm ruộng kinh doanh",
+"desc": "Miêu tả 59"
+},
+{
+"id": 1181,
+"name": "Chữa bệnh",
+"desc": "Miêu tả 85"
+},
+{
+"id": 1182,
+"name": "Mạo hiểm",
+"desc": "Miêu tả 86"
+},
+{
+"id": 1183,
+"name": "Tai nạn",
+"desc": "Miêu tả 90"
+},
+{
+"id": 1186,
+"name": "Thương chiến",
+"desc": "Đây là miêu tả 18"
+},
+{
+"id": 1189,
+"name": "AI thức tỉnh",
+"desc": "Miêu tả 156"
+},
+{
+"id": 1191,
+"name": "Phất nhanh",
+"desc": "Miêu tả 158"
+},
+{
+"id": 1192,
+"name": "Đích thứ chi tranh",
+"desc": "Miêu tả 159"
+},
+{
+"id": 1196,
+"name": "Thương nghiệp liên hôn",
+"desc": "Miêu tả 164"
+},
+{
+"id": 1200,
+"name": "Song hướng cứu rỗi",
+"desc": "Miêu tả 167"
+},
+{
+"id": 1207,
+"name": "Đại nam chủ",
+"desc": "Nhân vật"
+},
+{
+"id": 1211,
+"name": "Phi tần",
+"desc": "Miêu tả 190"
+},
+{
+"id": 1219,
+"name": "Khủng bố kinh tủng",
+"desc": "Thường thấy một ít ít nhất trì hoãn khủng bố kinh tủng cốt truyện, nhiều ở phạm tội đề tài, như 《 con mực trò chơi 》"
+},
+{
+"id": 1235,
+"name": "Gia quốc tình hoài",
+"desc": "Miêu tả 173"
+},
+{
+"id": 1243,
+"name": "Sinh tồn trò chơi",
+"desc": "Miêu tả 183"
+},
+{
+"id": 1317,
+"name": "Cổ ngôn quyền mưu",
+"desc": "Cổ đại nữ tử mưu lược cùng phong hoa"
+},
+{
+"id": 1387,
+"name": "Truy phu hỏa táng tràng",
+"desc": "Nữ chủ giai đoạn trước ngược nam chủ, hậu kỳ truy phu chuyện xưa"
+},
+{
+"id": 1455,
+"name": "Phong thuỷ bí thuật",
+"desc": "Ẩn chứa dân tục, phong thuỷ, đạo thuật, cửa bên linh tinh thần bí bí thuật nguyên tố tiểu thuyết"
+},
+{
+"id": 1456,
+"name": "Vị tôn quyền trọng",
+"desc": "Nam chủ nhân thiết xuất thân kinh vòng, bản thân bối cảnh hùng hậu, có được cường đại thế lực, tài phú, địa vị hết sức quan trọng, nhiều giả thiết cùng nữ chủ thân phận chênh lệch cách xa, nhưng là vì ái cúi người cúi đầu"
+},
+{
+"id": 1457,
+"name": "Nam nhị thượng vị",
+"desc": "Nguyên bản làm nam xứng nam nhị, thành công nghịch tập thượng vị, trở thành cùng nữ chủ ở bên nhau nam chủ, nhân thiết nhiều vì siêu cấp thâm tình, yêu thầm nhiều năm chờ thảo hỉ giả thiết"
+},
+{
+"id": 1458,
+"name": "Đại gả đại cưới",
+"desc": "Ở hiện đại / cổ đại bối cảnh hạ, vai chính nhân tự thân chủ động lựa chọn hoặc là trời xui đất khiến chờ nguyên nhân, thế thân người khác hoàn thành kết hôn, do đó bị cuốn vào đấu tranh cùng tình cảm gút mắt trung."
+},
+{
+"id": 1459,
+"name": "Công lược vai ác",
+"desc": "Ở hiện đại / cung đình / nhà cửa bối cảnh hạ, nữ chủ vì tự thân sinh tồn hoặc đạt thành nào đó mục đích, công lược vai ác nam chủ, cùng vai ác nam chủ khai triển một đoạn cảm tình gút mắt."
+},
+{
+"id": 1460,
+"name": "Đô thị giang hồ",
+"desc": "Nam chủ hỗn hắc đạo, bởi vì hỗn hắc đạo bỏ tù, xã hội đại ca chờ, hoặc là đi cửa hông màu xám mảnh đất kiếm thiên tài"
+}
 ]
