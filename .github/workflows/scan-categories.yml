@@ -1,6 +1,15 @@
 name: Scan Categories
+
 on:
   workflow_dispatch:
+    inputs:
+      start:
+        description: 'Category ID start'
+        default: '1'
+      end:
+        description: 'Category ID end'
+        default: '1000'
+
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -10,11 +19,7 @@ jobs:
         with:
           node-version: '24'
       - name: Run scan
-        run: node scan-categories.js 2>&1 | tee categories_result.txt
-      - name: Upload result
-        uses: actions/upload-artifact@v4
-        with:
-          name: categories-result
-          path: |
-            categories.json
-            categories.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scan-categories.js ${{ github.event.inputs.start }} ${{ github.event.inputs.end }} 2>&1 | tee result.txt
