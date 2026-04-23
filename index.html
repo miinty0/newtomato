@@ -2494,6 +2494,37 @@ async function detectExistingCategories() {
   } catch(e) {}
 }
 
+async function detectExistingRankCats() {
+  // List data/ folder to find rank_cat_*.json files and pre-populate rc fetch history
+  try {
+    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data`;
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return;
+    const files = await res.json();
+    const h = loadRcHistory();
+    let changed = false;
+    for (const f of files) {
+      const m = f.name.match(/^rank_cat_(\d+)\.json$/);
+      if (!m) continue;
+      const catId = m[1];
+      if (!h[catId]) {
+        try {
+          const data = await ghRawLarge(`data/rank_cat_${catId}.json`);
+          const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
+          h[catId] = {
+            name,
+            date: data.update_time ? new Date(data.update_time.replace(' ', 'T')).toISOString() : new Date().toISOString()
+          };
+          changed = true;
+        } catch(e) {}
+      }
+    }
+    if (changed) { saveRcHistory(h); renderRcHistory(); }
+  } catch(e) {}
+}
 async function initApp() {
   initCatSelect();
   initRankingSubtabs();
@@ -2501,6 +2532,7 @@ async function initApp() {
   renderFetchHistory();
   renderRcHistory();
   detectExistingCategories();
+  detectExistingRankCats();
   loadDaily();
 }
 
