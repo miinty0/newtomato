@@ -594,6 +594,32 @@
     header { padding: 0 14px; }
     .tabs-bar { padding: 0 14px; }
   }
+  /* ── Ranking sub-tabs ── */
+  .ranking-subtabs {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 16px;
+  }
+  .ranking-subtab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border2);
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .ranking-subtab:hover { border-color: var(--accent); color: var(--accent); }
+  .ranking-subtab.active {
+    background: var(--accent); color: #fff;
+    border-color: var(--accent);
+  }
+  .ranking-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
 </style>
 </head>
 <body>
@@ -632,6 +658,7 @@
 <div class="tabs-bar">
   <button class="tab-btn active" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
+  <button class="tab-btn" onclick="switchTab('ranking', this)">📊 BXH</button>
 </div>
 
 <!-- ── Toast ── -->
@@ -719,6 +746,38 @@
     <!-- Category panels -->
     <div id="cat-panels" class="cat-panels">
       <div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem truyện.</div>
+    </div>
+  </div>
+
+  <!-- ════ RANKING TAB ════ -->
+  <div id="tab-ranking" class="tab-panel">
+
+    <div class="section-header">
+      <div>
+        <div class="section-title">Bảng xếp hạng</div>
+        <div id="ranking-update-info" class="update-info">Chọn bảng để tải dữ liệu.</div>
+      </div>
+    </div>
+
+    <!-- Sub-tab bar -->
+    <div class="ranking-subtabs" id="ranking-subtabs"></div>
+
+    <!-- Toolbar -->
+    <div class="ranking-toolbar" id="ranking-toolbar">
+      <button class="btn btn-danger btn-sm" id="ranking-scrape-btn" onclick="triggerRankingScrape()">▶ Scrape bảng này</button>
+      <button class="btn btn-outline btn-sm" id="ranking-reload-btn" onclick="loadRanking()">↻ Tải lại</button>
+    </div>
+
+    <!-- Read submit bar -->
+    <div class="read-submit-bar" id="ranking-read-bar" style="display:none">
+      <div class="read-submit-info">
+        Đã đánh dấu <strong id="ranking-marked-count">0</strong> sách đã đọc.
+      </div>
+      <button class="btn btn-success btn-sm" onclick="submitRead('ranking')">✓ Lưu danh sách đã đọc</button>
+    </div>
+
+    <div id="ranking-books" class="books-grid">
+      <div class="state-box"><div class="icon">📊</div>Chọn một bảng xếp hạng bên trên để xem.</div>
     </div>
   </div>
 
@@ -1276,14 +1335,15 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
 // Read list helpers
 // ══════════════════════════════════════════
 // In-memory pending marks per session
-const pendingRead = { daily: new Set(), category: new Set() };
+const pendingRead = { daily: new Set(), category: new Set(), ranking: new Set() };
 
 function updateReadBar(tab) {
-  const count = pendingRead[tab].size;
+  const count = pendingRead[tab] ? pendingRead[tab].size : 0;
   const prefix = tab === 'category' ? 'cat' : tab;
   const bar = document.getElementById(`${prefix}-read-bar`);
-  bar.style.display = count > 0 ? '' : 'none';
-  document.getElementById(`${prefix}-marked-count`).textContent = count;
+  if (bar) bar.style.display = count > 0 ? '' : 'none';
+  const countEl = document.getElementById(`${prefix}-marked-count`);
+  if (countEl) countEl.textContent = count;
   // Toggle body class for padding when any bar is visible
   const anyVisible = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
   document.body.classList.toggle('has-read-bar', anyVisible);
@@ -1418,6 +1478,23 @@ async function cleanupAfterRead(readIds) {
             }
           } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
         }
+
+        // ── ranking_*.json (not seen files) ──
+        if (f.name.match(/^ranking_[^.]+\.json$/) && !f.name.includes('_seen')) {
+          const rankKey = f.name.replace(/^ranking_/, '').replace(/\.json$/, '');
+          try {
+            const meta = await ghGetFile(`data/${f.name}`);
+            const data = JSON.parse(b64DecodeUTF8(meta.content));
+            const filtered = (data.books || []).filter(b => !ids.has(b.book_id));
+            if (filtered.length !== (data.books || []).length) {
+              data.books = filtered;
+              data.total_count = filtered.length;
+              await ghPutFile(`data/${f.name}`, JSON.stringify(data, null, 2),
+                `cleanup: remove read books from ranking ${rankKey}`, meta.sha);
+              if (rankingData[rankKey]) rankingData[rankKey].data.books = filtered;
+            }
+          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
+        }
       }
     } catch(e) { console.warn('category list failed:', e.message); }
 
@@ -1449,6 +1526,7 @@ async function submitRead(tab) {
     const justRead = new Set(pendingRead[tab]);
     for (const id of justRead) {
       dailyReadSet.add(id);
+      rankingReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
     pendingRead[tab].clear();
@@ -2009,6 +2087,96 @@ function closeAbstractOnBg(e) {
 }
 
 // ══════════════════════════════════════════
+// RANKING TAB
+// ══════════════════════════════════════════
+const RANKING_SOURCES = [
+  { key: 'de_cu',      title: 'Bảng đề cử' },
+  { key: 'hoan_thanh', title: 'Bảng hoàn thành' },
+  { key: 'trending',   title: 'Bảng trending' },
+  { key: 'hac_ma',     title: 'Bảng hắc mã' },
+  { key: 'cua_tuan',   title: 'Bảng của tuần' },
+  { key: 'nam_tan',    title: 'Nam tần' },
+  { key: 'nu_tan',     title: 'Nữ tần' },
+  { key: 'top',        title: 'Bảng top' },
+  { key: 'xuat_ban',   title: 'Bảng xuất bản' },
+];
+
+let activeRankingKey = null;
+let rankingData = {};   // { key: { data, readSet } }
+let rankingReadSet = new Set();
+
+function initRankingSubtabs() {
+  const bar = document.getElementById('ranking-subtabs');
+  if (!bar) return;
+  bar.innerHTML = RANKING_SOURCES.map(s =>
+    `<button class="ranking-subtab${s.key === activeRankingKey ? ' active' : ''}" data-key="${s.key}" onclick="selectRankingSubtab('${s.key}')">${s.title}</button>`
+  ).join('');
+}
+
+function selectRankingSubtab(key) {
+  activeRankingKey = key;
+  document.querySelectorAll('.ranking-subtab').forEach(b => {
+    b.classList.toggle('active', b.dataset.key === key);
+  });
+  loadRanking();
+}
+
+async function loadRanking() {
+  if (!activeRankingKey) return;
+  const key = activeRankingKey;
+  const container = document.getElementById('ranking-books');
+  const infoEl    = document.getElementById('ranking-update-info');
+  container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải dữ liệu…</div>`;
+
+  try {
+    const [data, readArr] = await Promise.all([
+      ghRaw(`data/ranking_${key}.json`),
+      ghRaw('data/read.json').catch(() => []),
+    ]);
+    rankingReadSet = new Set(readArr.map(String));
+    rankingData[key] = { data, readSet: rankingReadSet };
+    registerBooks(data.books || []);
+
+    const src    = RANKING_SOURCES.find(s => s.key === key);
+    const books  = (data.books || []).filter(b => !rankingReadSet.has(b.book_id));
+    infoEl.textContent = `${src?.title || key} · Cập nhật: ${data.update_time || '—'} · ${books.length} cuốn chưa đọc`;
+
+    if (books.length === 0) {
+      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc trong bảng này.</div>`;
+      return;
+    }
+    container.innerHTML = books.map(b => bookCardHTML(b, 'ranking', rankingReadSet)).join('');
+    loadScoresForCards(books);
+  } catch(e) {
+    if (e.message && e.message.includes('404')) {
+      container.innerHTML = `<div class="state-box"><div class="icon">📭</div>Chưa có dữ liệu. Nhấn <strong>▶ Scrape bảng này</strong> để tải lần đầu.</div>`;
+      infoEl.textContent = 'Chưa có dữ liệu — cần scrape.';
+    } else {
+      container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${e.message}</div>`;
+    }
+  }
+}
+
+async function triggerRankingScrape() {
+  if (!activeRankingKey) return;
+  const btn = document.getElementById('ranking-scrape-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
+  const src = RANKING_SOURCES.find(s => s.key === activeRankingKey);
+  try {
+    await ghDispatchWorkflow('ranking.yml', { ranking_key: activeRankingKey });
+    toast(`Đã kích hoạt scrape "${src?.title || activeRankingKey}" ✓`, 'ok');
+  } catch(e) {
+    toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js -r ${activeRankingKey}`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '▶ Scrape bảng này';
+  }
+}
+
+
+
+// ══════════════════════════════════════════
 // Init
 // ══════════════════════════════════════════
 async function detectExistingCategories() {
@@ -2046,6 +2214,7 @@ async function detectExistingCategories() {
 
 async function initApp() {
   initCatSelect();
+  initRankingSubtabs();
   renderFetchHistory();
   detectExistingCategories();
   loadDaily();
