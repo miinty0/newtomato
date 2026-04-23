@@ -594,7 +594,15 @@
     header { padding: 0 14px; }
     .tabs-bar { padding: 0 14px; }
   }
-  /* ── Ranking sub-tabs ── */
+  /* ── Rank-cat read count badge ── */
+  .read-count-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 600;
+    padding: 1px 6px; border-radius: 4px;
+    background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8;
+    white-space: nowrap; font-family: 'DM Mono', monospace;
+  }
+</style>
   .ranking-subtabs {
     display: flex; flex-wrap: wrap; gap: 6px;
     margin-bottom: 16px;
@@ -658,7 +666,8 @@
 <div class="tabs-bar">
   <button class="tab-btn active" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
-  <button class="tab-btn" onclick="switchTab('ranking', this)">📊 BXH</button>
+  <button class="tab-btn" onclick="switchTab('ranking', this)">📊 Bảng xếp hạng</button>
+  <button class="tab-btn" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
 </div>
 
 <!-- ── Toast ── -->
@@ -781,6 +790,60 @@
     </div>
   </div>
 
+  <!-- ════ RANK CAT TAB ════ -->
+  <div id="tab-rankcat" class="tab-panel">
+
+    <div class="section-header">
+      <div>
+        <div class="section-title">Rank đọc theo danh mục</div>
+        <div id="rankcat-update-info" class="update-info">Chọn danh mục để tải dữ liệu.</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="cat-toolbar">
+      <div class="cat-select-wrap" id="rc-select-wrap">
+        <div class="cat-select-trigger" id="rc-select-trigger" onclick="toggleRcSelect(event)">
+          <span class="cat-select-trigger-text" id="rc-select-label">-- Chọn danh mục --</span>
+          <span class="cat-select-arrow">▼</span>
+        </div>
+        <div class="cat-select-dropdown" id="rc-select-dropdown">
+          <div class="cat-select-search">
+            <span>🔍</span>
+            <input id="rc-select-input" type="text" placeholder="Tìm danh mục…" oninput="filterRcOptions()" autocomplete="off" />
+          </div>
+          <div class="cat-select-list" id="rc-select-list"></div>
+          <div class="cat-select-empty" id="rc-select-empty">Không tìm thấy danh mục.</div>
+        </div>
+      </div>
+
+      <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
+      <button class="btn btn-danger btn-sm" id="rc-scrape-btn" onclick="triggerRankCatScrape()" disabled>▶ Scrape danh mục</button>
+
+      <div class="fetch-history-wrap" id="rc-fh-wrap">
+        <button class="fetch-history-toggle" onclick="toggleRcHistory(event)">
+          📋 Lịch sử fetch <span class="fh-count" id="rc-fh-count">0</span>
+        </button>
+        <div class="fetch-history-dropdown" id="rc-fh-dropdown">
+          <div class="fh-header">Danh mục đã fetch gần nhất</div>
+          <div class="fh-list" id="rc-fh-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Read submit bar -->
+    <div class="read-submit-bar" id="rankcat-read-bar" style="display:none">
+      <div class="read-submit-info">
+        Đã đánh dấu <strong id="rankcat-marked-count">0</strong> sách đã đọc.
+      </div>
+      <button class="btn btn-success btn-sm" onclick="submitRead('rankcat')">✓ Lưu danh sách đã đọc</button>
+    </div>
+
+    <div id="rankcat-books" class="books-grid">
+      <div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem rank đọc.</div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ── Abstract modal ── -->
@@ -799,9 +862,9 @@
 </div>
 
 <script>
-// ══════════════════════════════════════════
+
 // Config
-// ══════════════════════════════════════════
+
 let CFG = { user: '', repo: '', token: '' };
 
 const CATEGORY_NAMES = {
@@ -1241,9 +1304,9 @@ function openSetup() {
   document.getElementById('setup-overlay').classList.remove('hidden');
 }
 
-// ══════════════════════════════════════════
+
 // Toast
-// ══════════════════════════════════════════
+
 let _toastTimer;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
@@ -1253,9 +1316,9 @@ function toast(msg, type = '') {
   _toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
 
-// ══════════════════════════════════════════
+
 // Tabs
-// ══════════════════════════════════════════
+
 function switchTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1263,9 +1326,9 @@ function switchTab(id, btn) {
   btn.classList.add('active');
 }
 
-// ══════════════════════════════════════════
+
 // GitHub raw content fetch
-// ══════════════════════════════════════════
+
 function b64DecodeUTF8(b64) {
   const binary = atob(b64.replace(/\n/g, ''));
   const bytes = new Uint8Array(binary.length);
@@ -1274,7 +1337,6 @@ function b64DecodeUTF8(b64) {
 }
 
 async function ghRaw(filePath) {
-  // Use Contents API — works with fine-grained PAT, avoids raw.githubusercontent.com CORS issues
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
   const res = await fetch(url, {
     cache: 'no-store',
@@ -1331,11 +1393,11 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
 }
 
-// ══════════════════════════════════════════
+
 // Read list helpers
-// ══════════════════════════════════════════
+
 // In-memory pending marks per session
-const pendingRead = { daily: new Set(), category: new Set(), ranking: new Set() };
+const pendingRead = { daily: new Set(), category: new Set(), ranking: new Set(), rankcat: new Set() };
 
 function updateReadBar(tab) {
   const count = pendingRead[tab] ? pendingRead[tab].size : 0;
@@ -1344,7 +1406,6 @@ function updateReadBar(tab) {
   if (bar) bar.style.display = count > 0 ? '' : 'none';
   const countEl = document.getElementById(`${prefix}-marked-count`);
   if (countEl) countEl.textContent = count;
-  // Toggle body class for padding when any bar is visible
   const anyVisible = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
   document.body.classList.toggle('has-read-bar', anyVisible);
 }
@@ -1495,6 +1556,23 @@ async function cleanupAfterRead(readIds) {
             }
           } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
         }
+
+        // ── rank_cat_*.json ──
+        if (f.name.match(/^rank_cat_\d+\.json$/)) {
+          const rcCatId = f.name.replace(/^rank_cat_/, '').replace(/\.json$/, '');
+          try {
+            const meta = await ghGetFile(`data/${f.name}`);
+            const data = JSON.parse(b64DecodeUTF8(meta.content));
+            const filtered = (data.books || []).filter(b => !ids.has(b.book_id));
+            if (filtered.length !== (data.books || []).length) {
+              data.books = filtered;
+              data.total_count = filtered.length;
+              await ghPutFile(`data/${f.name}`, JSON.stringify(data, null, 2),
+                `cleanup: remove read books from rank_cat ${rcCatId}`, meta.sha);
+              if (rcData[rcCatId]) rcData[rcCatId].data.books = filtered;
+            }
+          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
+        }
       }
     } catch(e) { console.warn('category list failed:', e.message); }
 
@@ -1527,18 +1605,19 @@ async function submitRead(tab) {
     for (const id of justRead) {
       dailyReadSet.add(id);
       rankingReadSet.add(id);
+      rcReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
-    // Cleanup history/cache in background (don't await — let UI update first)
+    // Cleanup history/cache in background
     cleanupAfterRead(justRead);
     // Mark cards visually
     document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
       c.dataset.pendingRead = '';
       c.classList.add('is-read');
     });
-    toast('Đã lưu danh sách đọc thành công ✓', 'ok');
+    toast('Đã lưu thành công ✓', 'ok');
   } catch(e) {
     toast('Lỗi: ' + e.message, 'err');
   } finally {
@@ -1562,9 +1641,9 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 
-// ══════════════════════════════════════════
+
 // Score loading (via Tampermonkey userscript)
-// ══════════════════════════════════════════
+
 function loadScoresForCards(books) {
   // Poll up to 3s for the userscript to expose tmFetchScore
   let attempts = 0;
@@ -1599,9 +1678,9 @@ function loadScoresForCards(books) {
   tryLoad();
 }
 
-// ══════════════════════════════════════════
+
 // Formatting helpers
-// ══════════════════════════════════════════
+
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -1636,11 +1715,19 @@ function bookCardHTML(book, tab, readSet = new Set()) {
       ? `<button class="btn-read marked" onclick="toggleRead('${book.book_id}', this, '${tab}')">✓ Đã đọc</button>`
     : `<button class="btn-read" onclick="toggleRead('${book.book_id}', this, '${tab}')">+ Đánh dấu đã đọc</button>`;
 
+  // rank-cat specific: currentPos + rankPosDiff + read_count
+  const posDisplay = book.currentPos != null
+    ? `<span>#${book.currentPos}</span>${book.rankPosDiff != null ? rankChangeHTML(-book.rankPosDiff) : ''}`
+    : `<span>#${book.hot_rank || '?'}</span>${rc}`;
+  const readCountBadge = book.read_count != null
+    ? `<span class="read-count-badge">👁 ${Number(book.read_count).toLocaleString('vi-VN')}</span>`
+    : '';
+
   return `
   <div class="book-card${isRead ? ' is-read' : ''}" data-id="${book.book_id}" data-name="${(book.book_name||'').toLowerCase()}" data-pending-read="">
     ${thumb}
     <div class="book-info">
-      <div class="book-rank notranslate" id="rank-${book.book_id}"><span>#${book.hot_rank || '?'}</span>${rc}<span class="score-badge loading" id="score-${book.book_id}">⭐…</span></div>
+      <div class="book-rank notranslate" id="rank-${book.book_id}">${posDisplay}<span class="score-badge loading" id="score-${book.book_id}">⭐…</span>${readCountBadge}</div>
       <div class="book-name" title="${book.book_name}">${book.book_name}</div>
       <div class="book-author notranslate">${book.author || ''}</div>
       <a href="https://fanqienovel.com/page/${book.book_id}" target="_blank" rel="noopener" class="book-id-link notranslate">#${book.book_id}</a>
@@ -1654,9 +1741,9 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   </div>`;
 }
 
-// ══════════════════════════════════════════
+
 // DAILY TAB
-// ══════════════════════════════════════════
+
 let dailyReadSet = new Set();
 
 async function loadDaily() {
@@ -1677,9 +1764,9 @@ async function loadDaily() {
     const bookMap = {};
     for (const b of (latestData.books || [])) bookMap[b.book_id] = b;
 
-    // Load history files (skip today's date since latest.json already has it)
+    // Load history files
     const todayStr = latestData.update_date || '';
-    // Load 90 latest history entries (history_index is sorted newest-first)
+    // Load 90 latest history entries
     const histDates = (histIndex || []).filter(d => d !== todayStr).slice(0, 89); 
 
     if (histDates.length > 0) {
@@ -1725,7 +1812,7 @@ async function triggerDailyScrape() {
   btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
   try {
     await ghDispatchWorkflow('scrape.yml');
-    toast('Đã kích hoạt workflow scrape hàng ngày ✓', 'ok');
+    toast('Scrape hot list ✓', 'ok');
   } catch(e) {
     // Fallback: try direct invocation note
     toast('Lỗi trigger workflow: ' + e.message, 'err');
@@ -1735,9 +1822,9 @@ async function triggerDailyScrape() {
   }
 }
 
-// ══════════════════════════════════════════
+
 // CATEGORY TAB
-// ══════════════════════════════════════════
+
 let catData = {};      // { categoryId: { data, readSet } }
 let activeCatIds = []; // currently loaded category IDs
 
@@ -1852,7 +1939,7 @@ function renderCatPanels() {
     let books = data.books || [];
     if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
     const count = books.length;
-    if (query && count === 0) continue; // hide panels with no results when searching
+    if (query && count === 0) continue; 
     totalMatches += count;
 
     html += `
@@ -1925,11 +2012,9 @@ async function triggerCatScrape() {
   btn.innerHTML = `<span class="spinner"></span> Đang scrape…`;
 
   try {
-    // Trigger GitHub Actions with category input if workflow supports it,
-    // otherwise show manual instruction
     await ghDispatchWorkflow('scrape.yml', { category_id: String(catId) });
     recordFetch(catId);
-    toast(`Đã kích hoạt scrape danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
+    toast(`Scrape hot list ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
   } catch(e) {
     toast('Lỗi: ' + e.message + ' — Thử chạy: node scraper.js -c ' + catId, 'err');
   } finally {
@@ -1938,9 +2023,9 @@ async function triggerCatScrape() {
   }
 }
 
-// ══════════════════════════════════════════
+
 // Fetch history (localStorage)
-// ══════════════════════════════════════════
+
 const FH_KEY = 'fq_fetch_history';
 
 function loadFetchHistory() {
@@ -2005,6 +2090,14 @@ document.addEventListener('click', (e) => {
   if (catWrap && !catWrap.contains(e.target)) {
     catWrap.classList.remove('open');
   }
+  const rcWrap = document.getElementById('rc-select-wrap');
+  if (rcWrap && !rcWrap.contains(e.target)) {
+    rcWrap.classList.remove('open');
+  }
+  const rcFhWrap = document.getElementById('rc-fh-wrap');
+  if (rcFhWrap && !rcFhWrap.contains(e.target)) {
+    document.getElementById('rc-fh-dropdown').classList.remove('open');
+  }
 });
 
 // Warn before closing tab if there are unsaved marks
@@ -2016,9 +2109,9 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-// ══════════════════════════════════════════
+
 // Abstract modal
-// ══════════════════════════════════════════
+
 // Store book data for modal lookup
 const _bookRegistry = {};
 
@@ -2086,9 +2179,9 @@ function closeAbstractOnBg(e) {
   if (e.target === document.getElementById('abstract-modal')) closeAbstract();
 }
 
-// ══════════════════════════════════════════
+
 // RANKING TAB
-// ══════════════════════════════════════════
+
 const RANKING_SOURCES = [
   { key: 'de_cu',      title: 'Bảng đề cử' },
   { key: 'hoan_thanh', title: 'Bảng hoàn thành' },
@@ -2165,7 +2258,7 @@ async function triggerRankingScrape() {
   const src = RANKING_SOURCES.find(s => s.key === activeRankingKey);
   try {
     await ghDispatchWorkflow('ranking.yml', { ranking_key: activeRankingKey });
-    toast(`Đã kích hoạt scrape "${src?.title || activeRankingKey}" ✓`, 'ok');
+    toast(`Scrape "${src?.title || activeRankingKey}" ✓`, 'ok');
   } catch(e) {
     toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js -r ${activeRankingKey}`, 'err');
   } finally {
@@ -2176,9 +2269,161 @@ async function triggerRankingScrape() {
 
 
 
-// ══════════════════════════════════════════
+
+// RANK CAT TAB
+
+const RC_FH_KEY = 'fq_rankcat_fetch_history';
+let rcSelectValue = '';
+let rcData = {};          // { catId: { data, readSet } }
+let rcReadSet  = new Set();
+
+// ── localStorage helpers ──
+function loadRcHistory() {
+  try { return JSON.parse(localStorage.getItem(RC_FH_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+function saveRcHistory(h) { localStorage.setItem(RC_FH_KEY, JSON.stringify(h)); }
+function recordRcFetch(catId, updateTime) {
+  const h = loadRcHistory();
+  const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
+  const date = updateTime
+    ? new Date(updateTime.replace(' ', 'T')).toISOString()
+    : new Date().toISOString();
+  h[catId] = { name, date };
+  saveRcHistory(h);
+  renderRcHistory();
+}
+function renderRcHistory() {
+  const h = loadRcHistory();
+  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
+  document.getElementById('rc-fh-count').textContent = entries.length;
+  const list = document.getElementById('rc-fh-list');
+  if (entries.length === 0) { list.innerHTML = `<div class="fh-empty">Chưa có danh mục nào được fetch.</div>`; return; }
+  list.innerHTML = entries.map(([id, info]) => {
+    const d = new Date(info.date);
+    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="fh-item" onclick="jumpToRcCat(${id})">
+      <span class="fh-item-name">${info.name}</span>
+      <span class="fh-item-date notranslate">${dateStr} ${timeStr}</span>
+    </div>`;
+  }).join('');
+}
+function toggleRcHistory(e) {
+  e.stopPropagation();
+  document.getElementById('rc-fh-dropdown').classList.toggle('open');
+}
+function jumpToRcCat(catId) {
+  document.getElementById('rc-fh-dropdown').classList.remove('open');
+  const cat = CATEGORIES.find(c => c.id == catId);
+  if (cat) selectRcOption(cat.id, cat.name);
+}
+
+// ── Dropdown ──
+function initRcSelect() {
+  const list = document.getElementById('rc-select-list');
+  CATEGORIES.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cat-select-option';
+    el.dataset.value = c.id;
+    el.dataset.slug = slugify(c.name);
+    el.textContent = c.name;
+    el.onclick = () => selectRcOption(c.id, c.name);
+    list.appendChild(el);
+  });
+}
+function toggleRcSelect(e) {
+  e.stopPropagation();
+  const wrap = document.getElementById('rc-select-wrap');
+  const isOpen = wrap.classList.toggle('open');
+  if (isOpen) {
+    const input = document.getElementById('rc-select-input');
+    input.value = '';
+    filterRcOptions();
+    setTimeout(() => input.focus(), 50);
+  }
+}
+function filterRcOptions() {
+  const q = slugify(document.getElementById('rc-select-input').value);
+  const options = document.querySelectorAll('#rc-select-list .cat-select-option');
+  let visible = 0;
+  options.forEach(opt => {
+    const match = !q || opt.dataset.slug.includes(q);
+    opt.classList.toggle('hidden', !match);
+    if (match) visible++;
+  });
+  document.getElementById('rc-select-empty').style.display = visible === 0 ? 'block' : 'none';
+}
+function selectRcOption(id, name) {
+  rcSelectValue = id;
+  document.getElementById('rc-select-label').textContent = name;
+  document.querySelectorAll('#rc-select-list .cat-select-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.value == id);
+  });
+  document.getElementById('rc-select-wrap').classList.remove('open');
+  document.getElementById('rc-scrape-btn').disabled = false;
+  document.getElementById('rc-reload-btn').disabled = false;
+  loadRankCat();
+}
+
+// ── Load data ──
+async function loadRankCat() {
+  const catId = rcSelectValue;
+  if (!catId) return;
+  const container = document.getElementById('rankcat-books');
+  const infoEl    = document.getElementById('rankcat-update-info');
+  container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải dữ liệu…</div>`;
+
+  try {
+    const [data, readArr] = await Promise.all([
+      ghRaw(`data/rank_cat_${catId}.json`),
+      ghRaw('data/read.json').catch(() => []),
+    ]);
+    rcReadSet = new Set(readArr.map(String));
+    rcData[catId] = { data, readSet: rcReadSet };
+    registerBooks(data.books || []);
+    recordRcFetch(catId, data.update_time);
+
+    const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
+    const books   = (data.books || []).filter(b => !rcReadSet.has(b.book_id));
+    infoEl.textContent = `${catName} · Cập nhật: ${data.update_time || '—'} · ${books.length} cuốn chưa đọc`;
+
+    if (books.length === 0) {
+      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc trong danh mục này.</div>`;
+      return;
+    }
+    container.innerHTML = books.map(b => bookCardHTML(b, 'rankcat', rcReadSet)).join('');
+    loadScoresForCards(books);
+  } catch(e) {
+    if (e.message && e.message.includes('404')) {
+      container.innerHTML = `<div class="state-box"><div class="icon">📭</div>Chưa có dữ liệu. Nhấn <strong>▶ Scrape danh mục</strong> để tải lần đầu.</div>`;
+      infoEl.textContent = 'Chưa có dữ liệu — cần scrape.';
+    } else {
+      container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi: ${e.message}</div>`;
+    }
+  }
+}
+
+// ── Scrape trigger ──
+async function triggerRankCatScrape() {
+  const catId = rcSelectValue;
+  if (!catId) return;
+  const btn = document.getElementById('rc-scrape-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
+  try {
+    await ghDispatchWorkflow('ranking.yml', { rank_cat_id: String(catId) });
+    toast(`Scrape today most view list: ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
+  } catch(e) {
+    toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js --rank-cat ${catId}`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '▶ Scrape danh mục';
+  }
+}
+
 // Init
-// ══════════════════════════════════════════
+
 async function detectExistingCategories() {
   // List data/ folder via GitHub Contents API to find category_*.json files
   try {
@@ -2215,7 +2460,9 @@ async function detectExistingCategories() {
 async function initApp() {
   initCatSelect();
   initRankingSubtabs();
+  initRcSelect();
   renderFetchHistory();
+  renderRcHistory();
   detectExistingCategories();
   loadDaily();
 }
