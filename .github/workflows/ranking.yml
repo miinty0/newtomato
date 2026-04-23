@@ -1,0 +1,43 @@
+name: ranking
+
+on:
+  schedule:
+    - cron: '0 9 * * *'    # 09:00 UTC = 16:00 UTC+7
+  workflow_dispatch:        # manual trigger from Actions tab or index.html
+    inputs:
+      ranking_key:
+        description: 'Ranking key (leave empty to run all)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: run single ranking
+        if: ${{ github.event.inputs.ranking_key != '' }}
+        run: node scraper.js --ranking ${{ github.event.inputs.ranking_key }}
+
+      - name: run all rankings
+        if: ${{ github.event.inputs.ranking_key == '' }}
+        run: |
+          for key in de_cu hoan_thanh trending hac_ma cua_tuan nam_tan nu_tan top xuat_ban; do
+            echo "▶ scraping ranking: $key"
+            node scraper.js --ranking $key || echo "⚠ $key failed, continuing"
+          done
+
+      - name: save
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "ranking $(date -u '+%Y-%m-%d')"
+          git push
