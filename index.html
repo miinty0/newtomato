@@ -597,6 +597,23 @@
     header { padding: 0 14px; }
     .tabs-bar { padding: 0 14px; }
   }
+  /* ── Rank-cat mold section headers ── */
+  .mold-section-header {
+    grid-column: 1 / -1;
+    padding: 6px 0 4px;
+  }
+  .mold-section-header.mold-divider {
+    margin-top: 12px;
+    padding-top: 16px;
+    border-top: 1.5px solid var(--border2);
+  }
+  .mold-label {
+    font-size: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+    padding: 3px 10px; border-radius: 20px;
+  }
+  .mold-label.mold2 { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
+  .mold-label.mold1 { background: #fefce8; color: #a16207; border: 1px solid #fde047; }
+
   /* ── Rank-cat read count badge ── */
   .read-count-badge {
     display: inline-flex; align-items: center; gap: 3px;
@@ -2223,7 +2240,6 @@ const RANKING_SOURCES = [
   { key: 'nam_tan',    title: 'Nam tần' },
   { key: 'nu_tan',     title: 'Nữ tần' },
   { key: 'top',        title: 'Bảng top' },
-  { key: 'xuat_ban',   title: 'Bảng xuất bản' },
 ];
 
 let activeRankingKey = null;
@@ -2351,10 +2367,26 @@ function jumpToRcCat(catId) {
   if (cat) selectRcOption(cat.id, cat.name);
 }
 
-// ── Dropdown ──
-function initRcSelect() {
+// ── Dropdown — populated after valid_rank_cats.json is fetched ──
+let RC_VALID_CAT_IDS = new Set();
+
+async function initRcSelect() {
+  let validConfig = { rankMold2: [], rankMold1: [] };
+  try {
+    validConfig = await ghRaw('data/valid_rank_cats.json');
+  } catch(e) {
+    console.warn('valid_rank_cats.json not found — showing all categories');
+  }
+  RC_VALID_CAT_IDS = new Set([
+    ...validConfig.rankMold2.map(e => e.cat_id),
+    ...validConfig.rankMold1.map(e => e.cat_id),
+  ]);
   const list = document.getElementById('rc-select-list');
-  CATEGORIES.forEach(c => {
+  list.innerHTML = '';
+  const filtered = RC_VALID_CAT_IDS.size > 0
+    ? CATEGORIES.filter(c => RC_VALID_CAT_IDS.has(c.id))
+    : CATEGORIES;
+  filtered.forEach(c => {
     const el = document.createElement('div');
     el.className = 'cat-select-option';
     el.dataset.value = c.id;
@@ -2416,16 +2448,29 @@ async function loadRankCat() {
     registerBooks(data.books || []);
     recordRcFetch(catId, data.update_time);
 
-    const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-    const books   = (data.books || []).filter(b => !rcReadSet.has(b.book_id));
-    infoEl.textContent = `${catName} · Cập nhật: ${data.update_time || '—'} · ${books.length} cuốn chưa đọc`;
+    const catName  = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
+    const allBooks = (data.books || []).filter(b => !rcReadSet.has(b.book_id));
+    const mold2    = allBooks.filter(b => b.rankMold === 2 || b.rankMold == null);
+    const mold1    = allBooks.filter(b => b.rankMold === 1);
 
-    if (books.length === 0) {
+    infoEl.textContent = `${catName} · Cập nhật: ${data.update_time || '—'} · ${allBooks.length} cuốn chưa đọc`;
+
+    if (allBooks.length === 0) {
       container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc trong danh mục này.</div>`;
       return;
     }
-    container.innerHTML = books.map(b => bookCardHTML(b, 'rankcat', rcReadSet)).join('');
-    loadScoresForCards(books);
+
+    let html = '';
+    if (mold2.length > 0) {
+      html += `<div class="mold-section-header"><span class="mold-label mold2">📚 Truyện dài · ${mold2.length} cuốn</span></div>`;
+      html += mold2.map(b => bookCardHTML(b, 'rankcat', rcReadSet)).join('');
+    }
+    if (mold1.length > 0) {
+      html += `<div class="mold-section-header${mold2.length > 0 ? ' mold-divider' : ''}"><span class="mold-label mold1">⚡ Truyện ngắn &lt;30k chữ · ${mold1.length} cuốn</span></div>`;
+      html += mold1.map(b => bookCardHTML(b, 'rankcat', rcReadSet)).join('');
+    }
+    container.innerHTML = html;
+    loadScoresForCards(allBooks);
   } catch(e) {
     const msg = e.message || '';
     if (msg.includes('404') || msg.includes('Not Found')) {
