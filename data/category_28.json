@@ -2,7 +2,7 @@
   "update_time": "2026-05-02 15:52:15",
   "update_date": "2026-05-02",
   "category_id": 28,
-  "total_count": 81,
+  "total_count": 80,
   "books": [
     {
       "hot_rank": 13,
@@ -205,18 +205,6 @@
       "status": "Completed",
       "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/f1c72e79e711ef5577d6325ef16bfb19~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1775547479&x-signature=e%2BsTU2oYTwkey9UiXXWPNS2DoGA%3D",
       "last_chapter_time": "1767796500",
-      "rank_change": "new"
-    },
-    {
-      "hot_rank": 40,
-      "book_id": "7236691333652417575",
-      "book_name": "ID:7236691333652417575",
-      "author": "Unknown",
-      "tags": [],
-      "abstract": "",
-      "status": "Completed",
-      "thumb_url": "http://p3-reading-sign.fqnovelpic.com/novel-pic/p2o8df1fce474d04b5b52d367700ba5ac6c~tplv-resize:200:260.image?lk3s=68b6d46a&x-expires=1775461198&x-signature=eKGq4UkrBf63Fd2vHV%2BPe4VCQ5E%3D",
-      "last_chapter_time": "1769637075",
       "rank_change": "new"
     },
     {
