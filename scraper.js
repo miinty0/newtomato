@@ -236,6 +236,13 @@ function parseDetailPage(html) {
       }
     } catch(e) {}
   }
+
+  // Extract creation time
+  const firstChapterMatch = html.match(/"realChapterOrder":"1","firstPassTime":"(\d+)"/);
+  if (firstChapterMatch) {
+    info.first_chapter_time = parseInt(firstChapterMatch[1], 10);
+  }
+
   return info;
 }
 
@@ -333,7 +340,8 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     const abstract        = detailInfo.description || '';
     const thumbUrl        = detailInfo.hdImage || topInfo.thumb_url || rawBook.thumb_url || '';
     const tags            = detailInfo.tags?.length > 0 ? detailInfo.tags : (category ? [category] : []);
-    const lastChapterTime = rawBook.last_chapter_time ?? null;
+    const lastChapterTime  = rawBook.last_chapter_time ?? null;
+    const firstChapterTime = detailInfo.first_chapter_time ?? null;
 
     books.push({
       hot_rank: hotRank,
@@ -345,6 +353,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       status: statusLabel,
       thumb_url: thumbUrl,
       last_chapter_time: lastChapterTime,
+      first_chapter_time: firstChapterTime,
       rank_change: rankChange,
     });
   }
@@ -553,15 +562,16 @@ async function scrapeRanking(rankingKey) {
     const tags     = detailInfo.tags?.length > 0 ? detailInfo.tags : (category ? [category] : []);
 
     detailedBooks.push({
-      book_id:           bookId,
-      book_name:         bookName,
+      book_id:            bookId,
+      book_name:          bookName,
       author,
       tags,
-      abstract:          detailInfo.description || '',
-      status:            statusLabel,
-      thumb_url:         detailInfo.hdImage || raw.thumb_url || '',
-      last_chapter_time: raw.last_chapter_time ?? null,
-      rank_change:       'new',
+      abstract:           detailInfo.description || '',
+      status:             statusLabel,
+      thumb_url:          detailInfo.hdImage || raw.thumb_url || '',
+      last_chapter_time:  raw.last_chapter_time ?? null,
+      first_chapter_time: detailInfo.first_chapter_time ?? null,
+      rank_change:        'new',
     });
   }
 
@@ -726,17 +736,18 @@ async function scrapeRankCat(catId) {
       }
 
       books.push({
-        book_id:           bookId,
-        book_name:         detailInfo.book_name  || `ID:${bookId}`,
-        author:            detailInfo.author     || 'Unknown',
-        tags:              detailInfo.tags?.length > 0 ? detailInfo.tags : [],
-        abstract:          detailInfo.description || '',
-        status:            statusLabel,
-        thumb_url:         detailInfo.hdImage || raw.thumb_url || '',
-        last_chapter_time: raw.last_chapter_time,
-        currentPos:        raw.currentPos,
-        rankPosDiff:       raw.rankPosDiff,
-        read_count:        raw.read_count,
+        book_id:            bookId,
+        book_name:          detailInfo.book_name  || `ID:${bookId}`,
+        author:             detailInfo.author     || 'Unknown',
+        tags:               detailInfo.tags?.length > 0 ? detailInfo.tags : [],
+        abstract:           detailInfo.description || '',
+        status:             statusLabel,
+        thumb_url:          detailInfo.hdImage || raw.thumb_url || '',
+        last_chapter_time:  raw.last_chapter_time,
+        first_chapter_time: detailInfo.first_chapter_time ?? null,
+        currentPos:         raw.currentPos,
+        rankPosDiff:        raw.rankPosDiff,
+        read_count:         raw.read_count,
         rankMold,           // ← field để UI biết section nào
       });
     }
