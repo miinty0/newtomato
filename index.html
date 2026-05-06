@@ -1682,12 +1682,12 @@ function toggleRead(bookId, btn, tab) {
   const card = btn.closest('.book-card');
   if (pendingRead[tab].has(bookId)) {
     pendingRead[tab].delete(bookId);
-    btn.textContent = '+ Đánh dấu đã đọc';
+    btn.textContent = '+';
     btn.classList.remove('marked');
     card.dataset.pendingRead = '';
   } else {
     pendingRead[tab].add(bookId);
-    btn.textContent = '✓ Đã đọc';
+    btn.textContent = '✓';
     btn.classList.add('marked');
     card.dataset.pendingRead = '1';
   }
@@ -1766,7 +1766,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     ? `<button class="btn-read marked" disabled>✓ Đã đọc</button>`
     : isPending
       ? `<button class="btn-read marked" onclick="toggleRead('${book.book_id}', this, '${tab}')">✓ Đã đọc</button>`
-    : `<button class="btn-read" onclick="toggleRead('${book.book_id}', this, '${tab}')">+ Đánh dấu đã đọc</button>`;
+    : `<button class="btn-read" onclick="toggleRead('${book.book_id}', this, '${tab}')">+</button>`;
 
   // rank-cat specific: currentPos + rankPosDiff + read_count
   const posDisplay = book.currentPos != null
