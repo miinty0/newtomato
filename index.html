@@ -1787,7 +1787,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
       ${book.abstract ? `<div class="book-abstract" id="abs-${book.book_id}">${book.abstract}</div><button class="btn-abstract" onclick="openAbstract('${book.book_id}', this)">Xem thêm ▾</button>` : ''}
       <div class="book-tags">${statusTag}${tags}</div>
       <div class="book-footer">
-        <div class="book-time notranslate">${fmtTime(book.last_chapter_time)}</div>
+        <div class="book-time notranslate">${fmtTime(book.last_chapter_time)}${book.first_chapter_time ? '-' + fmtTime(book.first_chapter_time) : ''}</div>
         ${readBtn}
       </div>
     </div>
