@@ -1,9 +1,45 @@
 {
-  "update_time": "2026-05-06 19:04:07",
-  "update_date": "2026-05-06",
+  "update_time": "2026-05-07 19:08:12",
+  "update_date": "2026-05-07",
   "ranking_key": "top",
   "title": "Bảng top",
-  "total_count": 0,
-  "new_count": 0,
-  "books": []
+  "total_count": 2,
+  "new_count": 2,
+  "books": [
+    {
+      "book_id": "7424204959127702553",
+      "book_name": "怒卸戎装赴凰途，暴君招架不住",
+      "author": "一蓑烟雨",
+      "tags": [
+        "宫斗宅斗",
+        "古代言情",
+        "强强",
+        "追妻火葬场",
+        "代嫁代娶"
+      ],
+      "abstract": "【双强+宫斗+复仇+替嫁+先婚后爱+女扮男装+追妻火葬场】\n双生妹妹嫁入皇宫前夕，遭人谋害，凌辱致死。\n身为姐姐的凤九颜浴血归来，脱去一身戎装替嫁，成为一国之后。\n然后，她杀疯了！\n皇帝有白月光，她出嫁时，都以为她不得圣宠。\n听着那些人的嘲笑侮辱，她不屑一顾。\n因为，她入宫，不为争宠，只为杀光伤害妹妹的仇人……\n报完仇，她断然离开。\n皇帝却把自己洗干净了，抓着她的衣角求她，“皇后，你看，朕还能要吗？”\n她一脚踹开昏君，带走了昏君的后宫美人。\n没人知道，她还有个身份——威震四方的北大营少将，传闻中的修罗战神。\n————\n《换巢鸾凤：夫君兄长，他宠我入骨》陆昭宁，顾珩，林婉晴，顾长渊同一作者系列文。",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/7f1e5078f4c052bf4d1d49e7ff18418b~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1778238489&x-signature=0oei6SA198doBJmEUdvc5vU8Hrw%3D",
+      "last_chapter_time": null,
+      "first_chapter_time": 1728627696,
+      "rank_change": "new"
+    },
+    {
+      "book_id": "7261923126689139766",
+      "book_name": "百鬼末世：我成了最强御鬼师",
+      "author": "彝人烟火",
+      "tags": [
+        "悬疑灵异",
+        "灵异",
+        "末世",
+        "悬疑"
+      ],
+      "abstract": "【足量1000种鬼】\n神秘如金不换、白骨菩萨、地支兵主、滴血梅花等等，\n高强度的如阿修罗、罗刹、屠夫、武状元、皇帝等，\n诡异的如画皮、大红袍、胖娃娃、仵作、花腰新娘，入殓师、长明灯等等。\n每一种都有自己的进化路线：\n溺死鬼→水猴子→河童→？（后面还有，暂不剧透）\n冤鬼→不眠人→大红袍→（后面还有，暂不剧透）\n……\n鬼的晋级，需要“灵引”。\n灵引，可以是某样东西：比如白骨精晋阶龙骨骷髅，需要一根龙骨。当然，还能晋阶佛骨骷髅、神骸骷髅等等。\n灵引，也可能是某种条件：溺死鬼溺死九人就能晋阶水猴子。绣花姑娘用人皮缝制好嫁衣，穿上就能晋阶花腰新娘……\n不水剧情，不会无脑骑脸，战斗不会超过一章，如果这是观众想看到的，请放心加个书架~",
+      "status": "Ongoing",
+      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/p2od1b84f40d9b74eba76ffab72b9b53511~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1778238491&x-signature=aObJ1oiTowO5%2Br%2F33IenifYcxxE%3D",
+      "last_chapter_time": null,
+      "first_chapter_time": 1690808119,
+      "rank_change": "new"
+    }
+  ]
 }
