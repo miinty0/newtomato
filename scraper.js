@@ -25,20 +25,15 @@ const PAGE = `https://${BASE}/page`;
 //   node scraper.js                    → daily run, all categories (category_id=-1)
 //   node scraper.js --category 24      → category run, saves to data/category_24.json
 //   node scraper.js -c 24              → same as above
-//   node scraper.js --ranking de_cu    → ranking run, saves to data/ranking_de_cu.json
-//   node scraper.js -r de_cu           → same as above
+//   node scraper.js --rank-cat 24      → rank-cat run, saves to data/rank_cat_24.json
 function parseArgs() {
   const args = process.argv.slice(2);
   let categoryId  = -1;
-  let rankingKey  = null;
   let rankCatId   = null;
   for (let i = 0; i < args.length; i++) {
     if ((args[i] === '--category' || args[i] === '-c') && args[i + 1] !== undefined) {
       const parsed = parseInt(args[i + 1], 10);
       if (!isNaN(parsed)) categoryId = parsed;
-      i++;
-    } else if ((args[i] === '--ranking' || args[i] === '-r') && args[i + 1] !== undefined) {
-      rankingKey = args[i + 1];
       i++;
     } else if (args[i] === '--rank-cat' && args[i + 1] !== undefined) {
       const parsed = parseInt(args[i + 1], 10);
@@ -49,72 +44,12 @@ function parseArgs() {
   return {
     categoryId,
     isCategoryRun: categoryId !== -1,
-    rankingKey,
-    isRankingRun:  rankingKey !== null,
     rankCatId,
     isRankCatRun:  rankCatId !== null,
   };
 }
 
-// ========== Ranking sources config ==========
-const RANKING_SOURCES = [
-  {
-    key: 'de_cu',
-    title: 'Bảng đề cử',
-    type: 'fanqi_rank',
-    baseUrl: 'https://api-lf.fanqiesdk.com/api/novel/channel/homepage/rank/rank_list/v2/?aid=13&limit=30&side_type=10&type=1',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'hoan_thanh',
-    title: 'Bảng hoàn thành',
-    type: 'fanqi_rank',
-    baseUrl: 'https://api-lf.fanqiesdk.com/api/novel/channel/homepage/rank/rank_list/v2/?aid=13&limit=30&side_type=11&type=1',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'trending',
-    title: 'Bảng trending',
-    type: 'fanqi_rank',
-    baseUrl: 'https://api-lf.fanqiesdk.com/api/novel/channel/homepage/rank/rank_list/v2/?aid=13&limit=30&side_type=12&type=1',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'hac_ma',
-    title: 'Bảng hắc mã',
-    type: 'fanqi_rank',
-    baseUrl: 'https://api-lf.fanqiesdk.com/api/novel/channel/homepage/rank/rank_list/v2/?aid=13&limit=30&side_type=13&type=1',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'cua_tuan',
-    title: 'Bảng của tuần',
-    type: 'recommend',
-    baseUrl: 'https://fanqienovel.com/api/rank/recommend/list?type=1&limit=10',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'nam_tan',
-    title: 'Nam tần',
-    type: 'recommend',
-    baseUrl: 'https://fanqienovel.com/api/rank/recommend/list?type=2&limit=10',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'nu_tan',
-    title: 'Nữ tần',
-    type: 'recommend',
-    baseUrl: 'https://fanqienovel.com/api/rank/recommend/list?type=3&limit=10',
-    offsetParam: 'offset',
-  },
-  {
-    key: 'top',
-    title: 'Bảng top',
-    type: 'top_book',
-    baseUrl: 'https://fanqienovel.com/api/author/misc/top_book_list/v1/',
-    offsetParam: 'offset',
-  },
-];
+
 
 // ========== Utilities ==========
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -381,227 +316,7 @@ function saveSeenSet(categoryId, seenSet) {
   fs.writeFileSync(p, JSON.stringify([...seenSet], null, 2), 'utf-8');
 }
 
-// ========== Ranking: seen set helpers ==========
-function loadRankingSeenSet(key) {
-  const p = path.join(DATA_DIR, `ranking_${key}_seen.json`);
-  if (!fs.existsSync(p)) return new Set();
-  try { return new Set(JSON.parse(fs.readFileSync(p, 'utf-8'))); }
-  catch(e) { return new Set(); }
-}
 
-function saveRankingSeenSet(key, seenSet) {
-  const p = path.join(DATA_DIR, `ranking_${key}_seen.json`);
-  fs.writeFileSync(p, JSON.stringify([...seenSet], null, 2), 'utf-8');
-}
-
-// ========== Ranking: fetch one page from a source ==========
-// Returns array of raw book objects (normalised to have book_id, book_name, author, creation_status, thumb_url)
-async function fetchRankingPage(source, offset) {
-  const sep = source.baseUrl.includes('?') ? '&' : '?';
-  const url = `${source.baseUrl}${sep}${source.offsetParam}=${offset}`;
-  const MAX_RETRY = 3;
-  for (let t = 1; t <= MAX_RETRY; t++) {
-    try {
-      const res = await httpGet(url, { Accept: 'application/json' });
-      if (res.status === 429 || res.status >= 500) {
-        const wait = res.status === 429 ? 60000 : 10000 * t;
-        console.log(`  [ranking/${source.key}] HTTP ${res.status} @ offset=${offset} — waiting ${wait/1000}s`);
-        await sleep(wait);
-        continue;
-      }
-      const json = JSON.parse(res.data);
-
-      // Each API type has slightly different envelope
-      if (source.type === 'fanqi_rank') {
-        // { data: { book_list: [...] } }  or  { data: { list: [...] } }
-        const list = json?.data?.book_list || json?.data?.list || [];
-        return list.map(b => ({
-          book_id:         String(b.book_id || b.bookId || ''),
-          book_name:       b.book_name || b.bookName || '',
-          author:          b.author || b.author_name || '',
-          creation_status: b.creation_status ?? b.creationStatus ?? -1,
-          thumb_url:       b.thumb_url || b.thumbUrl || '',
-          last_chapter_time: b.last_chapter_time ?? null,
-        })).filter(b => b.book_id);
-      }
-
-      if (source.type === 'recommend') {
-        // { data: { items: [...] } } or { data: { book_list: [...] } }
-        const list = json?.data?.items || json?.data?.book_list || json?.data?.list || [];
-        return list.map(b => ({
-          book_id:         String(b.book_id || b.bookId || ''),
-          book_name:       b.book_name || b.bookName || '',
-          author:          b.author || b.author_name || '',
-          creation_status: b.creation_status ?? b.creationStatus ?? -1,
-          thumb_url:       b.thumb_url || b.thumbUrl || '',
-          last_chapter_time: b.last_chapter_time ?? null,
-        })).filter(b => b.book_id);
-      }
-
-      if (source.type === 'top_book') {
-        // { book_list: [...] }
-        const list = json?.book_list || [];
-        return list.map(b => ({
-          book_id:         String(b.book_id || b.bookId || ''),
-          book_name:       b.book_name || b.bookName || '',
-          author:          b.author || b.author_name || '',
-          creation_status: b.creation_status ?? -1,
-          thumb_url:       b.thumb_url || b.thumbUrl || '',
-          last_chapter_time: b.last_chapter_time ?? null,
-        })).filter(b => b.book_id);
-      }
-
-      if (source.type === 'publication') {
-        // { data: { list: [...] } } or { data: { book_list: [...] } }
-        const list = json?.data?.list || json?.data?.book_list || [];
-        return list.map(b => ({
-          book_id:         String(b.book_id || b.bookId || ''),
-          book_name:       b.book_name || b.bookName || '',
-          author:          b.author || b.author_name || '',
-          creation_status: b.creation_status ?? -1,
-          thumb_url:       b.thumb_url || b.thumbUrl || '',
-          last_chapter_time: b.last_chapter_time ?? null,
-        })).filter(b => b.book_id);
-      }
-
-      return [];
-    } catch(e) {
-      console.log(`  [ranking/${source.key}] attempt ${t} @ offset=${offset}: ${e.message}`);
-    }
-    if (t < MAX_RETRY) await sleep(1000 * t);
-  }
-  return [];
-}
-
-// ========== Ranking: main scrape function ==========
-async function scrapeRanking(rankingKey) {
-  const source = RANKING_SOURCES.find(s => s.key === rankingKey);
-  if (!source) throw new Error(`Unknown ranking key: ${rankingKey}`);
-
-  const readSet    = loadReadSet();
-  const seenSet    = loadRankingSeenSet(rankingKey);
-  // Combined exclusion set: skip books already read OR already seen on this ranking
-  const excludeSet = new Set([...readSet, ...seenSet]);
-
-  // Load existing data to accumulate (keep unread books from previous runs)
-  const outputPath = path.join(DATA_DIR, `ranking_${rankingKey}.json`);
-  let prevData = null;
-  if (fs.existsSync(outputPath)) {
-    try { prevData = JSON.parse(fs.readFileSync(outputPath, 'utf-8')); } catch(e) {}
-  }
-  const existingBooks = (prevData?.books || []).filter(b => !readSet.has(b.book_id));
-  const existingIds   = new Set(existingBooks.map(b => b.book_id));
-
-  console.log(`  [ranking/${rankingKey}] existing unread: ${existingBooks.length} | excluded total: ${excludeSet.size}`);
-
-  // Paginate until we have ≥30 *new* (not excluded) candidates OR source is exhausted
-  const newCandidates = [];
-  const MAX_PAGES     = 50;
-  // offset logic: fanqi_rank uses negative offset starting at -1 then decrements
-  // recommend/publication use 0-based offset, increment by page size
-  let offset    = source.type === 'fanqi_rank' ? -1 : 0;
-  let pageSize  = source.type === 'recommend' ? 10 : source.type === 'publication' ? 50 : 30;
-
-  for (let page = 0; page < MAX_PAGES; page++) {
-    if (newCandidates.length >= 30) break;
-    const batch = await fetchRankingPage(source, offset);
-    console.log(`  [ranking/${rankingKey}] page ${page+1} offset=${offset}: ${batch.length} raw`);
-    if (batch.length === 0) break;
-
-    for (const b of batch) {
-      if (!excludeSet.has(b.book_id) && !existingIds.has(b.book_id) && !newCandidates.find(c => c.book_id === b.book_id)) {
-        newCandidates.push(b);
-      }
-    }
-
-    // Advance offset
-    if (source.type === 'fanqi_rank') {
-      offset -= pageSize; // goes -1, -31, -61, ...
-    } else {
-      offset += pageSize;
-    }
-
-    if (page < MAX_PAGES - 1) await jitteredDelay();
-  }
-
-  console.log(`  [ranking/${rankingKey}] new candidates: ${newCandidates.length}`);
-
-  // Fetch detail pages for new candidates
-  const cache = loadCache();
-  let cacheUpdated = false;
-  const detailedBooks = [];
-
-  for (let i = 0; i < newCandidates.length; i++) {
-    const raw           = newCandidates[i];
-    const bookId        = raw.book_id;
-    const creationStatus = raw.creation_status;
-    const statusLabel   = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
-    const isCompleted   = statusLabel === 'Completed';
-
-    let detailInfo = {};
-    if (isCompleted && cache[bookId]) {
-      detailInfo = cache[bookId];
-      console.log(`  [${i+1}/${newCandidates.length}] cache hit: ${bookId}`);
-    } else {
-      try {
-        const res = await httpGet(`${PAGE}/${bookId}`);
-        detailInfo = parseDetailPage(res.data);
-        if (isCompleted && Object.keys(detailInfo).length > 0) {
-          cache[bookId] = detailInfo;
-          cacheUpdated  = true;
-        }
-      } catch(e) {
-        console.log(`  [${i+1}/${newCandidates.length}] detail fetch failed: ${bookId} — ${e.message}`);
-      }
-      if (i < newCandidates.length - 1) await sleep(REQUEST_DELAY);
-    }
-
-    const bookName = detailInfo.book_name || raw.book_name || `ID:${bookId}`;
-    const author   = detailInfo.author    || raw.author    || 'Unknown';
-    const category = '';
-    const tags     = detailInfo.tags?.length > 0 ? detailInfo.tags : (category ? [category] : []);
-
-    detailedBooks.push({
-      book_id:            bookId,
-      book_name:          bookName,
-      author,
-      tags,
-      abstract:           detailInfo.description || '',
-      status:             statusLabel,
-      thumb_url:          detailInfo.hdImage || raw.thumb_url || '',
-      last_chapter_time:  raw.last_chapter_time ?? null,
-      first_chapter_time: detailInfo.first_chapter_time ?? null,
-      rank_change:        'new',
-    });
-  }
-
-  if (cacheUpdated) {
-    saveCache(cache);
-    console.log(`  cache updated (${Object.keys(cache).length} entries)`);
-  }
-
-  // Merge: existing + new
-  const finalBooks = [...existingBooks, ...detailedBooks];
-
-  // Update seen set: all books ever shown on this ranking (read or not)
-  const newSeenSet = new Set([...seenSet, ...readSet, ...existingIds, ...detailedBooks.map(b => b.book_id)]);
-  saveRankingSeenSet(rankingKey, newSeenSet);
-  console.log(`  seen set updated (${newSeenSet.size} total)`);
-
-  const now     = getNowBJT();
-  const data    = {
-    update_time:  fmtDateTime(now),
-    update_date:  fmtDate(now),
-    ranking_key:  rankingKey,
-    title:        source.title,
-    total_count:  finalBooks.length,
-    new_count:    detailedBooks.length,
-    books:        finalBooks,
-  };
-  fs.writeFileSync(outputPath, JSON.stringify(data, null, 2), 'utf-8');
-  console.log(`  saved → ${outputPath} (${finalBooks.length} total, ${detailedBooks.length} new)`);
-  return data;
-}
 
 // ========== Rank-cat seen set helpers ==========
 function loadRankCatSeenSet(catId) {
@@ -797,28 +512,20 @@ async function scrapeRankCat(catId) {
 
 // ========== Main ==========
 async function main() {
-  const { categoryId, isCategoryRun, rankingKey, isRankingRun, rankCatId, isRankCatRun } = parseArgs();
+  const { categoryId, isCategoryRun, rankCatId, isRankCatRun } = parseArgs();
   const now = getNowBJT();
 
   console.log('='.repeat(50));
   console.log(`run: ${fmtDateTime(now)}`);
   console.log(isRankCatRun
     ? `mode: RANK-CAT run (category_id=${rankCatId})`
-    : isRankingRun
-      ? `mode: RANKING run (key=${rankingKey})`
-      : isCategoryRun
-        ? `mode: CATEGORY run (category_id=${categoryId})`
-        : `mode: DAILY run (all categories)`);
+    : isCategoryRun
+      ? `mode: CATEGORY run (category_id=${categoryId})`
+      : `mode: DAILY run (all categories)`);
   console.log('='.repeat(50));
 
   ensureDir(DATA_DIR);
   ensureDir(path.join(DATA_DIR, 'history'));
-
-  // Ranking run → early return
-  if (isRankingRun) {
-    await scrapeRanking(rankingKey);
-    return;
-  }
 
   // Rank-cat run → early return
   if (isRankCatRun) {
@@ -934,12 +641,10 @@ async function main() {
 
 main().catch((err) => {
   console.error('Fatal:', err?.message || err);
-  const { categoryId, isCategoryRun, rankingKey, isRankingRun, rankCatId, isRankCatRun } = parseArgs();
+  const { categoryId, isCategoryRun, rankCatId, isRankCatRun } = parseArgs();
   let fallback;
   if (isRankCatRun) {
     fallback = path.join(__dirname, 'data', `rank_cat_${rankCatId}.json`);
-  } else if (isRankingRun) {
-    fallback = path.join(__dirname, 'data', `ranking_${rankingKey}.json`);
   } else if (isCategoryRun) {
     fallback = path.join(__dirname, 'data', `category_${categoryId}.json`);
   } else {
