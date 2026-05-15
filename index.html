@@ -622,31 +622,6 @@
     background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8;
     white-space: nowrap; font-family: 'DM Mono', monospace;
   }
-  .ranking-subtabs {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    margin-bottom: 16px;
-  }
-  .ranking-subtab {
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1.5px solid var(--border2);
-    background: var(--surface);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px; font-weight: 500;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all .15s;
-    white-space: nowrap;
-  }
-  .ranking-subtab:hover { border-color: var(--accent); color: var(--accent); }
-  .ranking-subtab.active {
-    background: var(--accent); color: #fff;
-    border-color: var(--accent);
-  }
-  .ranking-toolbar {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 20px; flex-wrap: wrap;
-  }
 </style>
 </head>
 <body>
@@ -685,7 +660,6 @@
 <div class="tabs-bar">
   <button class="tab-btn active" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
-  <button class="tab-btn" onclick="switchTab('ranking', this)">📊 Bảng xếp hạng</button>
   <button class="tab-btn" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
 </div>
 
@@ -750,6 +724,7 @@
         <span class="search-icon">🔍</span>
         <input id="cat-search" type="text" placeholder="Tìm tên truyện hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
       </div>
+      <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
       <button class="btn btn-danger btn-sm" id="cat-scrape-btn" onclick="triggerCatScrape()" disabled>▶ Scrape danh mục</button>
 
       <div class="fetch-history-wrap" id="fh-wrap">
@@ -777,37 +752,6 @@
     </div>
   </div>
 
-  <!-- ════ RANKING TAB ════ -->
-  <div id="tab-ranking" class="tab-panel">
-
-    <div class="section-header">
-      <div>
-        <div class="section-title">Bảng xếp hạng</div>
-        <div id="ranking-update-info" class="update-info">Chọn bảng để tải dữ liệu.</div>
-      </div>
-    </div>
-
-    <!-- Sub-tab bar -->
-    <div class="ranking-subtabs" id="ranking-subtabs"></div>
-
-    <!-- Toolbar -->
-    <div class="ranking-toolbar" id="ranking-toolbar">
-      <button class="btn btn-danger btn-sm" id="ranking-scrape-btn" onclick="triggerRankingScrape()">▶ Scrape bảng này</button>
-      <button class="btn btn-outline btn-sm" id="ranking-reload-btn" onclick="loadRanking()">↻ Tải lại</button>
-    </div>
-
-    <!-- Read submit bar -->
-    <div class="read-submit-bar" id="ranking-read-bar" style="display:none">
-      <div class="read-submit-info">
-        Đã đánh dấu <strong id="ranking-marked-count">0</strong> sách đã đọc.
-      </div>
-      <button class="btn btn-success btn-sm" onclick="submitRead('ranking')">✓ Lưu danh sách đã đọc</button>
-    </div>
-
-    <div id="ranking-books" class="books-grid">
-      <div class="state-box"><div class="icon">📊</div>Chọn một bảng xếp hạng bên trên để xem.</div>
-    </div>
-  </div>
 
   <!-- ════ RANK CAT TAB ════ -->
   <div id="tab-rankcat" class="tab-panel">
@@ -881,9 +825,9 @@
 </div>
 
 <script>
-// ══════════════════════════════════════════
+
 // Config
-// ══════════════════════════════════════════
+
 let CFG = { user: '', repo: '', token: '' };
 
 const CATEGORY_NAMES = {
@@ -1329,9 +1273,9 @@ function openSetup() {
   document.getElementById('setup-overlay').classList.remove('hidden');
 }
 
-// ══════════════════════════════════════════
+
 // Toast
-// ══════════════════════════════════════════
+
 let _toastTimer;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
@@ -1341,9 +1285,9 @@ function toast(msg, type = '') {
   _toastTimer = setTimeout(() => { el.className = ''; }, 3200);
 }
 
-// ══════════════════════════════════════════
+
 // Tabs
-// ══════════════════════════════════════════
+
 function switchTab(id, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1351,9 +1295,9 @@ function switchTab(id, btn) {
   btn.classList.add('active');
 }
 
-// ══════════════════════════════════════════
+
 // GitHub raw content fetch
-// ══════════════════════════════════════════
+
 function b64DecodeUTF8(b64) {
   const binary = atob(b64.replace(/\n/g, ''));
   const bytes = new Uint8Array(binary.length);
@@ -1363,7 +1307,9 @@ function b64DecodeUTF8(b64) {
 
 async function ghRaw(filePath) {
   // Use Contents API — works with fine-grained PAT, avoids raw.githubusercontent.com CORS issues
-  const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
+  // Files under data/ live on the 'data' branch
+  const ref = filePath.startsWith('data/') ? '?ref=data' : '';
+  const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
   const res = await fetch(url, {
     cache: 'no-store',
     headers: {
@@ -1379,7 +1325,8 @@ async function ghRaw(filePath) {
 
 // Like ghRaw but handles files >1MB by falling back to Git Blobs API
 async function ghRawLarge(filePath) {
-  const contentsUrl = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
+  const ref = filePath.startsWith('data/') ? '?ref=data' : '';
+  const contentsUrl = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
   const res = await fetch(contentsUrl, {
     cache: 'no-store',
     headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
@@ -1404,7 +1351,8 @@ async function ghRawLarge(filePath) {
 }
 
 async function ghGetFile(filePath) {
-  const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
+  const ref = filePath.startsWith('data/') ? '?ref=data' : '';
+  const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -1415,7 +1363,9 @@ async function ghPutFile(filePath, content, message, sha) {
   // UTF-8 safe base64 encode
   const utf8Bytes = new TextEncoder().encode(content);
   const b64 = btoa(Array.from(utf8Bytes, b => String.fromCharCode(b)).join(''));
-  const body = { message, content: b64, sha };
+  // Write data/ files to the 'data' branch
+  const branch = filePath.startsWith('data/') ? 'data' : 'main';
+  const body = { message, content: b64, sha, branch };
   const res = await fetch(url, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
@@ -1427,10 +1377,11 @@ async function ghPutFile(filePath, content, message, sha) {
 
 async function ghDeleteFile(filePath, sha, message) {
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
+  const branch = filePath.startsWith('data/') ? 'data' : 'main';
   const res = await fetch(url, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, sha }),
+    body: JSON.stringify({ message, sha, branch }),
   });
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
 }
@@ -1445,11 +1396,11 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
   if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
 }
 
-// ══════════════════════════════════════════
+
 // Read list helpers
-// ══════════════════════════════════════════
+
 // In-memory pending marks per session
-const pendingRead = { daily: new Set(), category: new Set(), ranking: new Set(), rankcat: new Set() };
+const pendingRead = { daily: new Set(), category: new Set(), rankcat: new Set() };
 
 function updateReadBar(tab) {
   const count = pendingRead[tab] ? pendingRead[tab].size : 0;
@@ -1551,7 +1502,7 @@ async function cleanupAfterRead(readIds) {
 
     // ── 4. Clean ALL category files from GitHub ──
       try {
-      const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data`;
+      const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data?ref=data`;
       const res = await fetch(url, {
         cache: 'no-store',
         headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
@@ -1589,23 +1540,6 @@ async function cleanupAfterRead(readIds) {
             if (filtered.length !== seenIds.length) {
               await ghPutFile(`data/${f.name}`, JSON.stringify(filtered, null, 2),
                 `cleanup: remove read IDs from ${f.name}`, meta.sha);
-            }
-          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
-        }
-
-        // ── ranking_*.json (not seen files) ──
-        if (f.name.match(/^ranking_[^.]+\.json$/) && !f.name.includes('_seen')) {
-          const rankKey = f.name.replace(/^ranking_/, '').replace(/\.json$/, '');
-          try {
-            const meta = await ghGetFile(`data/${f.name}`);
-            const data = JSON.parse(b64DecodeUTF8(meta.content));
-            const filtered = (data.books || []).filter(b => !ids.has(b.book_id));
-            if (filtered.length !== (data.books || []).length) {
-              data.books = filtered;
-              data.total_count = filtered.length;
-              await ghPutFile(`data/${f.name}`, JSON.stringify(data, null, 2),
-                `cleanup: remove read books from ranking ${rankKey}`, meta.sha);
-              if (rankingData[rankKey]) rankingData[rankKey].data.books = filtered;
             }
           } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
         }
@@ -1657,7 +1591,6 @@ async function submitRead(tab) {
     const justRead = new Set(pendingRead[tab]);
     for (const id of justRead) {
       dailyReadSet.add(id);
-      rankingReadSet.add(id);
       rcReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
@@ -1694,9 +1627,9 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 
-// ══════════════════════════════════════════
+
 // Score loading (via Tampermonkey userscript)
-// ══════════════════════════════════════════
+
 function loadScoresForCards(books) {
   // Poll up to 3s for the userscript to expose tmFetchScore
   let attempts = 0;
@@ -1731,9 +1664,9 @@ function loadScoresForCards(books) {
   tryLoad();
 }
 
-// ══════════════════════════════════════════
+
 // Formatting helpers
-// ══════════════════════════════════════════
+
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -1794,9 +1727,9 @@ function bookCardHTML(book, tab, readSet = new Set()) {
   </div>`;
 }
 
-// ══════════════════════════════════════════
+
 // DAILY TAB
-// ══════════════════════════════════════════
+
 let dailyReadSet = new Set();
 
 async function loadDaily() {
@@ -1875,9 +1808,9 @@ async function triggerDailyScrape() {
   }
 }
 
-// ══════════════════════════════════════════
+
 // CATEGORY TAB
-// ══════════════════════════════════════════
+
 let catData = {};      // { categoryId: { data, readSet } }
 let activeCatIds = []; // currently loaded category IDs
 
@@ -1939,7 +1872,16 @@ function selectCatOption(id, name) {
 async function onCatChange() {
   const id = _catSelectValue;
   document.getElementById('cat-scrape-btn').disabled = !id;
+  document.getElementById('cat-reload-btn').disabled = !id;
   if (!id) return;
+  await loadCategory(parseInt(id));
+}
+
+async function reloadCategory() {
+  const id = _catSelectValue;
+  if (!id) return;
+  // Force re-fetch by clearing cached data for this category
+  delete catData[id];
   await loadCategory(parseInt(id));
 }
 
@@ -2078,9 +2020,9 @@ async function triggerCatScrape() {
   }
 }
 
-// ══════════════════════════════════════════
+
 // Fetch history (localStorage)
-// ══════════════════════════════════════════
+
 const FH_KEY = 'fq_fetch_history';
 
 function loadFetchHistory() {
@@ -2164,9 +2106,9 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-// ══════════════════════════════════════════
+
 // Abstract modal
-// ══════════════════════════════════════════
+
 // Store book data for modal lookup
 const _bookRegistry = {};
 
@@ -2234,98 +2176,11 @@ function closeAbstractOnBg(e) {
   if (e.target === document.getElementById('abstract-modal')) closeAbstract();
 }
 
-// ══════════════════════════════════════════
-// RANKING TAB
-// ══════════════════════════════════════════
-const RANKING_SOURCES = [
-  { key: 'de_cu',      title: 'Bảng đề cử' },
-  { key: 'hoan_thanh', title: 'Bảng hoàn thành' },
-  { key: 'trending',   title: 'Bảng trending' },
-  { key: 'hac_ma',     title: 'Bảng hắc mã' },
-  { key: 'cua_tuan',   title: 'Bảng của tuần' },
-  { key: 'nam_tan',    title: 'Nam tần' },
-  { key: 'nu_tan',     title: 'Nữ tần' },
-  { key: 'top',        title: 'Bảng top' },
-];
-
-let activeRankingKey = null;
-let rankingData = {};   // { key: { data, readSet } }
-let rankingReadSet = new Set();
-
-function initRankingSubtabs() {
-  const bar = document.getElementById('ranking-subtabs');
-  if (!bar) return;
-  bar.innerHTML = RANKING_SOURCES.map(s =>
-    `<button class="ranking-subtab${s.key === activeRankingKey ? ' active' : ''}" data-key="${s.key}" onclick="selectRankingSubtab('${s.key}')">${s.title}</button>`
-  ).join('');
-}
-
-function selectRankingSubtab(key) {
-  activeRankingKey = key;
-  document.querySelectorAll('.ranking-subtab').forEach(b => {
-    b.classList.toggle('active', b.dataset.key === key);
-  });
-  loadRanking();
-}
-
-async function loadRanking() {
-  if (!activeRankingKey) return;
-  const key = activeRankingKey;
-  const container = document.getElementById('ranking-books');
-  const infoEl    = document.getElementById('ranking-update-info');
-  container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải dữ liệu…</div>`;
-
-  try {
-    const [data, readArr] = await Promise.all([
-      ghRawLarge(`data/ranking_${key}.json`),
-      ghRaw('data/read.json').catch(() => []),
-    ]);
-    rankingReadSet = new Set(readArr.map(String));
-    rankingData[key] = { data, readSet: rankingReadSet };
-    registerBooks(data.books || []);
-
-    const src    = RANKING_SOURCES.find(s => s.key === key);
-    const books  = (data.books || []).filter(b => !rankingReadSet.has(b.book_id));
-    infoEl.textContent = `${src?.title || key} · Cập nhật: ${data.update_time || '—'} · ${books.length} cuốn chưa đọc`;
-
-    if (books.length === 0) {
-      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc trong bảng này.</div>`;
-      return;
-    }
-    container.innerHTML = books.map(b => bookCardHTML(b, 'ranking', rankingReadSet)).join('');
-    loadScoresForCards(books);
-  } catch(e) {
-    if (e.message && e.message.includes('404')) {
-      container.innerHTML = `<div class="state-box"><div class="icon">📭</div>Chưa có dữ liệu. Nhấn <strong>▶ Scrape bảng này</strong> để tải lần đầu.</div>`;
-      infoEl.textContent = 'Chưa có dữ liệu — cần scrape.';
-    } else {
-      container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${e.message}</div>`;
-    }
-  }
-}
-
-async function triggerRankingScrape() {
-  if (!activeRankingKey) return;
-  const btn = document.getElementById('ranking-scrape-btn');
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
-  const src = RANKING_SOURCES.find(s => s.key === activeRankingKey);
-  try {
-    await ghDispatchWorkflow('ranking.yml', { ranking_key: activeRankingKey });
-    toast(`Đã kích hoạt scrape "${src?.title || activeRankingKey}" ✓`, 'ok');
-  } catch(e) {
-    toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js -r ${activeRankingKey}`, 'err');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '▶ Scrape bảng này';
-  }
-}
 
 
 
-// ══════════════════════════════════════════
 // RANK CAT TAB
-// ══════════════════════════════════════════
+
 const RC_FH_KEY = 'fq_rankcat_fetch_history';
 let rcSelectValue = '';
 let rcData = {};          // { catId: { data, readSet } }
@@ -2509,13 +2364,13 @@ async function triggerRankCatScrape() {
 
 // Close rc dropdown on outside click (appended to existing document click handler below)
 
-// ══════════════════════════════════════════
+
 // Init
-// ══════════════════════════════════════════
+
 async function detectExistingCategories() {
   // List data/ folder via GitHub Contents API to find category_*.json files
   try {
-    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data`;
+    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data?ref=data`;
     const res = await fetch(url, {
       cache: 'no-store',
       headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
@@ -2548,7 +2403,7 @@ async function detectExistingCategories() {
 async function detectExistingRankCats() {
   // List data/ folder to find rank_cat_*.json files and pre-populate rc fetch history
   try {
-    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data`;
+    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data?ref=data`;
     const res = await fetch(url, {
       cache: 'no-store',
       headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
@@ -2578,7 +2433,6 @@ async function detectExistingRankCats() {
 }
 async function initApp() {
   initCatSelect();
-  initRankingSubtabs();
   initRcSelect();
   renderFetchHistory();
   renderRcHistory();
