@@ -25,14 +25,20 @@ jobs:
       - name: run scraper
         run: |
           if [ -n "${{ github.event.inputs.rank_cat_id }}" ]; then
-            # Manual trigger với ID cụ thể (từ index.html)
+            # Manual trigger
             node scraper.js --rank-cat ${{ github.event.inputs.rank_cat_id }}
           else
-            # Schedule hoặc manual không điền gì → chạy full list
+            # Schedule
+            node scraper.js --rank-cat 8
+            node scraper.js --rank-cat 23
             node scraper.js --rank-cat 24
-            # Thêm rank-cat khác vào đây:
-            # node scraper.js --rank-cat 36
-            # node scraper.js --rank-cat 37
+            node scraper.js --rank-cat 267
+            node scraper.js --rank-cat 539
+            node scraper.js --rank-cat 745
+            node scraper.js --rank-cat 746
+            node scraper.js --rank-cat 747
+            node scraper.js --rank-cat 749
+            node scraper.js --rank-cat 1015
           fi
 
       - name: save to data branch
