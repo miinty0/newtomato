@@ -28,12 +28,17 @@ jobs:
             # Manual trigger với ID cụ thể
             node scraper.js --category ${{ github.event.inputs.category_id }}
           else
-            # Schedule hoặc manual không điền gì → chạy full list
+            # Schedule
             node scraper.js --category -1
+            node scraper.js --category 19
             node scraper.js --category 24
-            # Thêm category khác vào đây:
-            # node scraper.js --category 36
-            # node scraper.js --category 70
+            node scraper.js --category 32
+            node scraper.js --category 43
+            node scraper.js --category 77
+            node scraper.js --category 267
+            node scraper.js --category 847
+            node scraper.js --category 1015
+            node scraper.js --category 1169
           fi
 
       - name: save to data branch
