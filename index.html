@@ -1797,7 +1797,7 @@ async function triggerDailyScrape() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
   try {
-    await ghDispatchWorkflow('scrape.yml');
+    await ghDispatchWorkflow('scrape-daily.yml');
     toast('Đã kích hoạt workflow scrape hàng ngày ✓', 'ok');
   } catch(e) {
     // Fallback: try direct invocation note
@@ -2352,7 +2352,7 @@ async function triggerRankCatScrape() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
   try {
-    await ghDispatchWorkflow('ranking.yml', { rank_cat_id: String(catId) });
+    await ghDispatchWorkflow('scrape-rankcat.yml', { rank_cat_id: String(catId) });
     toast(`Đã kích hoạt scrape rank đọc danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
   } catch(e) {
     toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js --rank-cat ${catId}`, 'err');
