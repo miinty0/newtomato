@@ -93,7 +93,7 @@ function loadReadSet() {
 // ========== Step 2: Ranking list ==========
 async function fetchHotRankList(categoryId = -1) {
   const allBooks = [];
-  const MAX_PAGES = 350;
+  const MAX_PAGES = 150;
   const MAX_RETRY = 3;
 
   for (let page = 0; page < MAX_PAGES; page++) {
