@@ -1,0 +1,53 @@
+name: scrape-rankcat
+
+on:
+  schedule:
+    - cron: '0 10 * * *'   # 10:00 UTC = 17:00 UTC+7
+  workflow_dispatch:
+    inputs:
+      rank_cat_id:
+        description: 'Rank-cat ID cụ thể (bỏ trống = chạy full list)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+
+      - name: run scraper
+        run: |
+          if [ -n "${{ github.event.inputs.rank_cat_id }}" ]; then
+            # Manual trigger với ID cụ thể (từ index.html)
+            node scraper.js --rank-cat ${{ github.event.inputs.rank_cat_id }}
+          else
+            # Schedule hoặc manual không điền gì → chạy full list
+            node scraper.js --rank-cat 24
+            # Thêm rank-cat khác vào đây:
+            # node scraper.js --rank-cat 36
+            # node scraper.js --rank-cat 37
+          fi
+
+      - name: save to data branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          cp -r data/ /tmp/data-backup/
+
+          git fetch origin data
+          git worktree add /tmp/data-worktree origin/data
+
+          cp -r /tmp/data-backup/. /tmp/data-worktree/data/
+
+          cd /tmp/data-worktree
+          git add data/
+          git diff --cached --quiet || git commit -m "scrape-rankcat $(date -u '+%Y-%m-%d %H:%M')"
+          git push origin HEAD:data
