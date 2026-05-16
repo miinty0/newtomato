@@ -1,0 +1,54 @@
+name: scrape-daily
+
+on:
+  schedule:
+    - cron: '0 22 * * *'   # 22:00 UTC = 05:00 UTC+7
+  workflow_dispatch:
+    inputs:
+      category_id:
+        description: 'Category ID cụ thể (bỏ trống = chạy full list)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+
+      - name: run scraper
+        run: |
+          if [ -n "${{ github.event.inputs.category_id }}" ]; then
+            # Manual trigger với ID cụ thể
+            node scraper.js --category ${{ github.event.inputs.category_id }}
+          else
+            # Schedule hoặc manual không điền gì → chạy full list
+            node scraper.js --category -1
+            node scraper.js --category 24
+            # Thêm category khác vào đây:
+            # node scraper.js --category 36
+            # node scraper.js --category 70
+          fi
+
+      - name: save to data branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          cp -r data/ /tmp/data-backup/
+
+          git fetch origin data
+          git worktree add /tmp/data-worktree origin/data
+
+          cp -r /tmp/data-backup/. /tmp/data-worktree/data/
+
+          cd /tmp/data-worktree
+          git add data/
+          git diff --cached --quiet || git commit -m "scrape-daily $(date -u '+%Y-%m-%d %H:%M')"
+          git push origin HEAD:data
