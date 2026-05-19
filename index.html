@@ -224,6 +224,13 @@
   }
   .book-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
   .book-card.is-read { opacity: .45; }
+  .book-card.pending-read {
+    background: #9bc3aa;
+    border-color: #a7d7b8;
+  }
+  .book-card.pending-read .book-name,
+  .book-card.pending-read .book-author,
+  .book-card.pending-read .book-time { color: #2E7D52; }
 
   .book-thumb {
     width: 64px; height: 88px; flex-shrink: 0;
@@ -531,6 +538,22 @@
     padding: 20px 14px;
     font-size: 13px; color: var(--muted); text-align: center;
   }
+  .fh-footer {
+    padding: 8px 14px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end;
+  }
+  .btn-fh-refresh {
+    font-size: 11px; font-weight: 600;
+    padding: 5px 10px; border-radius: 6px;
+    border: 1.5px solid var(--border2);
+    background: var(--bg); cursor: pointer;
+    color: var(--muted); font-family: 'DM Sans', sans-serif;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: all .15s;
+  }
+  .btn-fh-refresh:hover { border-color: var(--accent); color: var(--accent); background: #fdf0ef; }
+  .btn-fh-refresh:disabled { opacity: .45; cursor: not-allowed; }
 
   /* ── Category panel ── */
   .cat-panels { display: flex; flex-direction: column; gap: 14px; }
@@ -661,6 +684,8 @@
   <button class="tab-btn active" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
   <button class="tab-btn" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
+  <div style="flex:1"></div>
+  <button class="tab-btn" id="retry-scores-btn" onclick="retryLoadingScores()" title="Fetch lại score badge cho các truyện đang loading" style="font-size:12px;padding:10px 14px;color:var(--muted);">⭐ Retry score</button>
 </div>
 
 <!-- ── Toast ── -->
@@ -734,6 +759,9 @@
         <div class="fetch-history-dropdown" id="fh-dropdown">
           <div class="fh-header">Danh mục đã fetch gần nhất</div>
           <div class="fh-list" id="fh-list"></div>
+          <div class="fh-footer">
+            <button class="btn-fh-refresh" id="fh-refresh-btn" onclick="refreshLastFetchedCat(event)" title="Fetch lại tất cả JSON của danh mục gần nhất">↻ Refresh lần fetch gần nhất</button>
+          </div>
         </div>
       </div>
     </div>
@@ -790,6 +818,9 @@
         <div class="fetch-history-dropdown" id="rc-fh-dropdown">
           <div class="fh-header">Danh mục đã fetch gần nhất</div>
           <div class="fh-list" id="rc-fh-list"></div>
+          <div class="fh-footer">
+            <button class="btn-fh-refresh" id="rc-fh-refresh-btn" onclick="refreshLastFetchedRcCat(event)" title="Fetch lại tất cả JSON của danh mục rank gần nhất">↻ Refresh lần fetch gần nhất</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1306,8 +1337,6 @@ function b64DecodeUTF8(b64) {
 }
 
 async function ghRaw(filePath) {
-  // Use Contents API — works with fine-grained PAT, avoids raw.githubusercontent.com CORS issues
-  // Files under data/ live on the 'data' branch
   const ref = filePath.startsWith('data/') ? '?ref=data' : '';
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
   const res = await fetch(url, {
@@ -1322,8 +1351,6 @@ async function ghRaw(filePath) {
   const text = b64DecodeUTF8(meta.content);
   return JSON.parse(text);
 }
-
-// Like ghRaw but handles files >1MB by falling back to Git Blobs API
 async function ghRawLarge(filePath) {
   const ref = filePath.startsWith('data/') ? '?ref=data' : '';
   const contentsUrl = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
@@ -1333,13 +1360,10 @@ async function ghRawLarge(filePath) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const meta = await res.json();
-
   // If content is present and not truncated, decode directly
   if (meta.content && !meta.truncated) {
     return JSON.parse(b64DecodeUTF8(meta.content));
   }
-
-  // File >1MB: content is absent — fetch via Git Blobs API using the blob sha
   const blobUrl = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/git/blobs/${meta.sha}`;
   const blobRes = await fetch(blobUrl, {
     cache: 'no-store',
@@ -1363,7 +1387,6 @@ async function ghPutFile(filePath, content, message, sha) {
   // UTF-8 safe base64 encode
   const utf8Bytes = new TextEncoder().encode(content);
   const b64 = btoa(Array.from(utf8Bytes, b => String.fromCharCode(b)).join(''));
-  // Write data/ files to the 'data' branch
   const branch = filePath.startsWith('data/') ? 'data' : 'main';
   const body = { message, content: b64, sha, branch };
   const res = await fetch(url, {
@@ -1398,10 +1421,7 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
 
 
 // Read list helpers
-
-// In-memory pending marks per session
 const pendingRead = { daily: new Set(), category: new Set(), rankcat: new Set() };
-
 function updateReadBar(tab) {
   const count = pendingRead[tab] ? pendingRead[tab].size : 0;
   const prefix = tab === 'category' ? 'cat' : tab;
@@ -1596,11 +1616,12 @@ async function submitRead(tab) {
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
-    // Cleanup history/cache in background (don't await — let UI update first)
+    // Cleanup history/cache in background
     cleanupAfterRead(justRead);
     // Mark cards visually
     document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
       c.dataset.pendingRead = '';
+      c.classList.remove('pending-read');
       c.classList.add('is-read');
     });
     toast('Đã lưu danh sách đọc thành công ✓', 'ok');
@@ -1618,27 +1639,65 @@ function toggleRead(bookId, btn, tab) {
     btn.textContent = '+';
     btn.classList.remove('marked');
     card.dataset.pendingRead = '';
+    card.classList.remove('pending-read');
   } else {
     pendingRead[tab].add(bookId);
     btn.textContent = '✓';
     btn.classList.add('marked');
     card.dataset.pendingRead = '1';
+    card.classList.add('pending-read');
   }
   updateReadBar(tab);
 }
+// Retry score badges
+function retryLoadingScores() {
+  const btn = document.getElementById('retry-scores-btn');
+  const loadingBadges = Array.from(document.querySelectorAll('.score-badge.loading'));
+  if (loadingBadges.length === 0) {
+    toast('Không có badge nào đang loading.', '');
+    return;
+  }
 
+  const fetchFn = window.tmFetchScore;
+  if (typeof fetchFn !== 'function') {
+    toast('Userscript tmFetchScore chưa sẵn sàng. Hãy kiểm tra Tampermonkey.', 'err');
+    return;
+  }
 
-// Score loading (via Tampermonkey userscript)
+  btn.textContent = `⏳ ${loadingBadges.length} badge…`;
+  btn.disabled = true;
 
+  let done = 0;
+  const total = loadingBadges.length;
+
+  Promise.allSettled(loadingBadges.map(el => {
+    // Extract book_id from element id="score-BOOKID"
+    const bookId = el.id.replace('score-', '');
+    return fetchFn(bookId)
+      .then(score => {
+        if (!el.isConnected) return;
+        if (score) { el.className = 'score-badge'; el.textContent = '⭐' + score; }
+        else el.remove();
+      })
+      .catch(() => { if (el.isConnected) el.remove(); })
+      .finally(() => {
+        done++;
+        btn.textContent = `⏳ ${total - done}…`;
+      });
+  })).then(() => {
+    btn.disabled = false;
+    btn.textContent = '⭐ Retry score';
+    toast(`✓ Đã retry ${total} score badge`, 'ok');
+  });
+}
+// Score loading 
 function loadScoresForCards(books) {
-  // Poll up to 3s for the userscript to expose tmFetchScore
   let attempts = 0;
   const maxAttempts = 15; // 15 × 200ms = 3s
   function tryLoad() {
     const fetchFn = window.tmFetchScore;
     if (typeof fetchFn !== 'function') {
       if (++attempts >= maxAttempts) {
-        // Userscript not available — remove all loading badges
         books.forEach(b => {
           const el = document.getElementById(`score-${b.book_id}`);
           if (el) el.remove();
@@ -1663,10 +1722,7 @@ function loadScoresForCards(books) {
   }
   tryLoad();
 }
-
-
 // Formatting helpers
-
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -1914,9 +1970,6 @@ function renderCatPanels() {
     panelsEl.innerHTML = `<div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem truyện.</div>`;
     return;
   }
-
-  // When searching: show all loaded categories sorted by match count
-  // When not searching: only show selected category
   const selectedId = _catSelectValue;
   const entriesToShow = query
     ? Object.entries(catData)
@@ -1934,7 +1987,7 @@ function renderCatPanels() {
     let books = data.books || [];
     if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
     const count = books.length;
-    if (query && count === 0) continue; // hide panels with no results when searching
+    if (query && count === 0) continue; 
     totalMatches += count;
 
     html += `
@@ -2007,8 +2060,6 @@ async function triggerCatScrape() {
   btn.innerHTML = `<span class="spinner"></span> Đang scrape…`;
 
   try {
-    // Trigger GitHub Actions with category input if workflow supports it,
-    // otherwise show manual instruction
     await ghDispatchWorkflow('scrape.yml', { category_id: String(catId) });
     recordFetch(catId);
     toast(`Đã kích hoạt scrape danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
@@ -2075,6 +2126,43 @@ function jumpToCategory(catId) {
   document.getElementById('fh-dropdown').classList.remove('open');
   const cat = CATEGORIES.find(c => c.id == catId);
   if (cat) selectCatOption(cat.id, cat.name);
+}
+
+async function refreshLastFetchedCat(e) {
+  e.stopPropagation();
+  const h = loadFetchHistory();
+  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
+  if (entries.length === 0) { toast('Chưa có danh mục nào trong lịch sử.', 'err'); return; }
+
+  const btn = document.getElementById('fh-refresh-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang fetch…';
+
+  const [readArr] = await Promise.all([ghRaw('data/read.json').catch(() => [])]);
+  const readSet = new Set(readArr.map(String));
+  let ok = 0, fail = 0;
+
+  for (const [catId, info] of entries) {
+    try {
+      const data = await ghRaw(`data/category_${catId}.json`);
+      catData[catId] = { data, readSet };
+      registerBooks(data.books || []);
+      // Update the stored date to the file's update_time
+      const date = data.update_time
+        ? new Date(data.update_time.replace(' ', 'T')).toISOString()
+        : info.date;
+      h[catId] = { name: info.name, date };
+      ok++;
+    } catch(e) { fail++; }
+  }
+
+  saveFetchHistory(h);
+  renderFetchHistory();
+  renderCatPanels();
+  btn.disabled = false;
+  btn.textContent = '↻ Refresh lần fetch gần nhất';
+  document.getElementById('fh-dropdown').classList.remove('open');
+  toast(`✓ Đã refresh ${ok} danh mục${fail > 0 ? ` · ${fail} lỗi` : ''}`, ok > 0 ? 'ok' : 'err');
 }
 
 // Close dropdowns when clicking outside
@@ -2226,6 +2314,43 @@ function jumpToRcCat(catId) {
   document.getElementById('rc-fh-dropdown').classList.remove('open');
   const cat = CATEGORIES.find(c => c.id == catId);
   if (cat) selectRcOption(cat.id, cat.name);
+}
+
+async function refreshLastFetchedRcCat(e) {
+  e.stopPropagation();
+  const h = loadRcHistory();
+  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
+  if (entries.length === 0) { toast('Chưa có danh mục rank nào trong lịch sử.', 'err'); return; }
+
+  const btn = document.getElementById('rc-fh-refresh-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang fetch…';
+
+  const [readArr] = await Promise.all([ghRaw('data/read.json').catch(() => [])]);
+  const readSet = new Set(readArr.map(String));
+  let ok = 0, fail = 0;
+
+  for (const [catId, info] of entries) {
+    try {
+      const data = await ghRawLarge(`data/rank_cat_${catId}.json`);
+      rcData[catId] = { data, readSet };
+      registerBooks(data.books || []);
+      const date = data.update_time
+        ? new Date(data.update_time.replace(' ', 'T')).toISOString()
+        : info.date;
+      h[catId] = { name: info.name, date };
+      ok++;
+    } catch(e) { fail++; }
+  }
+
+  saveRcHistory(h);
+  renderRcHistory();
+  // Re-render current rankcat if selected
+  if (rcSelectValue) loadRankCat();
+  btn.disabled = false;
+  btn.textContent = '↻ Refresh lần fetch gần nhất';
+  document.getElementById('rc-fh-dropdown').classList.remove('open');
+  toast(`✓ Đã refresh ${ok} danh mục rank${fail > 0 ? ` · ${fail} lỗi` : ''}`, ok > 0 ? 'ok' : 'err');
 }
 
 // ── Dropdown — populated after valid_rank_cats.json is fetched ──
