@@ -38,7 +38,6 @@ jobs:
             node scraper.js --rank-cat 267
             node scraper.js --rank-cat 539
             node scraper.js --rank-cat 745
-            node scraper.js --rank-cat 746
             node scraper.js --rank-cat 747
             node scraper.js --rank-cat 749
             node scraper.js --rank-cat 1015
