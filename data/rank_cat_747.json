@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-06-07 19:44:30",
-  "update_date": "2026-06-07",
+  "update_time": "2026-06-08 22:00:27",
+  "update_date": "2026-06-08",
   "category_id": 747,
-  "total_count": 378,
-  "new_count": 9,
+  "total_count": 380,
+  "new_count": 2,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -8100,6 +8100,49 @@
       "rankPosDiff": 0,
       "read_count": "1017",
       "rankMold": 1
+    },
+    {
+      "book_id": "7384043185070165054",
+      "book_name": "锁龙井，画蛇仙",
+      "author": "四月的十月",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "乡村",
+        "灵异",
+        "第一人称"
+      ],
+      "abstract": "我叫苏洛卿，出生古老的守龙村，我们村世世代代守着一口井。\n　　传闻这口井下锁着一条修为几千年的恶龙，每逢二月二，都要举行特殊仪式安抚恶龙。\n　　二月二龙抬头，暴雨连续一个月，守龙村几乎被淹没，一场强雷电，锁龙井的锁链竟被劈断了。\n　　那一晚，老宅壁画上的巨蛇突然睁开血红的眸子，飞入我房中。\n　　自那后，每晚村里人都听见了我屋内传来令人脸红心跳的声音，而我完全不知发生何事，直至那晚，我清楚的看见壁画上的巨蛇化成我的模样朝我走过来……\n我被人推下锁龙井三次，直到成年那次，我终于看清楚他的模样，他说：“别怕，有我在。”可我大祸临头时，他却说：“想让我救你，跪下！”",
+      "status": "Completed",
+      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2oc21387e222ec6ffbd73e72690df3dc8e~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1781013624&x-signature=GFO5%2FDYcH%2BRIXa8VAf5%2Fl0YZEBo%3D",
+      "last_chapter_time": 1767153671,
+      "first_chapter_time": 1719233976,
+      "currentPos": 257,
+      "rankPosDiff": 0,
+      "read_count": "3479",
+      "rankMold": 2
+    },
+    {
+      "book_id": "7547692787253120025",
+      "book_name": "快穿后，我疯狂剧透",
+      "author": "九醉光阴",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "穿越",
+        "灵异",
+        "同人",
+        "悬疑恋爱"
+      ],
+      "abstract": "【团宠+无cp+快穿+有空间+沙雕欢乐向。】\n世界冰封，顾栖乐快穿小世界，认识很多人，收货大量获取资源。\n1.盗墓笔记：老吴，盗笔小说全集，了解一下？\n2.九叔，僵尸电影：茅山众人一起看电影。\n3.傲慢与偏见：和达西兄妹一起寻找哈利波特。\n4.莲花楼：寡妇三代\n5.哈利波特��我���架了了谁？\n6.楚留香世界的鱼精\n7.陆小凤传奇，小父亲老闺女\n8.漫威，魔丸降世\n9.一人之下，行走的核平\n10.魔戒，收破烂了～\n11.西游记，天庭实习公务员\n12.法医秦明\n13.天龙八部\n14.庆余年\n15.八号当铺\n16.福尔摩斯\n17.暮光之城\n18.柯南\n19.变形金刚\n20.港综",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/p2o126ca8c73f73b84242ecebb756e1a417~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1780356707&x-signature=4INMO4UkNmvu3O%2BxA8etC4N9hRE%3D",
+      "last_chapter_time": 1779777631,
+      "first_chapter_time": 1757334441,
+      "currentPos": 269,
+      "rankPosDiff": 0,
+      "read_count": "3234",
+      "rankMold": 2
     }
   ]
 }
