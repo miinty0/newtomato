@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-06-14 19:50:39",
-  "update_date": "2026-06-14",
+  "update_time": "2026-06-15 23:38:26",
+  "update_date": "2026-06-15",
   "category_id": 747,
-  "total_count": 408,
-  "new_count": 3,
+  "total_count": 409,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -8760,6 +8760,25 @@
       "rankPosDiff": 0,
       "read_count": "1676",
       "rankMold": 1
+    },
+    {
+      "book_id": "7301941434192497726",
+      "book_name": "抓鬼这事你就提心吊胆地交给我吧",
+      "author": "未曾设想",
+      "tags": [
+        "女频悬疑",
+        "悬疑恋爱",
+        "灵异"
+      ],
+      "abstract": "【女主搞事卡bug，大概也许可能勉强算个好人。】\n祝问善觉得自己上辈子大概是什么很贱的人，前世因，后世果，不然没有原因能解释她这二十多年乱七八糟的生活。\n从小没爹没娘就算了，相依为命的哥哥也莫名失踪。\n祝问善：无缘，算了。\n每次想干点坏事就现世报，有颗反派的心却被迫做个好人。\n祝问善：我活该。\n凭借着阴阳眼和抓鬼的本事进了特殊事件调查部门打算赚点小钱花花，谁知这居然是个007部门，从此过上了没日没夜抓鬼、解放鬼的社畜日子。\n祝问善：姐是另有所图好吗？\n*\n一句话简介：轻松向小团体组队抓鬼、帮鬼解决执念（破案）的故事。\n非传统玄学、刑侦文，私设多。\n有男主，不是无cp哈。",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/p2oda248bbae05e1c476d102cf482772771~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1780184779&x-signature=e%2BLueoxgX2mZtSBoulkd%2FThaU28%3D",
+      "last_chapter_time": 1711264959,
+      "first_chapter_time": 1700116070,
+      "currentPos": 298,
+      "rankPosDiff": 0,
+      "read_count": "3417",
+      "rankMold": 2
     }
   ]
 }
