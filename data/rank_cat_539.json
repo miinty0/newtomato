@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-06-16 22:54:04",
-  "update_date": "2026-06-16",
+  "update_time": "2026-06-17 21:37:39",
+  "update_date": "2026-06-17",
   "category_id": 539,
-  "total_count": 452,
-  "new_count": 7,
+  "total_count": 453,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7582770497335610392",
@@ -9994,6 +9994,28 @@
       "currentPos": 143,
       "rankPosDiff": 0,
       "read_count": "1211",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7590609310908959768",
+      "book_name": "盗墓，梨花归梦",
+      "author": "Whitrose",
+      "tags": [
+        "悬疑脑洞",
+        "悬疑",
+        "悬疑恋爱",
+        "穿越",
+        "同人",
+        "盗墓"
+      ],
+      "abstract": "（all簇、盗墓笔记同人文）\n在黎簇第18次去古潼京的路上死亡，他带着遗憾被终极带回过去。\n终极说:【我们来做个交易，我能给你你想要的。】\n【我能给你补全另外一个世界的你的遗憾的机会，而你想帮我补全其他人的遗憾。】\n他人的遗憾，是张海侠的死亡，是丫头没有得到救治，是白玛用仅剩的三天教会了张起灵“念”，是小哥囚禁至格尔木疗养院……\n遗憾兑遗憾呗，黎簇应了，反正他在这儿什么都没有了。\n本作品按照时间顺序，准备从《南部档案》写到《王母鬼宴》，最后想按照自己的想法让黎簇毁掉长生源头。\n转载作品，本人是原创。",
+      "status": "Ongoing",
+      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/1345a1c90a87ddbea69b4afeafdf8205~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1781789858&x-signature=V11n%2BhWD90TKhMiSCNZgjS8ugSI%3D",
+      "last_chapter_time": 1781603812,
+      "first_chapter_time": 1771275620,
+      "currentPos": 103,
+      "rankPosDiff": 0,
+      "read_count": "2634",
       "rankMold": 1
     }
   ]
