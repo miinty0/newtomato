@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-06-17 21:37:50",
-  "update_date": "2026-06-17",
+  "update_time": "2026-06-18 20:47:00",
+  "update_date": "2026-06-18",
   "category_id": 747,
-  "total_count": 415,
-  "new_count": 3,
+  "total_count": 416,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -8910,6 +8910,30 @@
       "rankPosDiff": 0,
       "read_count": "1075",
       "rankMold": 1
+    },
+    {
+      "book_id": "7584653620067437630",
+      "book_name": "清骨辞",
+      "author": "艾仟",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "古言权谋",
+        "女强",
+        "扮猪吃虎",
+        "破案",
+        "推理",
+        "美食"
+      ],
+      "abstract": "【悬疑探案+女扮男装＋权谋逆袭＋美食】\n穿越开局，装备被抢，只剩一把柳叶刀。\n赵清浔淡定挑眉：技术在手，天下我有！\n直到墨池血月现世，九具白骨惊现池底，\n全城噤声，权贵袖手，此案成了无人敢碰的禁区。\n她轻抚尸骸上的诡异孔洞，蓦然挽袖轻笑：\n“既然诸位都说是天谴——”\n她当众拼出了尸骨原样，“那便让他们，自己说话。”\n\n她原想只凭一把刀，在这吃人世道苟全性命。\n但这泥沼之下，连干净的真相都无处生根。\n那便，掀了这桌烂透的棋！\n她剖开谎言，也剖开这王朝最腐烂的根基。\n“尸骨自会言语，公道终要见光。”\n腥风血雨的朝堂前，她指尖柳叶刀寒光湛湛：\n“我替这不敢说话的人间——”\n“验个明明白白。”",
+      "status": "Completed",
+      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/ce5da60119746f17d9ab3b270774566b~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1781873218&x-signature=vtvUKTRFBWfiFHBK6juls47zKPk%3D",
+      "last_chapter_time": 1779340368,
+      "first_chapter_time": 1769904033,
+      "currentPos": 295,
+      "rankPosDiff": 0,
+      "read_count": "3606",
+      "rankMold": 2
     }
   ]
 }
