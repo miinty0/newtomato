@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-06-20 19:52:24",
-  "update_date": "2026-06-20",
+  "update_time": "2026-06-21 20:06:11",
+  "update_date": "2026-06-21",
   "category_id": 747,
-  "total_count": 423,
-  "new_count": 2,
+  "total_count": 424,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -9086,6 +9086,28 @@
       "currentPos": 107,
       "rankPosDiff": 0,
       "read_count": "1667",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7646804899576957977",
+      "book_name": "把张起灵拐回家三年抱俩",
+      "author": "倾风无月",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "灵异",
+        "同人",
+        "第一人称",
+        "悬疑恋爱"
+      ],
+      "abstract": "（盗笔同人）张起灵，一个世间不该有的绝色。当他突然出现在现实世界，又会发生怎样的故事呢？新作品出炉，欢迎大家前往番茄小说阅读我的作品，你们的关注是我写作的动力，我会努力写好每个故事！",
+      "status": "Ongoing",
+      "thumb_url": "https://p3-novel-sign.byteimg.com/novel-pic/p2o089ff85acf97f230be426c30d8dbd808~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1782129970&x-signature=aJMEtiZpryAm58oIOO8diuEJxvc%3D",
+      "last_chapter_time": 1782041499,
+      "first_chapter_time": 1780494504,
+      "currentPos": 102,
+      "rankPosDiff": 0,
+      "read_count": "1818",
       "rankMold": 1
     }
   ]
