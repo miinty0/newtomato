@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-07-03 20:01:34",
-  "update_date": "2026-07-03",
+  "update_time": "2026-07-04 19:18:31",
+  "update_date": "2026-07-04",
   "category_id": 745,
-  "total_count": 507,
-  "new_count": 7,
+  "total_count": 509,
+  "new_count": 2,
   "books": [
     {
       "book_id": "7590727777817480254",
@@ -11080,6 +11080,50 @@
       "currentPos": 186,
       "rankPosDiff": 0,
       "read_count": "1034",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7481937752431266841",
+      "book_name": "惊！穿成反派亲妈，我靠养崽爆红",
+      "author": "顾了了",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "穿越",
+        "娱乐圈",
+        "双洁",
+        "养崽"
+      ],
+      "abstract": "【先孕后爱➕带娃综艺➕豪门总裁➕娱乐圈➕双洁】\n宁苒死后才知道自己的儿子陆时言是小说里的反派大佬。\n　　试图将女主从男主身边抢走也就算了，还要给女主的娃喜当爹。\n　　夺爱无果后陆时言拼命和男主作对，最后却落得个终身残疾，后半辈子只能坐轮椅生活。\n　　因为从小父母双亡，导致他性格孤僻，甚至有些偏执。\n　　宁苒重生后，看着冷着一张小脸，坐在幼儿园门口的小豆丁，她表示问题不大。\n　　至于孩子他爹，能要就要，不能要就扔。\n　　自己只要把儿子好好养大就够了。\n　　但事情的发展显然和宁苒想得不太一样。\n　　看着将自己抵在墙上的陆闻舟，她忍不住用手护在了自己的身前，男人却扣住她的手腕抵在头顶。\n　　“陆太太是不是应该也分出时间来多看看我？孩子重要不假，但也别亏待了老公......”",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/p2o2d29171efeabecd3156617715cfc7bed~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1779837775&x-signature=J6OYzXfsq5G6QtKtiAnJ76mgdMA%3D",
+      "last_chapter_time": 1752549901,
+      "first_chapter_time": 1742025137,
+      "currentPos": 296,
+      "rankPosDiff": 0,
+      "read_count": "11802",
+      "rankMold": 2
+    },
+    {
+      "book_id": "7654218557940583486",
+      "book_name": "重生08娱乐圈：女顶流她杀疯了",
+      "author": "萧萧是我",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "系统",
+        "重生",
+        "娱乐圈",
+        "明星"
+      ],
+      "abstract": "【娱乐圈文+拍戏+玛丽苏+穿越+内娱烂梗+综艺+炒作】\n华娱文，唐甜甜穿越到了平行世界2008，此时娱乐圈还没有片酬暴涨，微博还没成立，抖音还不存在，天涯正是最火热的八卦论坛！\n面对这野蛮生长的娱乐圈，唐甜甜一头扎了进去，争取日赚208万！",
+      "status": "Ongoing",
+      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2o4ed5e157353d9560a76a86f85729b66f~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1783250310&x-signature=H9h0NkH18P6EhZ06ETRCuA9m7jg%3D",
+      "last_chapter_time": 1783160037,
+      "first_chapter_time": 1782140460,
+      "currentPos": 61,
+      "rankPosDiff": 0,
+      "read_count": "10133",
       "rankMold": 1
     }
   ]

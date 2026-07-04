@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-07-03 20:01:40",
-  "update_date": "2026-07-03",
+  "update_time": "2026-07-04 19:18:36",
+  "update_date": "2026-07-04",
   "category_id": 747,
-  "total_count": 507,
-  "new_count": 4,
+  "total_count": 509,
+  "new_count": 2,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -10904,6 +10904,48 @@
       "currentPos": 137,
       "rankPosDiff": 0,
       "read_count": "1008",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7593541653739080728",
+      "book_name": "京华案影",
+      "author": "蔚蓝的夏",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "推理",
+        "女强",
+        "破案",
+        "悬疑恋爱"
+      ],
+      "abstract": "【单元+悬疑+探案+复仇+九大案+宫斗】\n将门之女萧妲（xiāo dá），凭一纸皇命嫁给国公世子楚青遥，本应鸾凤和鸣的锦绣姻缘，却因将军府突遭变故戛然而止。为还家族清白、手刃仇敌，萧妲褪去红妆踏入波诡云谲的深宫，与楚青遥、萧翎枫、百里凝致、秦铮五人并肩破局，在血色迷局中步步为营。\n\n宏山寺、天涯客栈、陀螺山、陆氏布庄、碧春楼、锦鲤湖、桃花坞、鬼新娘、科举——九大奇案环环相扣，每一步探查都牵动皇权更迭的命脉，每一次真相揭晓都裹挟着爱恨的撕扯与人性的挣扎。\n\n当尘埃渐落，家仇得报之日，几人又在江山棋局与血色过往中，寻得怎样的结局？",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel-sign.byteimg.com/novel-pic/6dde7616384d21cf0cd7b8e055b49755~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1780618003&x-signature=E0Hobw%2BJKDq6bTiWE0J5Gl1wt9w%3D",
+      "last_chapter_time": 1774088289,
+      "first_chapter_time": 1768278485,
+      "currentPos": 295,
+      "rankPosDiff": 0,
+      "read_count": "3857",
+      "rankMold": 2
+    },
+    {
+      "book_id": "7640304641590184985",
+      "book_name": "萤衍寻凶【探案】",
+      "author": "秋青禾",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "推理",
+        "破案"
+      ],
+      "abstract": "【悬疑+单元凶案+穿越法医+强强探案+权谋】\n现代顶级法医姜念萤意外穿越为孤女，以精湛验尸之术，为蒙冤的肖衍洗清罪嫌。\n她入其麾下随行入京，屡破连环凶案、人心诡局。\n他掌权护她，共掀朝堂世家暗流。\n二人并肩，以尸寻踪，携手缉凶，于迷雾中照见真相。",
+      "status": "Completed",
+      "thumb_url": "https://p9-novel-sign.byteimg.com/novel-pic/p2o85f63e16fb1242c6c97c627b66c53f8a~tplv-resize:225:300.image?lk3s=191c1ecc&x-expires=1783250315&x-signature=XXYdPUZFPq3G7T9CAfG6jCereM0%3D",
+      "last_chapter_time": 1781934034,
+      "first_chapter_time": 1778899822,
+      "currentPos": 132,
+      "rankPosDiff": 0,
+      "read_count": "1036",
       "rankMold": 1
     }
   ]
