@@ -1712,7 +1712,7 @@ function retryLoadingScores() {
 // Score loading 
 function loadScoresForCards(books) {
   let attempts = 0;
-  const maxAttempts = 15; 
+  const maxAttempts = 15; // 15 × 200ms = 3s
   function tryLoad() {
     const fetchFn = window.tmFetchScore;
     if (typeof fetchFn !== 'function') {
@@ -2477,6 +2477,7 @@ function renderRcPanels() {
   const query     = document.getElementById('rc-search').value.toLowerCase().trim();
   const container = document.getElementById('rankcat-books');
   const infoEl    = document.getElementById('rankcat-update-info');
+  container.className = query ? 'cat-panels' : 'books-grid';
 
   if (Object.keys(rcData).length === 0) {
     container.innerHTML = `<div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem rank đọc.</div>`;
