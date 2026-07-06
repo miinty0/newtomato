@@ -71,6 +71,18 @@ function httpGet(url, extraHeaders = {}) {
 
 function ensureDir(dir) { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); }
 
+// ========== Thumb URL normalization ==========
+// fanqienovel thumb_url comes back with an expiring signature, e.g.:
+//   https://p3-novel-sign.byteimg.com/novel-pic/{id}~tplv-resize:225:300.image?lk3s=...&x-expires=...&x-signature=...
+// After ~7 days that signed URL 403s. Rewriting it to the permanent CDN path avoids that:
+//   https://p6-novel.byteimg.com/thumb/novel-pic/{id}
+function normalizeThumbUrl(url) {
+  if (!url || typeof url !== 'string') return url;
+  const match = url.match(/novel-pic\/([^~?]+)/);
+  if (!match) return url;
+  return `https://p6-novel.byteimg.com/thumb/novel-pic/${match[1]}`;
+}
+
 function getNowBJT() {
   const now = new Date();
   return new Date(now.getTime() + (now.getTimezoneOffset() + 480) * 60000);
@@ -243,6 +255,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       if (prevBook) {
         books.push({
           ...prevBook,
+          thumb_url: normalizeThumbUrl(prevBook.thumb_url),
           hot_rank: hotRank,
           last_chapter_time: rawBook.last_chapter_time ?? prevBook.last_chapter_time,
           rank_change: rankChange,
@@ -273,7 +286,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     const author          = topInfo.author || detailInfo.author || 'Unknown';
     const category        = topInfo.category || '';
     const abstract        = detailInfo.description || '';
-    const thumbUrl        = detailInfo.hdImage || topInfo.thumb_url || rawBook.thumb_url || '';
+    const thumbUrl        = normalizeThumbUrl(detailInfo.hdImage || topInfo.thumb_url || rawBook.thumb_url || '');
     const tags            = detailInfo.tags?.length > 0 ? detailInfo.tags : (category ? [category] : []);
     const lastChapterTime  = rawBook.last_chapter_time ?? null;
     const firstChapterTime = detailInfo.first_chapter_time ?? null;
@@ -457,7 +470,7 @@ async function scrapeRankCat(catId) {
         tags:               detailInfo.tags?.length > 0 ? detailInfo.tags : [],
         abstract:           detailInfo.description || '',
         status:             statusLabel,
-        thumb_url:          detailInfo.hdImage || raw.thumb_url || '',
+        thumb_url:          normalizeThumbUrl(detailInfo.hdImage || raw.thumb_url || ''),
         last_chapter_time:  raw.last_chapter_time,
         first_chapter_time: detailInfo.first_chapter_time ?? null,
         currentPos:         raw.currentPos,
