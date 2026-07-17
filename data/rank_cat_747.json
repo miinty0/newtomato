@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-07-16 19:28:02",
-  "update_date": "2026-07-16",
+  "update_time": "2026-07-17 19:15:39",
+  "update_date": "2026-07-17",
   "category_id": 747,
-  "total_count": 566,
-  "new_count": 2,
+  "total_count": 569,
+  "new_count": 3,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -12181,6 +12181,70 @@
       "currentPos": 117,
       "rankPosDiff": 0,
       "read_count": "2167",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7645099700856556606",
+      "book_name": "繁花囚影【女子犯罪档案】",
+      "author": "九牵期",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "悬疑恋爱",
+        "推理",
+        "破案"
+      ],
+      "abstract": "这里的每一份卷宗之中，都有一个被深渊吞噬的女性。现代社会里，女性被贴上了柔弱怯懦的标签。可那些看似温柔普通的女性，为何一步步踏足犯罪深渊？是禁锢与压迫？还是贪念与绝望？她为什么会杀了相伴十年的枕边人？她又为什么会对亲生骨肉痛下杀手？所有的恶行背后都有着不可告人的动机。有谎言与恶行交织，也有一己私欲的沉沦。让我们跟随犯罪心理学专家叶清，翻开这本档案，走进一个个案例之中，看清罪案之下复杂的人性与无奈，探寻罪恶滋生的根源",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o68354efac1e8431d1ab3f94fb7b036ca",
+      "last_chapter_time": 1784163168,
+      "first_chapter_time": 1780275177,
+      "currentPos": 125,
+      "rankPosDiff": 0,
+      "read_count": "1798",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7658565313369214014",
+      "book_name": "花瓶法医",
+      "author": "只想听书的人",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "悬疑恋爱",
+        "推理",
+        "打脸"
+      ],
+      "abstract": "在所有人眼中，她是靠美貌上位、妆容艳丽、身段妖娆的“花瓶法医”。没人知道她让尸体开口时手起刀落有多精准，也没人知道她脖子上的古铜币藏着十年血仇。当连环“微笑案”惊现澜海，刑警队长陆川从一开始的偏见警惕，到一次次被她的解剖刀和缜密逻辑钉在原地——这女人美得招摇，脑袋却冷得像刀。随着铜币之谜浮出水面，苏晚脱下白大褂、以自身为饵闯入地下拍卖行，用极致的理性和算计为亡父翻案。所有人都以为她是猎物，只有跟在她身后的陆川知道：美貌是她最不值得一提的优点，而她早已是全局唯一的猎人。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o1d4e65a86e54f244f69320fbb03c4020",
+      "last_chapter_time": 1784268142,
+      "first_chapter_time": 1783232362,
+      "currentPos": 130,
+      "rankPosDiff": 0,
+      "read_count": "1447",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7560928473766710297",
+      "book_name": "十日终焉：有风自南",
+      "author": "疯喜",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "推理",
+        "同人",
+        "十日衍生",
+        "悬疑恋爱"
+      ],
+      "abstract": "原著：虫队《十日终焉》\n类型：陈俊南 × 原创女主（爱情向梦女可代入）现代，言情\n\n设定说明：\n 1，世界观调整为普通现代都市，无原著“终焉之地”相关剧情，（不过后期会添改，补上终焉之地的世界观）；\n​2，保留原著部分角色（韩一墨、乔家劲等），对于有无OOC，这得看你个人。\n\n排雷：介意现代言情或梦女设定者慎入。",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/21c020833d7252044be8b3a8694b2b37",
+      "last_chapter_time": 1779862426,
+      "first_chapter_time": 1760446734,
+      "currentPos": 136,
+      "rankPosDiff": 0,
+      "read_count": "1153",
       "rankMold": 1
     }
   ]
