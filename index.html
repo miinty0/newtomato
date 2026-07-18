@@ -143,6 +143,33 @@
   .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
   .tab-btn:hover:not(.active) { color: var(--text); }
 
+  /* ── Global status filter (Ongoing / Completed / All) ── */
+  .status-filter {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px;
+    margin: 10px 0;
+  }
+  .status-filter-btn {
+    border: none; background: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    color: var(--muted);
+    padding: 6px 12px; border-radius: 16px;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+  }
+  .status-filter-btn:hover:not(.active) { color: var(--text); }
+  .status-filter-btn.active {
+    background: var(--surface); color: var(--accent);
+    font-weight: 600; box-shadow: var(--shadow);
+  }
+  @media (max-width: 600px) {
+    .status-filter { margin: 8px 14px; }
+  }
+
   /* ── Main layout ── */
   main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
   body.has-read-bar main { padding-bottom: 80px; }
@@ -201,10 +228,14 @@
   #toast.ok  { background: var(--green); }
   #toast.err { background: var(--accent); }
 
-  /* ── Book grid ── */
+  /* ── Book grid ──
+     Fixed at exactly 3 columns always — intentionally NOT responsive to
+     window width. Each column keeps a 240px floor so card content never
+     breaks/overlaps; if the window is narrower than 3 columns need, the
+     page scrolls horizontally instead of ever dropping to 1-2 columns. */
   .books-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
     gap: 16px;
   }
   .books-grid .state-box {
@@ -613,10 +644,11 @@
   /* ── Divider ── */
   hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
-  /* ── Responsive ── */
+  /* ── Responsive ──
+     Note: .books-grid column count is intentionally NOT overridden here —
+     it stays fixed at 3 columns (see .books-grid above) at every width. */
   @media (max-width: 600px) {
     main { padding: 18px 14px; }
-    .books-grid { grid-template-columns: 1fr; }
     header { padding: 0 14px; }
     .tabs-bar { padding: 0 14px; }
   }
@@ -636,6 +668,56 @@
   }
   .mold-label.mold2 { background: #eff6ff; color: #1d4ed8; border: 1px solid #93c5fd; }
   .mold-label.mold1 { background: #fefce8; color: #a16207; border: 1px solid #fde047; }
+
+  /* ── Book card mold color (rank-cat tab): tint short-story (mold1) cards
+     yellow so they're easy to tell apart from long-story (mold2) cards ── */
+  .book-card.mold1-card {
+    background: #fffdf0;
+    border-color: #f0e2a3;
+    border-left: 3px solid #eab308;
+  }
+  .book-card.mold1-card:hover { border-color: #eab308; }
+  /* pending-read (marked-as-read) state must still win over the mold tint */
+  .book-card.mold1-card.pending-read {
+    background: #9bc3aa;
+    border-color: #a7d7b8;
+    border-left-color: #a7d7b8;
+  }
+
+  /* ── Home tab ── */
+  .home-filter-hint {
+    font-size: 12px; color: var(--muted);
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 24px;
+  }
+  .home-filter-hint strong { color: var(--text); }
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .home-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: box-shadow .2s, transform .15s, border-color .15s;
+  }
+  .home-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); border-color: var(--accent); }
+  .home-card-icon { font-size: 26px; margin-bottom: 10px; }
+  .home-card-title {
+    font-family: 'Lora', serif;
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .home-card-desc { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px; }
+  .home-card-cta { font-size: 12px; font-weight: 600; color: var(--accent); }
+  .home-card.loaded .home-card-cta::after { content: ' ✓'; }
 
   /* ── Rank-cat read count badge ── */
   .read-count-badge {
@@ -681,10 +763,16 @@
 
 <!-- ── Tabs ── -->
 <div class="tabs-bar">
-  <button class="tab-btn active" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
-  <button class="tab-btn" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
-  <button class="tab-btn" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
+  <button class="tab-btn active" data-tab="home" onclick="switchTab('home', this)">🏠 Trang chủ</button>
+  <button class="tab-btn" data-tab="daily" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
+  <button class="tab-btn" data-tab="category" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
+  <button class="tab-btn" data-tab="rankcat" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
   <div style="flex:1"></div>
+  <div class="status-filter" id="status-filter" title="Lọc theo trạng thái truyện — áp dụng cho tất cả danh mục & tab, không cần tải lại từ GitHub">
+    <button class="status-filter-btn" data-value="all" onclick="setStatusFilter('all')">Tất cả</button>
+    <button class="status-filter-btn" data-value="Ongoing" onclick="setStatusFilter('Ongoing')">🟡 Đang ra</button>
+    <button class="status-filter-btn" data-value="Completed" onclick="setStatusFilter('Completed')">🟢 Hoàn thành</button>
+  </div>
   <button class="tab-btn" id="retry-scores-btn" onclick="retryLoadingScores()" title="Fetch lại score badge cho các truyện đang loading" style="font-size:12px;padding:10px 14px;color:var(--muted);">⭐ Retry score</button>
 </div>
 
@@ -694,8 +782,44 @@
 <!-- ── Main ── -->
 <main>
 
+  <!-- ════ HOME TAB ════ -->
+  <div id="tab-home" class="tab-panel active">
+
+    <div class="section-header">
+      <div>
+        <div class="section-title">Chào mừng trở lại 👋</div>
+        <div class="section-meta">Chỉ tab bạn mở mới được tải dữ liệu — giúp trang nhẹ hơn và không nghẽn quota load score.</div>
+      </div>
+    </div>
+
+    <div class="home-filter-hint">
+      <strong>Bộ lọc trạng thái hiện tại:</strong> <span id="home-filter-label">Tất cả</span> — đổi ở góc phải thanh tab (áp dụng cho mọi danh mục &amp; mọi tab, lọc ngay trên dữ liệu đã tải, không cần tải lại).
+    </div>
+
+    <div class="home-grid">
+      <div class="home-card" id="home-card-daily" onclick="goToTab('daily')">
+        <div class="home-card-icon">📅</div>
+        <div class="home-card-title">Đề xuất hàng ngày</div>
+        <div class="home-card-desc">Gộp truyện mới nhất + nhiều ngày lịch sử. Tải lần đầu hơi lâu vì nhiều snapshot — chỉ tải khi bạn thật sự vào tab này.</div>
+        <div class="home-card-cta">Vào tab →</div>
+      </div>
+      <div class="home-card" id="home-card-category" onclick="goToTab('category')">
+        <div class="home-card-icon">🗂</div>
+        <div class="home-card-title">Theo danh mục</div>
+        <div class="home-card-desc">Duyệt truyện theo từng danh mục cụ thể. Chỉ danh mục bạn chọn mới được tải.</div>
+        <div class="home-card-cta">Vào tab →</div>
+      </div>
+      <div class="home-card" id="home-card-rankcat" onclick="goToTab('rankcat')">
+        <div class="home-card-icon">📈</div>
+        <div class="home-card-title">Rank đọc theo danh mục</div>
+        <div class="home-card-desc">Xem bảng xếp hạng lượt đọc theo danh mục. Không phụ thuộc tab Hàng ngày nên vào là tải ngay, không phải chờ.</div>
+        <div class="home-card-cta">Vào tab →</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ════ DAILY TAB ════ -->
-  <div id="tab-daily" class="tab-panel active">
+  <div id="tab-daily" class="tab-panel">
 
     <div class="section-header">
       <div>
@@ -864,6 +988,50 @@
 // Config
 
 let CFG = { user: '', repo: '', token: '' };
+
+// ── Lazy tab loading flags: each tab's data is fetched only the first time
+// the user actually opens it, instead of all firing on page load. This is
+// what stops the Daily tab's history-snapshot fetches (and the score-fetch
+// quota they trigger) from blocking/lagging other tabs like Rank-cat. ──
+let dailyLoaded  = false;
+let catInitDone  = false;
+let rcInitDone   = false;
+
+// ── Global status filter (Ongoing / Completed / All) ──
+// Applies across every tab & category. Persisted in localStorage. Changing
+// it re-renders from already-cached data (no re-fetch from GitHub needed).
+const STATUS_FILTER_KEY = 'fq_status_filter';
+let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 'Ongoing' | 'Completed'
+
+function filterByStatus(books) {
+  if (statusFilter === 'all') return books;
+  return books.filter(b => b.status === statusFilter);
+}
+
+function statusFilterLabel(value = statusFilter) {
+  if (value === 'Ongoing') return '🟡 Đang ra';
+  if (value === 'Completed') return '🟢 Hoàn thành';
+  return 'Tất cả';
+}
+
+function setStatusFilter(value) {
+  statusFilter = value;
+  localStorage.setItem(STATUS_FILTER_KEY, value);
+  updateStatusFilterUI();
+  // Re-render whichever tabs already have cached data — purely local,
+  // no network call, so switching filters stays instant and light.
+  if (dailyLoaded) renderDaily();
+  renderCatPanels();
+  renderRcPanels();
+}
+
+function updateStatusFilterUI() {
+  document.querySelectorAll('.status-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.value === statusFilter);
+  });
+  const homeLabel = document.getElementById('home-filter-label');
+  if (homeLabel) homeLabel.textContent = statusFilterLabel();
+}
 
 const CATEGORY_NAMES = {
 1: 'đô thị',
@@ -1328,6 +1496,27 @@ function switchTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+
+  // Lazy-load: only fetch a tab's data the first time it's actually opened.
+  if (id === 'daily' && !dailyLoaded) {
+    dailyLoaded = true;
+    document.getElementById('home-card-daily')?.classList.add('loaded');
+    loadDaily();
+  } else if (id === 'category' && !catInitDone) {
+    catInitDone = true;
+    document.getElementById('home-card-category')?.classList.add('loaded');
+    detectExistingCategories();
+  } else if (id === 'rankcat' && !rcInitDone) {
+    rcInitDone = true;
+    document.getElementById('home-card-rankcat')?.classList.add('loaded');
+    detectExistingRankCats();
+  }
+}
+
+// Programmatic navigation from the Home tab's nav cards (they have no <button> element to pass in).
+function goToTab(id) {
+  const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
+  if (btn) switchTab(id, btn);
 }
 
 
@@ -1709,37 +1898,52 @@ function retryLoadingScores() {
     toast(`✓ Đã retry ${total} score badge`, 'ok');
   });
 }
-// Score loading 
-function loadScoresForCards(books) {
-  let attempts = 0;
-  const maxAttempts = 15; // 15 × 200ms = 3s
-  function tryLoad() {
-    const fetchFn = window.tmFetchScore;
-    if (typeof fetchFn !== 'function') {
-      if (++attempts >= maxAttempts) {
-        books.forEach(b => {
-          const el = document.getElementById(`score-${b.book_id}`);
-          if (el) el.remove();
-        });
-      } else {
-        setTimeout(tryLoad, 200);
-      }
-      return;
-    }
-    // Fetch all scores concurrently
-    books.forEach(b => {
-      const el = document.getElementById(`score-${b.book_id}`);
-      if (!el) return;
-      fetchFn(b.book_id)
-        .then(score => {
-          if (!el.isConnected) return;
-          if (score) { el.className = 'score-badge'; el.textContent = '⭐' + score; }
-          else el.remove();
-        })
-        .catch(() => { if (el.isConnected) el.remove(); });
+// ── Score loading ──
+// Scores are only fetched for badges that actually scroll into view, not for
+// every rendered card at once. This is what keeps the score-fetch quota from
+// getting clogged when a tab renders hundreds of cards.
+let _scoreObserver = null;
+function getScoreObserver() {
+  if (_scoreObserver) return _scoreObserver;
+  _scoreObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      _scoreObserver.unobserve(el);
+      // Skip badges already resolved by a manual "Retry score" click.
+      if (!el.classList.contains('loading')) return;
+      fetchScoreForBadge(el);
     });
+  }, { root: null, rootMargin: '200px 0px', threshold: 0.01 });
+  return _scoreObserver;
+}
+
+function fetchScoreForBadge(el, attempts = 0) {
+  if (!el.isConnected) return;
+  const fetchFn = window.tmFetchScore;
+  if (typeof fetchFn !== 'function') {
+    if (attempts >= 15) { el.remove(); return; } // 15 × 200ms = 3s
+    setTimeout(() => fetchScoreForBadge(el, attempts + 1), 200);
+    return;
   }
-  tryLoad();
+  const bookId = el.id.replace('score-', '');
+  fetchFn(bookId)
+    .then(score => {
+      if (!el.isConnected) return;
+      if (score) { el.className = 'score-badge'; el.textContent = '⭐' + score; }
+      else el.remove();
+    })
+    .catch(() => { if (el.isConnected) el.remove(); });
+}
+
+// Register score badges for the currently-rendered books to be observed —
+// each one only fires its actual fetch once it scrolls into the viewport.
+function loadScoresForCards(books) {
+  const observer = getScoreObserver();
+  books.forEach(b => {
+    const el = document.getElementById(`score-${b.book_id}`);
+    if (el) observer.observe(el);
+  });
 }
 // Formatting helpers
 function fmtTime(ts) {
@@ -1784,8 +1988,10 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     ? `<span class="read-count-badge">👁 ${Number(book.read_count).toLocaleString('vi-VN')}</span>`
     : '';
 
+  const moldClass = book.rankMold === 1 ? ' mold1-card' : '';
+
   return `
-  <div class="book-card${isRead ? ' is-read' : ''}" data-id="${book.book_id}" data-name="${(book.book_name||'').toLowerCase()}" data-pending-read="">
+  <div class="book-card${isRead ? ' is-read' : ''}${moldClass}" data-id="${book.book_id}" data-name="${(book.book_name||'').toLowerCase()}" data-pending-read="">
     ${thumb}
     <div class="book-info">
       <div class="book-rank notranslate" id="rank-${book.book_id}">${posDisplay}<span class="score-badge loading" id="score-${book.book_id}">⭐…</span>${readCountBadge}</div>
@@ -1805,7 +2011,10 @@ function bookCardHTML(book, tab, readSet = new Set()) {
 
 // DAILY TAB
 
-let dailyReadSet = new Set();
+let dailyReadSet   = new Set();
+let dailyRawBooks  = [];  // unread books, ALL statuses (pre status-filter), cached so the filter can re-render without re-fetching
+let dailyUpdateTime = '—';
+let dailyDaysLoaded = 0;
 
 async function loadDaily() {
   const container = document.getElementById('daily-books');
@@ -1853,18 +2062,33 @@ async function loadDaily() {
     });
 
     registerBooks(allBooks);
-    const daysLoaded = histDates.length + 1;
-    infoEl.textContent = `Cập nhật: ${latestData.update_time || '—'} · ${allBooks.length} cuốn chưa đọc · ${daysLoaded} snapshot`;
-
-    if (allBooks.length === 0) {
-      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Bạn đã đọc hết tất cả sách được đề xuất!</div>`;
-      return;
-    }
-    container.innerHTML = allBooks.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
-    loadScoresForCards(allBooks);
+    dailyRawBooks   = allBooks;
+    dailyDaysLoaded = histDates.length + 1;
+    dailyUpdateTime = latestData.update_time || '—';
+    renderDaily();
   } catch(e) {
     container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${e.message}</div>`;
   }
+}
+
+// Render from cached dailyRawBooks, applying the current status filter —
+// called on initial load AND whenever the status filter changes (no re-fetch).
+function renderDaily() {
+  const container = document.getElementById('daily-books');
+  const infoEl = document.getElementById('daily-update-info');
+  const books = filterByStatus(dailyRawBooks);
+  const filterSuffix = statusFilter !== 'all' ? ` · lọc: ${statusFilterLabel()}` : '';
+  infoEl.textContent = `Cập nhật: ${dailyUpdateTime} · ${books.length} cuốn chưa đọc · ${dailyDaysLoaded} snapshot${filterSuffix}`;
+
+  if (books.length === 0) {
+    container.innerHTML = dailyRawBooks.length === 0
+      ? `<div class="state-box"><div class="icon">🎉</div>Bạn đã đọc hết tất cả sách được đề xuất!</div>`
+      : `<div class="state-box"><div class="icon">📭</div>Không có truyện nào khớp bộ lọc trạng thái "${statusFilterLabel()}".</div>`;
+    return;
+  }
+  container.innerHTML = books.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
+  // Only the books actually rendered get their score badges observed.
+  loadScoresForCards(books);
 }
 
 async function triggerDailyScrape() {
@@ -2004,7 +2228,7 @@ function renderCatPanels() {
   const renderedBooks = [];
   for (const [catId, { data, readSet }] of entriesToShow) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-    let books = data.books || [];
+    let books = filterByStatus(data.books || []);
     if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
     const count = books.length;
     if (query && count === 0) continue; 
@@ -2493,14 +2717,15 @@ function renderRcPanels() {
     }
     const { data, readSet } = rcData[selectedId];
     const catName  = (CATEGORIES.find(c => c.id == selectedId) || {}).name || `Danh mục ${selectedId}`;
-    const allBooks = (data.books || []).filter(b => !readSet.has(b.book_id));
+    const allBooks = filterByStatus((data.books || []).filter(b => !readSet.has(b.book_id)));
     const mold2    = allBooks.filter(b => b.rankMold === 2 || b.rankMold == null);
     const mold1    = allBooks.filter(b => b.rankMold === 1);
 
-    infoEl.textContent = `${catName} · Cập nhật: ${data.update_time || '—'} · ${allBooks.length} cuốn chưa đọc`;
+    const filterSuffix = statusFilter !== 'all' ? ` · lọc: ${statusFilterLabel()}` : '';
+    infoEl.textContent = `${catName} · Cập nhật: ${data.update_time || '—'} · ${allBooks.length} cuốn chưa đọc${filterSuffix}`;
 
     if (allBooks.length === 0) {
-      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc trong danh mục này.</div>`;
+      container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc khớp bộ lọc trạng thái trong danh mục này.</div>`;
       return;
     }
 
@@ -2524,9 +2749,9 @@ function renderRcPanels() {
   const renderedBooks = [];
   for (const [catId, { data, readSet }] of Object.entries(rcData)) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-    const books = (data.books || [])
+    const books = filterByStatus((data.books || [])
       .filter(b => !readSet.has(b.book_id))
-      .filter(b => bookMatchesQuery(b, query));
+      .filter(b => bookMatchesQuery(b, query)));
     const count = books.length;
     if (count === 0) continue;
     totalMatches += count;
@@ -2675,13 +2900,13 @@ async function detectExistingRankCats() {
   } catch(e) {}
 }
 async function initApp() {
+  // Cheap, local-only setup (dropdown options, localStorage-cached history).
+  // No network calls here — nothing loads until the user opens a tab.
   initCatSelect();
   initRcSelect();
   renderFetchHistory();
   renderRcHistory();
-  detectExistingCategories();
-  detectExistingRankCats();
-  loadDaily();
+  updateStatusFilterUI();
 }
 
 loadConfig();
