@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-07-18 18:55:42",
-  "update_date": "2026-07-18",
+  "update_time": "2026-07-19 19:04:03",
+  "update_date": "2026-07-19",
   "category_id": 8,
-  "total_count": 768,
-  "new_count": 5,
+  "total_count": 770,
+  "new_count": 2,
   "books": [
     {
       "book_id": "7510209946865110040",
@@ -16128,6 +16128,47 @@
       "currentPos": 285,
       "rankPosDiff": 0,
       "read_count": "1058",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7652327794466114622",
+      "book_name": "末世：控植少女囤货记",
+      "author": "纹曲",
+      "tags": [
+        "科幻末世",
+        "空间",
+        "末世",
+        "无CP",
+        "囤物资"
+      ],
+      "abstract": "[末世十丧尸十无CP十异能者十囤货]\n徐妍，初二，全班中游，爹不疼娘不爱。\n她唯一的人生价值，就是在六岁那年“成功”为养父母招来了一个弟弟。\n从那以后，她从“女儿”降级为免费保姆，洗衣、做饭、带娃、挨骂，连晚上开灯看书的资格都没有。\n户口本捏在养父母手里，她处处受限。\n唯一支撑她咬牙活下去的，是一个荒唐的念头：她从小做着操控植物的怪梦，坚信自己是木系天才，迟早会觉醒。\n还没来得及想清楚这意味着什么，世界就变了。\n末日降临，秩序崩塌，丧尸横行，徐妍在秩序失控的城市中拼命囤货。\n藤蔓绞碎丧尸，荆棘筑起高墙，她从昔日被压榨的养女，逐渐成为让人闻风胆寒的控植者。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o28c48b178ec059a468f2212b2d01ea03",
+      "last_chapter_time": 1783854255,
+      "first_chapter_time": 1781704160,
+      "currentPos": 115,
+      "rankPosDiff": 0,
+      "read_count": "7142",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7655282196764167230",
+      "book_name": "末世带着一家老小活下去",
+      "author": "听你表白",
+      "tags": [
+        "科幻末世",
+        "末世",
+        "空间",
+        "第一人称"
+      ],
+      "abstract": "普通家庭主妇黎菲在往常的一天做了预知未来的梦觉醒了空间，带着家人老小在末世下去…永夜迷雾，低温寒潮…",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oeba668390679281abe8eb0571bd08204",
+      "last_chapter_time": 1784273707,
+      "first_chapter_time": 1782390447,
+      "currentPos": 192,
+      "rankPosDiff": 0,
+      "read_count": "2354",
       "rankMold": 1
     }
   ]
