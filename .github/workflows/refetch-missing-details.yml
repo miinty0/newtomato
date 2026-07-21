@@ -1,0 +1,58 @@
+name: refetch-missing-details
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_filter:
+        description: 'Chỉ xử lý 1 file cụ thể trong data. Bỏ trống = quét toàn bộ'
+        required: false
+        default: ''
+      limit:
+        description: 'Giới hạn số book_id xử lý trong lần chạy này (bỏ trống = không giới hạn)'
+        required: false
+        default: ''
+
+jobs:
+  refetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '26'
+
+      - name: restore data from data branch
+        run: |
+          git fetch origin data
+          git checkout origin/data -- data/
+
+      - name: run refetch script
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.file_filter }}" ]; then
+            ARGS="$ARGS --file ${{ github.event.inputs.file_filter }}"
+          fi
+          if [ -n "${{ github.event.inputs.limit }}" ]; then
+            ARGS="$ARGS --limit ${{ github.event.inputs.limit }}"
+          fi
+          node refetch-missing-details.js $ARGS
+
+      - name: save to data branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          cp -r data/ /tmp/data-backup/
+
+          git fetch origin data
+          git worktree add /tmp/data-worktree origin/data
+
+          cp -r /tmp/data-backup/. /tmp/data-worktree/data/
+
+          cd /tmp/data-worktree
+          git add data/
+          git diff --cached --quiet || git commit -m "refetch-missing-details $(date -u '+%Y-%m-%d %H:%M')"
+          git push origin HEAD:data
