@@ -77,7 +77,7 @@ function httpGet(url, extraHeaders = {}) {
   });
 }
 
-// Giống hệt scraper.js — quy đổi thumb_url về CDN vĩnh viễn
+// quy đổi thumb_url về CDN vĩnh viễn
 function normalizeThumbUrl(url) {
   if (!url || typeof url !== 'string') return url;
   const match = url.match(/novel-pic\/([^~?]+)/);
@@ -93,6 +93,11 @@ function isMissingDetail(book) {
   return noAuthor && noTags && noAbstract;
 }
 
+// Nuxt đôi khi serialize giá trị chưa set thành literal `undefined`
+function sanitizeInitialStateJson(raw) {
+  return raw.replace(/([:\[,]\s*)undefined\b/g, '$1null');
+}
+
 // ========== Parse detail page — phân biệt 3 kết quả ==========
 // { kind: 'blocked' } → không lấy được gì, có thể do bot bị chặn (trang trắng) → DỪNG cả run
 // { kind: 'hidden'  } → sách bị ẩn/gỡ do vi phạm (page rỗng + status === null) → đánh dấu, không retry nữa
@@ -102,8 +107,8 @@ function parseDetailPage(html) {
   if (!stateMatch) return { kind: 'blocked', reason: 'no __INITIAL_STATE__ (trang trắng)' };
 
   let state;
-  try { state = JSON.parse(stateMatch[1]); }
-  catch (e) { return { kind: 'blocked', reason: 'INITIAL_STATE không parse được' }; }
+  try { state = JSON.parse(sanitizeInitialStateJson(stateMatch[1])); }
+  catch (e) { return { kind: 'blocked', reason: `INITIAL_STATE không parse được: ${e.message}` }; }
 
   const page = state?.page;
   if (!page) return { kind: 'blocked', reason: 'không có page trong INITIAL_STATE' };
@@ -112,7 +117,7 @@ function parseDetailPage(html) {
   if (page.bookName)   info.book_name   = page.bookName;
   if (page.authorName) info.author      = page.authorName;
   if (page.abstract)   info.description = page.abstract;
-  const thumb = page.thumbUri || page.thumbUrl; 
+  const thumb = page.thumbUri || page.thumbUrl; // 2 tên field từng thấy tùy schema
   if (thumb) info.hdImage = thumb;
   if (page.categoryV2) {
     try { info.tags = JSON.parse(page.categoryV2).map(c => c.Name).filter(Boolean); }
@@ -172,7 +177,7 @@ async function main() {
   const targetFiles = fileFilter ? allFiles.filter(f => f === fileFilter) : allFiles;
 
   if (fileFilter && targetFiles.length === 0) {
-    console.log(`Không tìm thấy file "${fileFilter}" trong data/ (hoặc không phải book-db file hợp lệ)".`);
+    console.log(`Không tìm thấy file "${fileFilter}" trong data/ (hoặc không phải book-db file hợp lệ). Với file trong history, dùng dạng "history/2026-07-20.json".`);
     return;
   }
   console.log(`Quét ${targetFiles.length} file: ${targetFiles.join(', ')}`);
