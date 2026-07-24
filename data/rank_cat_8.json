@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-07-23 19:45:34",
-  "update_date": "2026-07-23",
+  "update_time": "2026-07-24 19:30:04",
+  "update_date": "2026-07-24",
   "category_id": 8,
-  "total_count": 793,
-  "new_count": 10,
+  "total_count": 794,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7510209946865110040",
@@ -16639,6 +16639,27 @@
       "currentPos": 269,
       "rankPosDiff": 0,
       "read_count": "995",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7605008609801423897",
+      "book_name": "末世：天道之女带飞全队",
+      "author": "眯丢丢",
+      "tags": [
+        "科幻末世",
+        "末世",
+        "重生",
+        "甜宠",
+        "1v1"
+      ],
+      "abstract": "【末世+异能+重生+甜宠+仙界神女+无刀+1v1】\n秋月遭受背叛，重生一世她不再圣母心，决定自己一个人打穿丧尸！\n天不如意啊，偶遇自己的菜，花痴的走不不动路了，那成为一队的好了～\n-\n祁昱：“那是我老婆，你想当我面撬墙角不成？”\n秋月看着祁昱吃醋心里笑嘻嘻啊\n（本文女主金手指比较大，甚至可能达到离谱）",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/728f159fb9d5e1559def0a3bc175a814",
+      "last_chapter_time": 1784186397,
+      "first_chapter_time": 1770723625,
+      "currentPos": 251,
+      "rankPosDiff": 0,
+      "read_count": "1202",
       "rankMold": 1
     }
   ]
