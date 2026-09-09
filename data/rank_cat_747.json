@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-08 22:06:44",
-  "update_date": "2026-09-08",
+  "update_time": "2026-09-09 22:09:12",
+  "update_date": "2026-09-09",
   "category_id": 747,
-  "total_count": 744,
-  "new_count": 7,
+  "total_count": 745,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -16179,6 +16179,27 @@
       "currentPos": 149,
       "rankPosDiff": 0,
       "read_count": "1018",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7673749015950806040",
+      "book_name": "老九门：什么叫你也喜欢我老婆？",
+      "author": "雾眠眠丨",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "灵异",
+        "衍生",
+        "悬疑恋爱"
+      ],
+      "abstract": "【万人迷】【OOC致歉】\n-------------------------------------------\n张家和守铃人祖上曾定下一条规则：\n若同一代同时出现“守门人”与“执铃人”，两家便结亲，共守秘密。\n苏栖芜出生之后，被确定为这一代执铃人。\n张家选定的人则是——\n张启山。\n男主：张启山，二月红，陈皮阿四，吴老狗，\n张小鱼，张小烬",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o259b75a0c1e6819c777b4b7b8c59f651",
+      "last_chapter_time": 1788757355,
+      "first_chapter_time": 1786685904,
+      "currentPos": 118,
+      "rankPosDiff": -2,
+      "read_count": "1775",
       "rankMold": 1
     }
   ]
