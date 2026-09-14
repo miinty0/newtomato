@@ -242,6 +242,48 @@
     grid-column: 1 / -1;
   }
 
+  /* ── Pagination: at most 200 book cards are mounted per tab/page ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+    min-height: 32px;
+  }
+  .pagination:empty { display: none; }
+  .pagination-info {
+    margin-right: 6px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+  }
+  .pagination-btn {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .pagination-btn:hover:not(:disabled):not(.active) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .pagination-btn.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .pagination-btn:disabled { opacity: .38; cursor: default; }
+  .pagination-ellipsis { color: var(--muted); font-size: 12px; padding: 0 2px; }
+
   /* ── Book card ── */
   .book-card {
     background: var(--surface);
@@ -795,7 +837,7 @@
     <button class="status-filter-btn" data-value="Ongoing" onclick="setStatusFilter('Ongoing')">🟡 Đang ra</button>
     <button class="status-filter-btn" data-value="Completed" onclick="setStatusFilter('Completed')">🟢 Hoàn thành</button>
   </div>
-  <button class="tab-btn" id="retry-scores-btn" onclick="retryLoadingScores()" title="Tải đồng thời toàn bộ score còn thiếu và tự lặp lại ngay cho đến khi hoàn tất; bấm lần nữa để dừng" style="font-size:12px;padding:10px 14px;color:var(--muted);">⭐ Retry score</button>
+  <button class="tab-btn" id="retry-scores-btn" onclick="retryLoadingScores()" title="Tải đồng thời toàn bộ score còn thiếu trên trang hiện tại và tự lặp lại đến khi hoàn tất; bấm lần nữa để dừng" style="font-size:12px;padding:10px 14px;color:var(--muted);">⭐ Retry score</button>
   <button class="tab-btn" id="cleanup-btn" onclick="runFullCleanup()" title="Dọn truyện đã đọc khỏi latest, history, cache, category, rank-cat và các file seen" style="font-size:12px;padding:10px 14px;color:var(--muted);">🧹 Dọn dẹp</button>
 </div>
 
@@ -855,6 +897,13 @@
       </div>
     </div>
 
+    <div class="cat-toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input id="daily-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterDailyBooks()" />
+      </div>
+    </div>
+
     <!-- Read submit bar -->
     <div class="read-submit-bar" id="daily-read-bar" style="display:none">
       <div class="read-submit-info">
@@ -863,9 +912,11 @@
       <button class="btn btn-success btn-sm" onclick="submitRead('daily')">✓ Lưu danh sách đã đọc</button>
     </div>
 
+    <div id="daily-pagination-top" class="pagination"></div>
     <div id="daily-books" class="books-grid">
       <div class="state-box"><div class="icon">⏳</div>Đang tải dữ liệu…</div>
     </div>
+    <div id="daily-pagination-bottom" class="pagination"></div>
   </div>
 
   <!-- ════ CATEGORY TAB ════ -->
@@ -920,10 +971,12 @@
       <button class="btn btn-success btn-sm" onclick="submitRead('category')">✓ Lưu danh sách đã đọc</button>
     </div>
 
+    <div id="cat-pagination-top" class="pagination"></div>
     <!-- Category panels -->
     <div id="cat-panels" class="cat-panels">
       <div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem truyện.</div>
     </div>
+    <div id="cat-pagination-bottom" class="pagination"></div>
   </div>
 
 
@@ -983,9 +1036,11 @@
       <button class="btn btn-success btn-sm" onclick="submitRead('rankcat')">✓ Lưu danh sách đã đọc</button>
     </div>
 
+    <div id="rankcat-pagination-top" class="pagination"></div>
     <div id="rankcat-books" class="books-grid">
       <div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem rank đọc.</div>
     </div>
+    <div id="rankcat-pagination-bottom" class="pagination"></div>
   </div>
 
 </main>
@@ -1011,19 +1066,88 @@
 
 let CFG = { user: '', repo: '', token: '' };
 
-// ── Lazy tab loading flags: each tab's data is fetched only the first time
-// the user actually opens it, instead of all firing on page load. This is
-// what stops the Daily tab's history-snapshot fetches (and the score-fetch
-// quota they trigger) from blocking/lagging other tabs like Rank-cat. ──
+// ── Lazy tab loading flags ──
 let dailyLoaded  = false;
 let catInitDone  = false;
 let rcInitDone   = false;
 
 // ── Global status filter (Ongoing / Completed / All) ──
-// Applies across every tab & category. Persisted in localStorage. Changing
-// it re-renders from already-cached data (no re-fetch from GitHub needed).
 const STATUS_FILTER_KEY = 'fq_status_filter';
 let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 'Ongoing' | 'Completed'
+
+// ── Shared pagination for the three book tabs ──
+const BOOKS_PER_PAGE = 200;
+const booksPage = { daily: 1, category: 1, rankcat: 1 };
+
+function paginationPrefix(tab) {
+  return tab === 'category' ? 'cat' : tab;
+}
+
+function clearPagination(tab) {
+  const prefix = paginationPrefix(tab);
+  for (const position of ['top', 'bottom']) {
+    const el = document.getElementById(`${prefix}-pagination-${position}`);
+    if (el) el.innerHTML = '';
+  }
+}
+
+function paginationWindow(tab, totalItems) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / BOOKS_PER_PAGE));
+  const current = Math.min(Math.max(1, Number(booksPage[tab]) || 1), totalPages);
+  booksPage[tab] = current;
+  const start = (current - 1) * BOOKS_PER_PAGE;
+  return { current, totalPages, start, end: Math.min(start + BOOKS_PER_PAGE, totalItems) };
+}
+
+function paginationHTML(tab, totalItems, page) {
+  if (totalItems <= BOOKS_PER_PAGE) return '';
+
+  const wanted = [...new Set([1, page.current - 1, page.current, page.current + 1, page.totalPages]
+    .filter(n => n >= 1 && n <= page.totalPages))].sort((a, b) => a - b);
+  let pageButtons = '';
+  let previous = 0;
+  for (const n of wanted) {
+    if (previous && n - previous > 1) pageButtons += `<span class="pagination-ellipsis">…</span>`;
+    pageButtons += `<button class="pagination-btn${n === page.current ? ' active' : ''}" onclick="setBooksPage('${tab}', ${n})"${n === page.current ? ' aria-current="page"' : ''}>${n}</button>`;
+    previous = n;
+  }
+
+  return `
+    <span class="pagination-info">${page.start + 1}–${page.end} / ${totalItems} truyện · ${BOOKS_PER_PAGE}/trang</span>
+    <button class="pagination-btn" onclick="setBooksPage('${tab}', 1)" ${page.current === 1 ? 'disabled' : ''} title="Trang đầu">«</button>
+    <button class="pagination-btn" onclick="setBooksPage('${tab}', ${page.current - 1})" ${page.current === 1 ? 'disabled' : ''} title="Trang trước">‹</button>
+    ${pageButtons}
+    <button class="pagination-btn" onclick="setBooksPage('${tab}', ${page.current + 1})" ${page.current === page.totalPages ? 'disabled' : ''} title="Trang sau">›</button>
+    <button class="pagination-btn" onclick="setBooksPage('${tab}', ${page.totalPages})" ${page.current === page.totalPages ? 'disabled' : ''} title="Trang cuối">»</button>`;
+}
+
+function renderPagination(tab, totalItems, page = paginationWindow(tab, totalItems)) {
+  const html = paginationHTML(tab, totalItems, page);
+  const prefix = paginationPrefix(tab);
+  for (const position of ['top', 'bottom']) {
+    const el = document.getElementById(`${prefix}-pagination-${position}`);
+    if (el) el.innerHTML = html;
+  }
+  return page;
+}
+
+function setBooksPage(tab, pageNumber) {
+  if (scoreRetryState.running) scoreRetryState.cancelled = true;
+  booksPage[tab] = Math.max(1, Number(pageNumber) || 1);
+  if (tab === 'daily') renderDaily();
+  else if (tab === 'category') renderCatPanels();
+  else if (tab === 'rankcat') renderRcPanels();
+
+  requestAnimationFrame(() => {
+    const top = document.getElementById(`${paginationPrefix(tab)}-pagination-top`);
+    if (top) top.scrollIntoView({ block: 'start' });
+  });
+}
+
+function unobserveScoresIn(root) {
+  if (!_scoreObserver || !root) return;
+  root.querySelectorAll('.score-badge').forEach(el => _scoreObserver.unobserve(el));
+}
 
 function filterByStatus(books) {
   if (statusFilter === 'all') return books;
@@ -1040,6 +1164,7 @@ function setStatusFilter(value) {
   statusFilter = value;
   localStorage.setItem(STATUS_FILTER_KEY, value);
   updateStatusFilterUI();
+  booksPage.daily = booksPage.category = booksPage.rankcat = 1;
   // Re-render whichever tabs already have cached data — purely local,
   // no network call, so switching filters stays instant and light.
   if (dailyLoaded) renderDaily();
@@ -1881,9 +2006,6 @@ async function submitRead(tab) {
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
-    // Keep this save operation open until every related data file has been
-    // cleaned. This prevents a normal tab switch/close from silently cutting
-    // off the old background cleanup halfway through.
     btn.textContent = '🧹 Đang dọn dữ liệu…';
     await cleanupAfterRead(justRead);
     // Mark cards visually
@@ -1918,12 +2040,6 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 // ── Score loading ──
-// Scores are only fetched for badges that actually scroll into view, not for
-// every rendered card at once. This is what keeps the score-fetch quota from
-// getting clogged when a tab renders hundreds of cards.
-// Resolved scores live independently from the rendered DOM. Re-rendering after
-// a status/search/category change therefore reuses them instead of fetching
-// the same book again.
 const scoreCache = new Map();       // book_id -> score (including "N/A")
 const scoreRequests = new Map();    // book_id -> in-flight Promise
 const scoreRetryState = { running: false, cancelled: false };
@@ -1936,8 +2052,7 @@ function scoreBadgeBookId(el) {
   return String(el?.dataset?.bookId || (el?.id || '').replace('score-', ''));
 }
 
-// Repair cards whose badge node is missing (for example after an external DOM
-// rewrite). Retry must not depend on the placeholder already being present.
+// Repair cards whose badge node is missing
 function ensureScoreBadges(root = document) {
   root.querySelectorAll('.book-card').forEach(card => {
     const bookId = String(card.dataset.id || '').trim();
@@ -1986,8 +2101,7 @@ function requestScore(bookId) {
   const request = Promise.resolve()
     .then(() => fetchFn(bookId))
     .then(score => {
-      // "N/A" and "0.0" are valid resolved values. Only null/empty remains
-      // unresolved and is eligible for the next immediate retry round.
+      // "N/A" and "0.0" are valid resolved values. Only null/empty remains unresolved and is eligible for the next immediate retry round.
       if (score == null || score === '') throw new Error('Score trống');
       const value = String(score);
       scoreCache.set(bookId, value);
@@ -2010,10 +2124,6 @@ function loadingScoreIdsInActivePanel() {
       .filter(Boolean)
   )];
 }
-
-// Fetch every unresolved score in parallel. As soon as a whole pass finishes,
-// retry only the failures immediately; there is no artificial pause between
-// passes. Clicking the same button while it is running stops the loop safely.
 async function retryLoadingScores() {
   const btn = document.getElementById('retry-scores-btn');
 
@@ -2085,24 +2195,19 @@ function fetchScoreForBadge(el, attempts = 0) {
   }
   const fetchFn = window.tmFetchScore;
   if (typeof fetchFn !== 'function') {
-    // Keep the unresolved badge visible so the manual retry button can handle
-    // it later if Tampermonkey takes longer than three seconds to initialise.
     if (attempts >= 15) return; // 15 × 200ms = 3s
     setTimeout(() => fetchScoreForBadge(el, attempts + 1), 200);
     return;
   }
   requestScore(bookId).catch(() => {
-    // Leave it in loading state. Retry only failed IDs on the next manual pass.
   });
 }
 
-// Register score badges for the currently-rendered books to be observed —
-// each one only fires its actual fetch once it scrolls into the viewport.
-function loadScoresForCards(books) {
+function loadScoresForCards(books, root = document) {
   const observer = getScoreObserver();
   const wanted = new Set(books.map(normalizedBookId).filter(Boolean));
-  ensureScoreBadges(document);
-  document.querySelectorAll('.score-badge').forEach(el => {
+  ensureScoreBadges(root);
+  root.querySelectorAll('.score-badge').forEach(el => {
     const bookId = scoreBadgeBookId(el);
     if (!wanted.has(bookId)) return;
     if (scoreCache.has(bookId)) updateScoreBadges(bookId, scoreCache.get(bookId));
@@ -2187,6 +2292,9 @@ let dailyDaysLoaded = 0;
 async function loadDaily() {
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
+  booksPage.daily = 1;
+  clearPagination('daily');
+  unobserveScoresIn(container);
   container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải latest + lịch sử…</div>`;
 
   try {
@@ -2231,28 +2339,40 @@ async function loadDaily() {
     dailyUpdateTime = latestData.update_time || '—';
     renderDaily();
   } catch(e) {
+    clearPagination('daily');
     container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${e.message}</div>`;
   }
 }
 
-// Render from cached dailyRawBooks, applying the current status filter —
-// called on initial load AND whenever the status filter changes (no re-fetch).
 function renderDaily() {
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
-  const books = filterByStatus(dailyRawBooks);
+  const query = document.getElementById('daily-search').value.toLowerCase().trim();
+  const statusBooks = filterByStatus(dailyRawBooks);
+  const books = query ? statusBooks.filter(b => bookMatchesQuery(b, query)) : statusBooks;
+  unobserveScoresIn(container);
   const filterSuffix = statusFilter !== 'all' ? ` · lọc: ${statusFilterLabel()}` : '';
-  infoEl.textContent = `Cập nhật: ${dailyUpdateTime} · ${books.length} cuốn chưa đọc · ${dailyDaysLoaded} snapshot${filterSuffix}`;
+  const searchSuffix = query ? ` · tìm: "${query}"` : '';
+  infoEl.textContent = `Cập nhật: ${dailyUpdateTime} · ${books.length} cuốn chưa đọc · ${dailyDaysLoaded} snapshot${filterSuffix}${searchSuffix}`;
 
   if (books.length === 0) {
+    clearPagination('daily');
     container.innerHTML = dailyRawBooks.length === 0
       ? `<div class="state-box"><div class="icon">🎉</div>Bạn đã đọc hết tất cả sách được đề xuất!</div>`
-      : `<div class="state-box"><div class="icon">📭</div>Không có truyện nào khớp bộ lọc trạng thái "${statusFilterLabel()}".</div>`;
+      : query
+        ? `<div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện khớp "${query}".</div>`
+        : `<div class="state-box"><div class="icon">📭</div>Không có truyện nào khớp bộ lọc trạng thái "${statusFilterLabel()}".</div>`;
     return;
   }
-  container.innerHTML = books.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
-  // Only the books actually rendered get their score badges observed.
-  loadScoresForCards(books);
+  const page = renderPagination('daily', books.length);
+  const pageBooks = books.slice(page.start, page.end);
+  container.innerHTML = pageBooks.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
+  loadScoresForCards(pageBooks, container);
+}
+
+function filterDailyBooks() {
+  booksPage.daily = 1;
+  renderDaily();
 }
 
 async function triggerDailyScrape() {
@@ -2324,6 +2444,7 @@ function filterCatOptions() {
 
 function selectCatOption(id, name) {
   _catSelectValue = id;
+  booksPage.category = 1;
   document.getElementById('cat-select-label').textContent = name;
   document.querySelectorAll('#cat-select-list .cat-select-option').forEach(o => {
     o.classList.toggle('selected', o.dataset.value == id);
@@ -2343,6 +2464,7 @@ async function onCatChange() {
 async function reloadCategory() {
   const id = _catSelectValue;
   if (!id) return;
+  booksPage.category = 1;
   // Force re-fetch by clearing cached data for this category
   delete catData[id];
   await loadCategory(parseInt(id));
@@ -2352,6 +2474,8 @@ async function loadCategory(catId) {
   const panelsEl = document.getElementById('cat-panels');
 
   if (!catData[catId]) {
+    clearPagination('category');
+    unobserveScoresIn(panelsEl);
     panelsEl.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải danh mục…</div>`;
     try {
       const [data, readArr] = await Promise.all([
@@ -2362,6 +2486,7 @@ async function loadCategory(catId) {
       registerBooks(data.books || []);
       recordFetch(catId, data.update_time);
     } catch(e) {
+      clearPagination('category');
       panelsEl.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi: ${e.message}</div>`;
       return;
     }
@@ -2372,8 +2497,10 @@ async function loadCategory(catId) {
 function renderCatPanels() {
   const query = document.getElementById('cat-search').value.toLowerCase().trim();
   const panelsEl = document.getElementById('cat-panels');
+  unobserveScoresIn(panelsEl);
 
   if (Object.keys(catData).length === 0) {
+    clearPagination('category');
     panelsEl.innerHTML = `<div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem truyện.</div>`;
     return;
   }
@@ -2383,34 +2510,73 @@ function renderCatPanels() {
     : (selectedId ? Object.entries(catData).filter(([id]) => id == selectedId) : []);
 
   if (!query && !selectedId) {
+    clearPagination('category');
     panelsEl.innerHTML = `<div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem truyện.</div>`;
     return;
   }
 
-  let html = '';
+  const groups = [];
   let totalMatches = 0;
-  const renderedBooks = [];
   for (const [catId, { data, readSet }] of entriesToShow) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
     let books = filterByStatus(data.books || []);
     if (query) books = books.filter(b => (b.book_name || '').toLowerCase().includes(query) || (b.abstract || '').toLowerCase().includes(query));
     const count = books.length;
-    if (query && count === 0) continue; 
+    if (query && count === 0) continue;
+    groups.push({ catId, data, readSet, catName, books, count });
     totalMatches += count;
-    renderedBooks.push(...books);
+  }
+
+  if (totalMatches === 0) {
+    clearPagination('category');
+    if (query) {
+      const totalCats = Object.keys(loadFetchHistory()).length;
+      panelsEl.innerHTML = `
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;">
+          Tìm thấy 0 truyện trong ${Object.keys(catData).length}/${totalCats} danh mục đã tải
+        </div>
+        <div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện nào.</div>`;
+    } else {
+      const group = groups[0];
+      panelsEl.innerHTML = group ? `
+        <div class="cat-panel open" id="panel-${group.catId}">
+          <div class="cat-panel-header" onclick="togglePanel(${group.catId})">
+            <span class="cat-panel-title">🗂 ${group.catName}</span>
+            <span class="cat-panel-meta">${group.data.update_time ? 'Cập nhật: ' + group.data.update_time + ' · ' : ''}0 truyện</span>
+            <span class="cat-panel-chevron">▼</span>
+          </div>
+          <div class="cat-panel-body"><div class="state-box" style="padding:30px 0"><div class="icon">📭</div>Không tìm thấy truyện.</div></div>
+        </div>` : `<div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện.</div>`;
+    }
+    return;
+  }
+
+  const page = renderPagination('category', totalMatches);
+  let html = '';
+  let cursor = 0;
+  const renderedBooks = [];
+
+  for (const { catId, data, readSet, catName, books, count } of groups) {
+    const groupStart = cursor;
+    const groupEnd = cursor + count;
+    cursor = groupEnd;
+    const from = Math.max(page.start, groupStart);
+    const to = Math.min(page.end, groupEnd);
+    if (from >= to) continue;
+
+    const pageBooks = books.slice(from - groupStart, to - groupStart);
+    renderedBooks.push(...pageBooks);
+    const pageCount = page.totalPages > 1 ? ` · trang này ${pageBooks.length}` : '';
 
     html += `
     <div class="cat-panel open" id="panel-${catId}">
       <div class="cat-panel-header" onclick="togglePanel(${catId})">
         <span class="cat-panel-title">🗂 ${catName}</span>
-        <span class="cat-panel-meta">${data.update_time ? 'Cập nhật: ' + data.update_time + ' · ' : ''}${count} truyện</span>
+        <span class="cat-panel-meta">${data.update_time ? 'Cập nhật: ' + data.update_time + ' · ' : ''}${count} truyện${pageCount}</span>
         <span class="cat-panel-chevron">▼</span>
       </div>
       <div class="cat-panel-body">
-        ${count === 0
-          ? `<div class="state-box" style="padding:30px 0"><div class="icon">📭</div>Không tìm thấy truyện.</div>`
-          : `<div class="books-grid">${books.map(b => bookCardHTML(b, 'category', readSet)).join('')}</div>`
-        }
+        <div class="books-grid">${pageBooks.map(b => bookCardHTML(b, 'category', readSet)).join('')}</div>
       </div>
     </div>`;
   }
@@ -2418,12 +2584,11 @@ function renderCatPanels() {
     const h = loadFetchHistory();
     const totalCats = Object.keys(h).length;
     html = `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;">
-      Tìm thấy ${totalMatches} truyện trong ${Object.keys(catData).length}/${totalCats} danh mục đã tải
-    </div>` + (html || `<div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện nào.</div>`);
+      Tìm thấy ${totalMatches} truyện trong ${Object.keys(catData).length}/${totalCats} danh mục đã tải · trang ${page.current}/${page.totalPages}
+    </div>` + html;
   }
   panelsEl.innerHTML = html;
-  // Only fetch scores for the books actually matched & rendered above
-  loadScoresForCards(renderedBooks);
+  loadScoresForCards(renderedBooks, panelsEl);
 }
 
 function togglePanel(catId) {
@@ -2431,6 +2596,7 @@ function togglePanel(catId) {
 }
 
 async function filterCatBooks() {
+  booksPage.category = 1;
   const query = document.getElementById('cat-search').value.toLowerCase().trim();
   if (!query) {
     renderCatPanels();
@@ -2821,6 +2987,7 @@ function filterRcOptions() {
 }
 function selectRcOption(id, name) {
   rcSelectValue = id;
+  booksPage.rankcat = 1;
   document.getElementById('rc-select-label').textContent = name;
   document.querySelectorAll('#rc-select-list .cat-select-option').forEach(o => {
     o.classList.toggle('selected', o.dataset.value == id);
@@ -2837,6 +3004,8 @@ async function loadRankCat() {
   if (!catId) return;
   const container = document.getElementById('rankcat-books');
   const infoEl    = document.getElementById('rankcat-update-info');
+  clearPagination('rankcat');
+  unobserveScoresIn(container);
   container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải dữ liệu…</div>`;
 
   try {
@@ -2850,6 +3019,7 @@ async function loadRankCat() {
     recordRcFetch(catId, data.update_time);
     renderRcPanels();
   } catch(e) {
+    clearPagination('rankcat');
     const msg = e.message || '';
     if (msg.includes('404') || msg.includes('Not Found')) {
       container.innerHTML = `<div class="state-box"><div class="icon">📭</div>Chưa có dữ liệu. Nhấn <strong>▶ Scrape danh mục</strong> để tải lần đầu.</div>`;
@@ -2875,9 +3045,11 @@ function renderRcPanels() {
   const query     = document.getElementById('rc-search').value.toLowerCase().trim();
   const container = document.getElementById('rankcat-books');
   const infoEl    = document.getElementById('rankcat-update-info');
+  unobserveScoresIn(container);
   container.className = query ? 'cat-panels' : 'books-grid';
 
   if (Object.keys(rcData).length === 0) {
+    clearPagination('rankcat');
     container.innerHTML = `<div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem rank đọc.</div>`;
     return;
   }
@@ -2886,41 +3058,49 @@ function renderRcPanels() {
 
   if (!query) {
     if (!selectedId || !rcData[selectedId]) {
+      clearPagination('rankcat');
       container.innerHTML = `<div class="state-box"><div class="icon">↑</div>Chọn danh mục để xem rank đọc.</div>`;
       return;
     }
     const { data, readSet } = rcData[selectedId];
     const catName  = (CATEGORIES.find(c => c.id == selectedId) || {}).name || `Danh mục ${selectedId}`;
     const allBooks = filterByStatus((data.books || []).filter(b => !readSet.has(b.book_id)));
-    const mold2    = allBooks.filter(b => b.rankMold === 2 || b.rankMold == null);
-    const mold1    = allBooks.filter(b => b.rankMold === 1);
+    const mold2All = allBooks.filter(b => b.rankMold === 2 || b.rankMold == null);
+    const mold1All = allBooks.filter(b => b.rankMold === 1);
+    const orderedBooks = [...mold2All, ...mold1All];
 
     const filterSuffix = statusFilter !== 'all' ? ` · lọc: ${statusFilterLabel()}` : '';
     infoEl.textContent = `${catName} · Cập nhật: ${data.update_time || '—'} · ${allBooks.length} cuốn chưa đọc${filterSuffix}`;
 
     if (allBooks.length === 0) {
+      clearPagination('rankcat');
       container.innerHTML = `<div class="state-box"><div class="icon">🎉</div>Không còn sách chưa đọc khớp bộ lọc trạng thái trong danh mục này.</div>`;
       return;
     }
 
+    const page = renderPagination('rankcat', orderedBooks.length);
+    const pageBooks = orderedBooks.slice(page.start, page.end);
+    const mold2 = pageBooks.filter(b => b.rankMold === 2 || b.rankMold == null);
+    const mold1 = pageBooks.filter(b => b.rankMold === 1);
     let html = '';
     if (mold2.length > 0) {
-      html += `<div class="mold-section-header"><span class="mold-label mold2">📚 Truyện dài · ${mold2.length} cuốn</span></div>`;
+      const shown = page.totalPages > 1 ? ` · trang này ${mold2.length}` : '';
+      html += `<div class="mold-section-header"><span class="mold-label mold2">📚 Truyện dài · ${mold2All.length} cuốn${shown}</span></div>`;
       html += mold2.map(b => bookCardHTML(b, 'rankcat', readSet)).join('');
     }
     if (mold1.length > 0) {
-      html += `<div class="mold-section-header${mold2.length > 0 ? ' mold-divider' : ''}"><span class="mold-label mold1">⚡ Truyện ngắn &lt;30k chữ · ${mold1.length} cuốn</span></div>`;
+      const shown = page.totalPages > 1 ? ` · trang này ${mold1.length}` : '';
+      html += `<div class="mold-section-header${mold2.length > 0 ? ' mold-divider' : ''}"><span class="mold-label mold1">⚡ Truyện ngắn &lt;30k chữ · ${mold1All.length} cuốn${shown}</span></div>`;
       html += mold1.map(b => bookCardHTML(b, 'rankcat', readSet)).join('');
     }
     container.innerHTML = html;
-    loadScoresForCards(allBooks);
+    loadScoresForCards(pageBooks, container);
     return;
   }
 
   // Search mode: go through every loaded rank category, filter by name/tags/abstract
-  let html = '';
+  const groups = [];
   let totalMatches = 0;
-  const renderedBooks = [];
   for (const [catId, { data, readSet }] of Object.entries(rcData)) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
     const books = filterByStatus((data.books || [])
@@ -2928,18 +3108,48 @@ function renderRcPanels() {
       .filter(b => bookMatchesQuery(b, query)));
     const count = books.length;
     if (count === 0) continue;
+    groups.push({ catId, data, readSet, catName, books, count });
     totalMatches += count;
-    renderedBooks.push(...books);
+  }
+
+  if (totalMatches === 0) {
+    clearPagination('rankcat');
+    const totalCats = Object.keys(loadRcHistory()).length;
+    infoEl.textContent = `Kết quả tìm kiếm "${query}": 0 truyện`;
+    container.innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;">
+        Tìm thấy 0 truyện trong ${Object.keys(rcData).length}/${totalCats} danh mục đã tải
+      </div>
+      <div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện nào.</div>`;
+    return;
+  }
+
+  const page = renderPagination('rankcat', totalMatches);
+  let html = '';
+  let cursor = 0;
+  const renderedBooks = [];
+
+  for (const { catId, data, readSet, catName, books, count } of groups) {
+    const groupStart = cursor;
+    const groupEnd = cursor + count;
+    cursor = groupEnd;
+    const from = Math.max(page.start, groupStart);
+    const to = Math.min(page.end, groupEnd);
+    if (from >= to) continue;
+
+    const pageBooks = books.slice(from - groupStart, to - groupStart);
+    renderedBooks.push(...pageBooks);
+    const pageCount = page.totalPages > 1 ? ` · trang này ${pageBooks.length}` : '';
 
     html += `
     <div class="cat-panel open" id="rc-panel-${catId}">
       <div class="cat-panel-header" onclick="toggleRcPanel(${catId})">
         <span class="cat-panel-title">📈 ${catName}</span>
-        <span class="cat-panel-meta">${data.update_time ? 'Cập nhật: ' + data.update_time + ' · ' : ''}${count} truyện</span>
+        <span class="cat-panel-meta">${data.update_time ? 'Cập nhật: ' + data.update_time + ' · ' : ''}${count} truyện${pageCount}</span>
         <span class="cat-panel-chevron">▼</span>
       </div>
       <div class="cat-panel-body">
-        <div class="books-grid">${books.map(b => bookCardHTML(b, 'rankcat', readSet)).join('')}</div>
+        <div class="books-grid">${pageBooks.map(b => bookCardHTML(b, 'rankcat', readSet)).join('')}</div>
       </div>
     </div>`;
   }
@@ -2947,13 +3157,12 @@ function renderRcPanels() {
   const h = loadRcHistory();
   const totalCats = Object.keys(h).length;
   html = `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;">
-    Tìm thấy ${totalMatches} truyện trong ${Object.keys(rcData).length}/${totalCats} danh mục đã tải
-  </div>` + (html || `<div class="state-box"><div class="icon">📭</div>Không tìm thấy truyện nào.</div>`);
+    Tìm thấy ${totalMatches} truyện trong ${Object.keys(rcData).length}/${totalCats} danh mục đã tải · trang ${page.current}/${page.totalPages}
+  </div>` + html;
 
   infoEl.textContent = `Kết quả tìm kiếm "${query}": ${totalMatches} truyện`;
   container.innerHTML = html;
-  // Only fetch scores for the books actually matched & rendered above
-  loadScoresForCards(renderedBooks);
+  loadScoresForCards(renderedBooks, container);
 }
 
 function toggleRcPanel(catId) {
@@ -2962,6 +3171,7 @@ function toggleRcPanel(catId) {
 
 // ── Search: load any fetched-but-uncached rank categories, then filter ──
 async function filterRcBooks() {
+  booksPage.rankcat = 1;
   const query = document.getElementById('rc-search').value.toLowerCase().trim();
   if (!query) {
     renderRcPanels();
@@ -2994,7 +3204,7 @@ async function triggerRankCatScrape() {
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
   try {
-    await ghDispatchWorkflow('scrape-rankcat.yml', { rank_cat_id: String(catId) });
+    await ghDispatchWorkflow('scrap-rankcat.yml', { rank_cat_id: String(catId) });
     toast(`Đã kích hoạt scrape rank đọc danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
   } catch(e) {
     toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js --rank-cat ${catId}`, 'err');
