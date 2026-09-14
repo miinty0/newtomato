@@ -1065,17 +1065,15 @@
 // Config
 
 let CFG = { user: '', repo: '', token: '' };
-
-// ── Lazy tab loading flags ──
 let dailyLoaded  = false;
 let catInitDone  = false;
 let rcInitDone   = false;
 
-// ── Global status filter (Ongoing / Completed / All) ──
+// Global status filter (Ongoing / Completed / All)
 const STATUS_FILTER_KEY = 'fq_status_filter';
 let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 'Ongoing' | 'Completed'
 
-// ── Shared pagination for the three book tabs ──
+// Shared pagination for the three book tabs
 const BOOKS_PER_PAGE = 200;
 const booksPage = { daily: 1, category: 1, rankcat: 1 };
 
@@ -1165,8 +1163,6 @@ function setStatusFilter(value) {
   localStorage.setItem(STATUS_FILTER_KEY, value);
   updateStatusFilterUI();
   booksPage.daily = booksPage.category = booksPage.rankcat = 1;
-  // Re-render whichever tabs already have cached data — purely local,
-  // no network call, so switching filters stays instant and light.
   if (dailyLoaded) renderDaily();
   renderCatPanels();
   renderRcPanels();
@@ -1644,7 +1640,7 @@ function switchTab(id, btn) {
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
 
-  // Lazy-load: only fetch a tab's data the first time it's actually opened.
+  // Lazy-load
   if (id === 'daily' && !dailyLoaded) {
     dailyLoaded = true;
     document.getElementById('home-card-daily')?.classList.add('loaded');
@@ -1660,7 +1656,6 @@ function switchTab(id, btn) {
   }
 }
 
-// Programmatic navigation from the Home tab's nav cards (they have no <button> element to pass in).
 function goToTab(id) {
   const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
   if (btn) switchTab(id, btn);
@@ -1740,7 +1735,8 @@ async function ghPutFile(filePath, content, message, sha) {
   const utf8Bytes = new TextEncoder().encode(content);
   const b64 = btoa(Array.from(utf8Bytes, b => String.fromCharCode(b)).join(''));
   const branch = filePath.startsWith('data/') ? 'data' : 'main';
-  const body = { message, content: b64, sha, branch };
+  const body = { message, content: b64, branch };
+  if (sha) body.sha = sha;
   const res = await fetch(url, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
@@ -1809,8 +1805,6 @@ async function runFullCleanup() {
 }
 
 function cleanupAfterRead(readIds) {
-  // Merge overlapping cleanup requests so GitHub files are never updated by
-  // two competing cleanup runs at the same time.
   for (const id of (readIds || [])) cleanupQueuedIds.add(String(id));
   if (cleanupQueuedIds.size === 0) return Promise.resolve();
   if (cleanupActivePromise) return cleanupActivePromise;
@@ -2044,6 +2038,144 @@ const scoreCache = new Map();       // book_id -> score (including "N/A")
 const scoreRequests = new Map();    // book_id -> in-flight Promise
 const scoreRetryState = { running: false, cancelled: false };
 
+// ── Live status correction from Fanqie Share API ──
+const STATUS_OVERRIDES_PATH = 'data/status_overrides.json';
+let statusOverrideBooks = {};
+let statusOverridesLoadPromise = null;
+const pendingStatusOverrides = new Map();
+let statusSyncTimer = null;
+let statusSyncActivePromise = null;
+let statusRenderTimer = null;
+
+function mappedFanqieStatus(creationStatus) {
+  const value = creationStatus === null || creationStatus === ''
+    ? NaN
+    : Number(creationStatus);
+  if (value === 1) return 'Completed';
+  return null; 
+}
+
+async function ensureStatusOverrides() {
+  if (statusOverridesLoadPromise) return statusOverridesLoadPromise;
+  statusOverridesLoadPromise = ghRaw(STATUS_OVERRIDES_PATH)
+    .then(data => {
+      statusOverrideBooks = data?.books && typeof data.books === 'object'
+        ? data.books
+        : {};
+    })
+    .catch(error => {
+      if (!String(error?.message || '').includes('404')) {
+        console.warn('status_overrides.json load failed:', error?.message || error);
+      }
+      statusOverrideBooks = {};
+    });
+  return statusOverridesLoadPromise;
+}
+
+function applyStatusOverride(book) {
+  const bookId = normalizedBookId(book);
+  const record = statusOverrideBooks[bookId];
+  const status = typeof record === 'string' ? record : record?.status;
+  if (status === 'Ongoing' || status === 'Completed') book.status = status;
+}
+
+function scheduleActiveStatusRender() {
+  clearTimeout(statusRenderTimer);
+  statusRenderTimer = setTimeout(() => {
+    const activeId = document.querySelector('.tab-panel.active')?.id;
+    if (activeId === 'tab-daily' && dailyLoaded) renderDaily();
+    else if (activeId === 'tab-category') renderCatPanels();
+    else if (activeId === 'tab-rankcat') renderRcPanels();
+  }, 350);
+}
+
+function queueStatusOverride(bookId, status, creationStatus) {
+  const record = {
+    status,
+    creation_status: Number(creationStatus),
+    checked_at: new Date().toISOString(),
+  };
+  statusOverrideBooks[bookId] = record;
+  pendingStatusOverrides.set(bookId, record);
+  clearTimeout(statusSyncTimer);
+  statusSyncTimer = setTimeout(flushStatusOverrides, 1200);
+}
+
+function handleFetchedBookStatus(bookId, metadata) {
+  const status = metadata?.status || mappedFanqieStatus(metadata?.creation_status);
+  if (status !== 'Ongoing' && status !== 'Completed') return;
+
+  const instances = _bookInstances.get(String(bookId));
+  let changed = false;
+  if (instances) {
+    for (const book of instances) {
+      if (book.status !== status) {
+        book.status = status;
+        changed = true;
+      }
+    }
+  }
+
+  const existing = statusOverrideBooks[bookId];
+  const existingStatus = typeof existing === 'string' ? existing : existing?.status;
+  if (!changed && (!existingStatus || existingStatus === status)) return;
+
+  queueStatusOverride(String(bookId), status, metadata.creation_status);
+  scheduleActiveStatusRender();
+}
+
+async function flushStatusOverrides() {
+  statusSyncTimer = null;
+  if (statusSyncActivePromise || pendingStatusOverrides.size === 0) return;
+
+  const batch = new Map(pendingStatusOverrides);
+  pendingStatusOverrides.clear();
+
+  statusSyncActivePromise = (async () => {
+    let sha = null;
+    let remote = { version: 1, updated_at: null, books: {} };
+    try {
+      const meta = await ghGetFile(STATUS_OVERRIDES_PATH);
+      sha = meta.sha || null;
+      if (meta.content) remote = JSON.parse(b64DecodeUTF8(meta.content));
+    } catch (error) {
+      if (!String(error?.message || '').includes('404')) throw error;
+    }
+
+    const books = remote?.books && typeof remote.books === 'object' ? remote.books : {};
+    for (const [bookId, record] of batch) books[bookId] = record;
+    const sortedBooks = Object.fromEntries(
+      Object.entries(books).sort(([a], [b]) => a.localeCompare(b))
+    );
+    const output = {
+      version: 1,
+      updated_at: new Date().toISOString(),
+      books: sortedBooks,
+    };
+
+    await ghPutFile(
+      STATUS_OVERRIDES_PATH,
+      JSON.stringify(output, null, 2),
+      `sync ${batch.size} Fanqie status correction(s)`,
+      sha
+    );
+    toast(`✓ Đã đồng bộ ${batch.size} status lên GitHub`, 'ok');
+  })().catch(error => {
+    for (const [bookId, record] of batch) {
+      if (!pendingStatusOverrides.has(bookId)) pendingStatusOverrides.set(bookId, record);
+    }
+    toast(`Không lưu được status lên GitHub: ${error.message}`, 'err');
+  }).finally(() => {
+    statusSyncActivePromise = null;
+    if (pendingStatusOverrides.size > 0) {
+      clearTimeout(statusSyncTimer);
+      statusSyncTimer = setTimeout(flushStatusOverrides, 10000);
+    }
+  });
+
+  return statusSyncActivePromise;
+}
+
 function normalizedBookId(book) {
   return String(book?.book_id ?? book?.bookId ?? book?.group_id ?? book?.groupId ?? book?.item_id ?? book?.id ?? '').trim();
 }
@@ -2052,7 +2184,6 @@ function scoreBadgeBookId(el) {
   return String(el?.dataset?.bookId || (el?.id || '').replace('score-', ''));
 }
 
-// Repair cards whose badge node is missing
 function ensureScoreBadges(root = document) {
   root.querySelectorAll('.book-card').forEach(card => {
     const bookId = String(card.dataset.id || '').trim();
@@ -2087,22 +2218,24 @@ function updateScoreBadges(bookId, score) {
   });
 }
 
-// One network request per book at a time. All duplicate cards share it.
 function requestScore(bookId) {
   bookId = String(bookId);
   if (scoreCache.has(bookId)) return Promise.resolve(scoreCache.get(bookId));
   if (scoreRequests.has(bookId)) return scoreRequests.get(bookId);
 
-  const fetchFn = window.tmFetchScore;
+  const fetchFn = window.fqShareApiFetchBookMeta;
   if (typeof fetchFn !== 'function') {
-    return Promise.reject(new Error('tmFetchScore chưa sẵn sàng'));
+    return Promise.reject(new Error('Fanqie Share API Score Bridge chưa sẵn sàng'));
   }
 
   const request = Promise.resolve()
     .then(() => fetchFn(bookId))
-    .then(score => {
-      // "N/A" and "0.0" are valid resolved values. Only null/empty remains unresolved and is eligible for the next immediate retry round.
+    .then(metadata => {
+      const score = metadata && typeof metadata === 'object' ? metadata.score : metadata;
       if (score == null || score === '') throw new Error('Score trống');
+      if (metadata && typeof metadata === 'object') {
+        handleFetchedBookStatus(bookId, metadata);
+      }
       const value = String(score);
       scoreCache.set(bookId, value);
       updateScoreBadges(bookId, value);
@@ -2124,6 +2257,7 @@ function loadingScoreIdsInActivePanel() {
       .filter(Boolean)
   )];
 }
+
 async function retryLoadingScores() {
   const btn = document.getElementById('retry-scores-btn');
 
@@ -2138,8 +2272,8 @@ async function retryLoadingScores() {
     toast('Không có badge nào đang loading.', '');
     return;
   }
-  if (typeof window.tmFetchScore !== 'function') {
-    toast('Userscript tmFetchScore chưa sẵn sàng. Hãy kiểm tra Tampermonkey.', 'err');
+  if (typeof window.fqShareApiFetchBookMeta !== 'function') {
+    toast('Userscript Fanqie Share API Score Bridge chưa sẵn sàng. Hãy kiểm tra Tampermonkey.', 'err');
     return;
   }
 
@@ -2193,7 +2327,7 @@ function fetchScoreForBadge(el, attempts = 0) {
     updateScoreBadges(bookId, scoreCache.get(bookId));
     return;
   }
-  const fetchFn = window.tmFetchScore;
+  const fetchFn = window.fqShareApiFetchBookMeta;
   if (typeof fetchFn !== 'function') {
     if (attempts >= 15) return; // 15 × 200ms = 3s
     setTimeout(() => fetchScoreForBadge(el, attempts + 1), 200);
@@ -2285,7 +2419,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
 // DAILY TAB
 
 let dailyReadSet   = new Set();
-let dailyRawBooks  = [];  // unread books, ALL statuses (pre status-filter), cached so the filter can re-render without re-fetching
+let dailyRawBooks  = [];  
 let dailyUpdateTime = '—';
 let dailyDaysLoaded = 0;
 
@@ -2298,6 +2432,7 @@ async function loadDaily() {
   container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải latest + lịch sử…</div>`;
 
   try {
+    await ensureStatusOverrides();
     // Load latest + read list + history index in parallel
     const [latestData, readArr, histIndex] = await Promise.all([
       ghRaw('data/latest.json'),
@@ -2344,6 +2479,7 @@ async function loadDaily() {
   }
 }
 
+// Render from cached dailyRawBooks, applying the current status filter —
 function renderDaily() {
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
@@ -2478,6 +2614,7 @@ async function loadCategory(catId) {
     unobserveScoresIn(panelsEl);
     panelsEl.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải danh mục…</div>`;
     try {
+      await ensureStatusOverrides();
       const [data, readArr] = await Promise.all([
         ghRaw(`data/category_${catId}.json`),
         ghRaw('data/read.json').catch(() => []),
@@ -2597,6 +2734,7 @@ function togglePanel(catId) {
 
 async function filterCatBooks() {
   booksPage.category = 1;
+  await ensureStatusOverrides();
   const query = document.getElementById('cat-search').value.toLowerCase().trim();
   if (!query) {
     renderCatPanels();
@@ -2701,6 +2839,7 @@ function jumpToCategory(catId) {
 
 async function refreshLastFetchedCat(e) {
   e.stopPropagation();
+  await ensureStatusOverrides();
   const h = loadFetchHistory();
   const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
   if (entries.length === 0) { toast('Chưa có danh mục nào trong lịch sử.', 'err'); return; }
@@ -2755,14 +2894,11 @@ document.addEventListener('click', (e) => {
     document.getElementById('rc-fh-dropdown').classList.remove('open');
   }
 });
-
-// Browsers cannot await GitHub API work after a tab has been closed. Warn while
-// marks are unsaved OR cleanup is still active, so the user can cancel closing
-// and wait for the operation to finish.
 window.addEventListener('beforeunload', (e) => {
   const hasUnsaved = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
   const cleanupBusy = cleanupActivePromise !== null || cleanupQueuedIds.size > 0;
-  if (hasUnsaved || cleanupBusy) {
+  const statusSyncBusy = statusSyncActivePromise !== null || pendingStatusOverrides.size > 0;
+  if (hasUnsaved || cleanupBusy || statusSyncBusy) {
     e.preventDefault();
     e.returnValue = '';
   }
@@ -2773,15 +2909,17 @@ window.addEventListener('beforeunload', (e) => {
 
 // Store book data for modal lookup
 const _bookRegistry = {};
+const _bookInstances = new Map();
 
 function registerBooks(books) {
   for (const b of books) {
     const bookId = normalizedBookId(b);
     if (!bookId) continue;
-    // Normalise alternate API field names once so filtering, read state,
-    // modal lookup and score fetching all refer to the same ID.
     b.book_id = bookId;
+    applyStatusOverride(b);
     _bookRegistry[bookId] = b;
+    if (!_bookInstances.has(bookId)) _bookInstances.set(bookId, new Set());
+    _bookInstances.get(bookId).add(b);
   }
 }
 
@@ -2899,6 +3037,7 @@ function jumpToRcCat(catId) {
 
 async function refreshLastFetchedRcCat(e) {
   e.stopPropagation();
+  await ensureStatusOverrides();
   const h = loadRcHistory();
   const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
   if (entries.length === 0) { toast('Chưa có danh mục rank nào trong lịch sử.', 'err'); return; }
@@ -3009,6 +3148,7 @@ async function loadRankCat() {
   container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải dữ liệu…</div>`;
 
   try {
+    await ensureStatusOverrides();
     const [data, readArr] = await Promise.all([
       ghRawLarge(`data/rank_cat_${catId}.json`),
       ghRaw('data/read.json').catch(() => []),
@@ -3172,6 +3312,7 @@ function toggleRcPanel(catId) {
 // ── Search: load any fetched-but-uncached rank categories, then filter ──
 async function filterRcBooks() {
   booksPage.rankcat = 1;
+  await ensureStatusOverrides();
   const query = document.getElementById('rc-search').value.toLowerCase().trim();
   if (!query) {
     renderRcPanels();
