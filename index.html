@@ -1065,15 +1065,24 @@
 // Config
 
 let CFG = { user: '', repo: '', token: '' };
+
+// ── Lazy tab loading flags: each tab's data is fetched only the first time
+// the user actually opens it, instead of all firing on page load. This is
+// what stops the Daily tab's history-snapshot fetches (and the score-fetch
+// quota they trigger) from blocking/lagging other tabs like Rank-cat. ──
 let dailyLoaded  = false;
 let catInitDone  = false;
 let rcInitDone   = false;
 
-// Global status filter (Ongoing / Completed / All)
+// ── Global status filter (Ongoing / Completed / All) ──
+// Applies across every tab & category. Persisted in localStorage. Changing
+// it re-renders from already-cached data (no re-fetch from GitHub needed).
 const STATUS_FILTER_KEY = 'fq_status_filter';
 let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 'Ongoing' | 'Completed'
 
-// Shared pagination for the three book tabs
+// ── Shared pagination for the three book tabs ──
+// Only the current slice exists in the DOM, so score loading is capped at the
+// same 200 books instead of walking through thousands of off-page cards.
 const BOOKS_PER_PAGE = 200;
 const booksPage = { daily: 1, category: 1, rankcat: 1 };
 
@@ -1130,6 +1139,10 @@ function renderPagination(tab, totalItems, page = paginationWindow(tab, totalIte
 }
 
 function setBooksPage(tab, pageNumber) {
+  // The current page is a complete status batch boundary. Do this before the
+  // DOM is replaced so all corrections discovered on that page travel in one
+  // GitHub write instead of several tiny writes while scores are still loading.
+  flushStatusesAtViewBoundary();
   if (scoreRetryState.running) scoreRetryState.cancelled = true;
   booksPage[tab] = Math.max(1, Number(pageNumber) || 1);
   if (tab === 'daily') renderDaily();
@@ -1159,10 +1172,13 @@ function statusFilterLabel(value = statusFilter) {
 }
 
 function setStatusFilter(value) {
+  flushStatusesAtViewBoundary();
   statusFilter = value;
   localStorage.setItem(STATUS_FILTER_KEY, value);
   updateStatusFilterUI();
   booksPage.daily = booksPage.category = booksPage.rankcat = 1;
+  // Re-render whichever tabs already have cached data — purely local,
+  // no network call, so switching filters stays instant and light.
   if (dailyLoaded) renderDaily();
   renderCatPanels();
   renderRcPanels();
@@ -1635,12 +1651,13 @@ function toast(msg, type = '') {
 // Tabs
 
 function switchTab(id, btn) {
+  flushStatusesAtViewBoundary();
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
 
-  // Lazy-load
+  // Lazy-load: only fetch a tab's data the first time it's actually opened.
   if (id === 'daily' && !dailyLoaded) {
     dailyLoaded = true;
     document.getElementById('home-card-daily')?.classList.add('loaded');
@@ -1656,6 +1673,7 @@ function switchTab(id, btn) {
   }
 }
 
+// Programmatic navigation from the Home tab's nav cards (they have no <button> element to pass in).
 function goToTab(id) {
   const btn = document.querySelector(`.tab-btn[data-tab="${id}"]`);
   if (btn) switchTab(id, btn);
@@ -1724,7 +1742,10 @@ async function ghRawLarge(filePath) {
 async function ghGetFile(filePath) {
   const ref = filePath.startsWith('data/') ? '?ref=data' : '';
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
-  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' } });
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -1742,7 +1763,10 @@ async function ghPutFile(filePath, content, message, sha) {
     headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.message || `HTTP ${res.status}`); }
+  if (!res.ok) {
+    const e = await res.json();
+    throw new Error(e.message ? `${e.message} (HTTP ${res.status})` : `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
@@ -1805,6 +1829,8 @@ async function runFullCleanup() {
 }
 
 function cleanupAfterRead(readIds) {
+  // Merge overlapping cleanup requests so GitHub files are never updated by
+  // two competing cleanup runs at the same time.
   for (const id of (readIds || [])) cleanupQueuedIds.add(String(id));
   if (cleanupQueuedIds.size === 0) return Promise.resolve();
   if (cleanupActivePromise) return cleanupActivePromise;
@@ -2000,6 +2026,9 @@ async function submitRead(tab) {
     }
     pendingRead[tab].clear();
     updateReadBar(tab);
+    // Keep this save operation open until every related data file has been
+    // cleaned. This prevents a normal tab switch/close from silently cutting
+    // off the old background cleanup halfway through.
     btn.textContent = '🧹 Đang dọn dữ liệu…';
     await cleanupAfterRead(justRead);
     // Mark cards visually
@@ -2034,25 +2063,38 @@ function toggleRead(bookId, btn, tab) {
   updateReadBar(tab);
 }
 // ── Score loading ──
+// Scores are only fetched for badges that actually scroll into view, not for
+// every rendered card at once. This is what keeps the score-fetch quota from
+// getting clogged when a tab renders hundreds of cards.
+// Resolved scores live independently from the rendered DOM. Re-rendering after
+// a status/search/category change therefore reuses them instead of fetching
+// the same book again.
 const scoreCache = new Map();       // book_id -> score (including "N/A")
 const scoreRequests = new Map();    // book_id -> in-flight Promise
+const scoreErrors = new Map();      // book_id -> latest failure details
 const scoreRetryState = { running: false, cancelled: false };
+const SCORE_RETRY_MAX_ROUNDS = 8;
+const SCORE_RETRY_BASE_DELAY_MS = 800;
 
 // ── Live status correction from Fanqie Share API ──
+// GitHub history snapshots stay immutable. Corrections are stored once in this
+// small override file and applied to every old/new JSON as it is registered.
 const STATUS_OVERRIDES_PATH = 'data/status_overrides.json';
 let statusOverrideBooks = {};
 let statusOverridesLoadPromise = null;
 const pendingStatusOverrides = new Map();
-let statusSyncTimer = null;
 let statusSyncActivePromise = null;
+let statusFlushRequested = false;
+let statusFlushAfterInflight = false;
 let statusRenderTimer = null;
 
 function mappedFanqieStatus(creationStatus) {
   const value = creationStatus === null || creationStatus === ''
     ? NaN
     : Number(creationStatus);
+  if (value === 0) return 'Ongoing';
   if (value === 1) return 'Completed';
-  return null; 
+  return null; // 2/3/4 and unknown values are intentionally ignored
 }
 
 async function ensureStatusOverrides() {
@@ -2064,6 +2106,7 @@ async function ensureStatusOverrides() {
         : {};
     })
     .catch(error => {
+      // The file is created automatically on the first real correction.
       if (!String(error?.message || '').includes('404')) {
         console.warn('status_overrides.json load failed:', error?.message || error);
       }
@@ -2097,8 +2140,6 @@ function queueStatusOverride(bookId, status, creationStatus) {
   };
   statusOverrideBooks[bookId] = record;
   pendingStatusOverrides.set(bookId, record);
-  clearTimeout(statusSyncTimer);
-  statusSyncTimer = setTimeout(flushStatusOverrides, 1200);
 }
 
 function handleFetchedBookStatus(bookId, metadata) {
@@ -2118,6 +2159,8 @@ function handleFetchedBookStatus(bookId, metadata) {
 
   const existing = statusOverrideBooks[bookId];
   const existingStatus = typeof existing === 'string' ? existing : existing?.status;
+  // Do not fill the override file with books whose original status was already
+  // correct. Persist only an actual correction or a changed prior override.
   if (!changed && (!existingStatus || existingStatus === status)) return;
 
   queueStatusOverride(String(bookId), status, metadata.creation_status);
@@ -2125,55 +2168,135 @@ function handleFetchedBookStatus(bookId, metadata) {
 }
 
 async function flushStatusOverrides() {
-  statusSyncTimer = null;
-  if (statusSyncActivePromise || pendingStatusOverrides.size === 0) return;
+  if (statusSyncActivePromise) return statusSyncActivePromise;
+  if (pendingStatusOverrides.size === 0) {
+    statusFlushRequested = false;
+    return;
+  }
 
+  statusFlushRequested = false;
   const batch = new Map(pendingStatusOverrides);
   pendingStatusOverrides.clear();
 
-  statusSyncActivePromise = (async () => {
-    let sha = null;
-    let remote = { version: 1, updated_at: null, books: {} };
-    try {
-      const meta = await ghGetFile(STATUS_OVERRIDES_PATH);
-      sha = meta.sha || null;
-      if (meta.content) remote = JSON.parse(b64DecodeUTF8(meta.content));
-    } catch (error) {
-      if (!String(error?.message || '').includes('404')) throw error;
-    }
-
-    const books = remote?.books && typeof remote.books === 'object' ? remote.books : {};
-    for (const [bookId, record] of batch) books[bookId] = record;
-    const sortedBooks = Object.fromEntries(
-      Object.entries(books).sort(([a], [b]) => a.localeCompare(b))
-    );
-    const output = {
-      version: 1,
-      updated_at: new Date().toISOString(),
-      books: sortedBooks,
-    };
-
-    await ghPutFile(
-      STATUS_OVERRIDES_PATH,
-      JSON.stringify(output, null, 2),
-      `sync ${batch.size} Fanqie status correction(s)`,
-      sha
-    );
-    toast(`✓ Đã đồng bộ ${batch.size} status lên GitHub`, 'ok');
-  })().catch(error => {
-    for (const [bookId, record] of batch) {
-      if (!pendingStatusOverrides.has(bookId)) pendingStatusOverrides.set(bookId, record);
-    }
-    toast(`Không lưu được status lên GitHub: ${error.message}`, 'err');
-  }).finally(() => {
-    statusSyncActivePromise = null;
-    if (pendingStatusOverrides.size > 0) {
-      clearTimeout(statusSyncTimer);
-      statusSyncTimer = setTimeout(flushStatusOverrides, 10000);
-    }
-  });
+  statusSyncActivePromise = withStatusSyncLock(() => writeStatusOverrideBatch(batch))
+    .then(savedCount => {
+      if (savedCount > 0) toast(`✓ Đã đồng bộ ${savedCount} status lên GitHub`, 'ok');
+    })
+    .catch(error => {
+      // Preserve newer queued values; only restore a failed value when no newer
+      // correction for the same book is waiting.
+      for (const [bookId, record] of batch) {
+        if (!pendingStatusOverrides.has(bookId)) pendingStatusOverrides.set(bookId, record);
+      }
+      toast(`Không lưu được status lên GitHub: ${error.message}`, 'err');
+    }).finally(() => {
+      statusSyncActivePromise = null;
+      // Corrections found while this write was running stay queued. They are
+      // sent only at the next page/session boundary, never on a short timer.
+      if (statusFlushRequested && pendingStatusOverrides.size > 0) {
+        queueMicrotask(flushStatusOverrides);
+      }
+    });
 
   return statusSyncActivePromise;
+}
+
+function requestStatusFlush() {
+  if (pendingStatusOverrides.size === 0) return statusSyncActivePromise || Promise.resolve();
+  statusFlushRequested = true;
+  return statusSyncActivePromise || flushStatusOverrides();
+}
+
+function flushStatusesAtViewBoundary() {
+  if (pendingStatusOverrides.size > 0) return requestStatusFlush();
+  // A score request from the old page can finish just after its DOM disappears.
+  // Remember the boundary and flush once that old in-flight group settles.
+  if (scoreRequests.size > 0) statusFlushAfterInflight = true;
+  return statusSyncActivePromise || Promise.resolve();
+}
+
+function isStatusShaConflict(error) {
+  return /does not match|sha mismatch|conflict|HTTP 409/i.test(String(error?.message || error));
+}
+
+function statusSyncDelay(attempt) {
+  const base = 250 * attempt;
+  const jitter = Math.floor(Math.random() * 350);
+  return new Promise(resolve => setTimeout(resolve, base + jitter));
+}
+
+function withStatusSyncLock(task) {
+  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+    const lockName = `fq-status-overrides:${CFG.user}/${CFG.repo}`;
+    return navigator.locks.request(lockName, { mode: 'exclusive' }, task);
+  }
+  return task();
+}
+
+async function writeStatusOverrideBatch(batch) {
+  const maxAttempts = 5;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      let sha = null;
+      let remote = { version: 1, updated_at: null, books: {} };
+      try {
+        const meta = await ghGetFile(STATUS_OVERRIDES_PATH);
+        sha = meta.sha || null;
+        if (meta.content) remote = JSON.parse(b64DecodeUTF8(meta.content));
+      } catch (error) {
+        if (!String(error?.message || '').includes('404')) throw error;
+      }
+
+      const books = remote?.books && typeof remote.books === 'object' ? remote.books : {};
+      let changedCount = 0;
+      for (const [bookId, record] of batch) {
+        const current = books[bookId];
+        const currentStatus = typeof current === 'string' ? current : current?.status;
+        const rawCurrentCreationStatus = typeof current === 'object' && current !== null
+          ? current.creation_status
+          : null;
+        const currentCreationStatus = rawCurrentCreationStatus === null
+            || rawCurrentCreationStatus === undefined
+            || rawCurrentCreationStatus === ''
+          ? null
+          : Number(rawCurrentCreationStatus);
+        if (currentStatus === record.status
+            && (currentCreationStatus === Number(record.creation_status) || currentCreationStatus === null)) {
+          continue;
+        }
+        books[bookId] = record;
+        changedCount++;
+      }
+
+      // Another tab may already have written the exact same corrections while
+      // this tab was waiting for the lock. In that case no new commit is needed.
+      if (changedCount === 0) return 0;
+
+      const sortedBooks = Object.fromEntries(
+        Object.entries(books).sort(([a], [b]) => a.localeCompare(b))
+      );
+      const output = {
+        version: 1,
+        updated_at: new Date().toISOString(),
+        books: sortedBooks,
+      };
+
+      await ghPutFile(
+        STATUS_OVERRIDES_PATH,
+        JSON.stringify(output, null, 2),
+        `sync ${changedCount} Fanqie status correction(s)`,
+        sha
+      );
+      return changedCount;
+    } catch (error) {
+      if (!isStatusShaConflict(error) || attempt === maxAttempts) throw error;
+      console.warn(`status_overrides.json SHA conflict · retry ${attempt}/${maxAttempts}`);
+      await statusSyncDelay(attempt);
+    }
+  }
+
+  return 0;
 }
 
 function normalizedBookId(book) {
@@ -2184,6 +2307,8 @@ function scoreBadgeBookId(el) {
   return String(el?.dataset?.bookId || (el?.id || '').replace('score-', ''));
 }
 
+// Repair cards whose badge node is missing (for example after an external DOM
+// rewrite). Retry must not depend on the placeholder already being present.
 function ensureScoreBadges(root = document) {
   root.querySelectorAll('.book-card').forEach(card => {
     const bookId = String(card.dataset.id || '').trim();
@@ -2218,6 +2343,27 @@ function updateScoreBadges(bookId, score) {
   });
 }
 
+function activePageScoreIds() {
+  const activePanel = document.querySelector('.tab-panel.active');
+  if (!activePanel) return [];
+  return [...new Set(
+    Array.from(activePanel.querySelectorAll('.score-badge'))
+      .map(scoreBadgeBookId)
+      .filter(Boolean)
+  )];
+}
+
+function maybeFlushStatusesAfterCurrentPage() {
+  if (scoreRetryState.running || pendingStatusOverrides.size === 0) return;
+  const bookIds = activePageScoreIds();
+  if (bookIds.length === 0) return;
+  const pageFinished = bookIds.every(bookId =>
+    scoreCache.has(bookId) && !scoreRequests.has(bookId)
+  );
+  if (pageFinished) requestStatusFlush();
+}
+
+// One network request per book at a time. All duplicate cards share it.
 function requestScore(bookId) {
   bookId = String(bookId);
   if (scoreCache.has(bookId)) return Promise.resolve(scoreCache.get(bookId));
@@ -2232,16 +2378,38 @@ function requestScore(bookId) {
     .then(() => fetchFn(bookId))
     .then(metadata => {
       const score = metadata && typeof metadata === 'object' ? metadata.score : metadata;
+      // "N/A" and "0.0" are valid resolved values. Only null/empty remains
+      // unresolved and is eligible for the next immediate retry round.
       if (score == null || score === '') throw new Error('Score trống');
       if (metadata && typeof metadata === 'object') {
         handleFetchedBookStatus(bookId, metadata);
       }
       const value = String(score);
       scoreCache.set(bookId, value);
+      scoreErrors.delete(bookId);
       updateScoreBadges(bookId, value);
       return value;
     })
-    .finally(() => scoreRequests.delete(bookId));
+    .catch(error => {
+      const previous = scoreErrors.get(bookId);
+      scoreErrors.set(bookId, {
+        attempts: (previous?.attempts || 0) + 1,
+        message: String(error?.message || error),
+        last_at: new Date().toISOString(),
+      });
+      throw error;
+    })
+    .finally(() => {
+      scoreRequests.delete(bookId);
+      queueMicrotask(() => {
+        if (statusFlushAfterInflight && scoreRequests.size === 0 && !scoreRetryState.running) {
+          statusFlushAfterInflight = false;
+          requestStatusFlush();
+        } else {
+          maybeFlushStatusesAfterCurrentPage();
+        }
+      });
+    });
 
   scoreRequests.set(bookId, request);
   return request;
@@ -2258,6 +2426,26 @@ function loadingScoreIdsInActivePanel() {
   )];
 }
 
+function scoreRetryDelay(round) {
+  const delay = Math.min(5000, SCORE_RETRY_BASE_DELAY_MS * round);
+  return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+function scoreFailureRows(bookIds) {
+  return bookIds.map(bookId => {
+    const failure = scoreErrors.get(bookId);
+    return {
+      book_id: bookId,
+      attempts: failure?.attempts || 0,
+      error: failure?.message || 'Không có thông báo lỗi',
+      last_at: failure?.last_at || '',
+    };
+  });
+}
+
+// Fetch every unresolved score in parallel, with a finite retry budget and a
+// short backoff. This prevents a permanently failing tail from spinning for
+// dozens of rounds and hammering the API continuously.
 async function retryLoadingScores() {
   const btn = document.getElementById('retry-scores-btn');
 
@@ -2282,18 +2470,31 @@ async function retryLoadingScores() {
   let round = 0;
 
   try {
-    while (!scoreRetryState.cancelled) {
+    while (!scoreRetryState.cancelled && round < SCORE_RETRY_MAX_ROUNDS) {
       const unresolved = bookIds.filter(id => !scoreCache.has(id));
       if (unresolved.length === 0) break;
 
       round++;
       btn.textContent = `⏹ Dừng · lượt ${round} · còn ${unresolved.length}`;
       await Promise.allSettled(unresolved.map(requestScore));
+
+      const stillUnresolved = bookIds.filter(id => !scoreCache.has(id));
+      if (!scoreRetryState.cancelled && stillUnresolved.length > 0 && round < SCORE_RETRY_MAX_ROUNDS) {
+        btn.textContent = `⏹ Dừng · chờ lượt ${round + 1} · còn ${stillUnresolved.length}`;
+        await scoreRetryDelay(round);
+      }
     }
 
-    const remaining = bookIds.filter(id => !scoreCache.has(id)).length;
+    const remainingIds = bookIds.filter(id => !scoreCache.has(id));
+    const remaining = remainingIds.length;
     if (scoreRetryState.cancelled) {
       toast(`Đã dừng retry · còn ${remaining} score chưa tải.`, '');
+    } else if (remaining > 0) {
+      console.group(`[Retry score] Còn ${remaining} truyện lỗi sau ${round} lượt`);
+      console.table(scoreFailureRows(remainingIds));
+      console.info('Test trực tiếp các truyện này bằng: await fqTestLoadingScores()');
+      console.groupEnd();
+      toast(`Đã dừng sau ${round} lượt · còn ${remaining} score lỗi. Xem Console.`, 'err');
     } else {
       toast(`✓ Đã tải xong ${bookIds.length} score qua ${round} lượt`, 'ok');
     }
@@ -2301,8 +2502,60 @@ async function retryLoadingScores() {
     scoreRetryState.running = false;
     scoreRetryState.cancelled = false;
     btn.textContent = '⭐ Retry score';
+    // One retry session equals one GitHub status batch, including a session
+    // that ends with a few permanent score failures.
+    statusFlushAfterInflight = false;
+    await requestStatusFlush();
   }
 }
+
+async function testLoadingScores() {
+  if (scoreRetryState.running) {
+    console.warn('[Score test] Retry đang chạy. Bấm nút Retry score để dừng rồi chạy lại lệnh này.');
+    return [];
+  }
+  const fetchFn = window.fqShareApiFetchBookMeta;
+  if (typeof fetchFn !== 'function') {
+    throw new Error('Fanqie Share API Score Bridge chưa sẵn sàng');
+  }
+
+  const bookIds = loadingScoreIdsInActivePanel();
+  if (bookIds.length === 0) {
+    console.info('[Score test] Trang hiện tại không còn score nào đang loading.');
+    return [];
+  }
+
+  console.info(`[Score test] Đang gọi trực tiếp API cho ${bookIds.length} book ID…`);
+  const results = await Promise.all(bookIds.map(async bookId => {
+    try {
+      const metadata = await fetchFn(bookId);
+      return {
+        book_id: bookId,
+        ok: true,
+        score: metadata?.score,
+        creation_status: metadata?.creation_status,
+        status: metadata?.status,
+        previous_error: scoreErrors.get(bookId)?.message || '',
+        error: '',
+      };
+    } catch (error) {
+      return {
+        book_id: bookId,
+        ok: false,
+        score: '',
+        creation_status: '',
+        status: '',
+        previous_error: scoreErrors.get(bookId)?.message || '',
+        error: String(error?.message || error),
+      };
+    }
+  }));
+  console.table(results);
+  return results;
+}
+
+window.fqTestLoadingScores = testLoadingScores;
+window.fqGetScoreErrors = () => scoreFailureRows([...scoreErrors.keys()]);
 
 let _scoreObserver = null;
 function getScoreObserver() {
@@ -2329,14 +2582,19 @@ function fetchScoreForBadge(el, attempts = 0) {
   }
   const fetchFn = window.fqShareApiFetchBookMeta;
   if (typeof fetchFn !== 'function') {
+    // Keep the unresolved badge visible so the manual retry button can handle
+    // it later if Tampermonkey takes longer than three seconds to initialise.
     if (attempts >= 15) return; // 15 × 200ms = 3s
     setTimeout(() => fetchScoreForBadge(el, attempts + 1), 200);
     return;
   }
   requestScore(bookId).catch(() => {
+    // Leave it in loading state. Retry only failed IDs on the next manual pass.
   });
 }
 
+// Register score badges only inside the freshly rendered page. This prevents
+// a render in one tab from accidentally observing duplicate badges elsewhere.
 function loadScoresForCards(books, root = document) {
   const observer = getScoreObserver();
   const wanted = new Set(books.map(normalizedBookId).filter(Boolean));
@@ -2419,7 +2677,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
 // DAILY TAB
 
 let dailyReadSet   = new Set();
-let dailyRawBooks  = [];  
+let dailyRawBooks  = [];  // unread books, ALL statuses (pre status-filter), cached so the filter can re-render without re-fetching
 let dailyUpdateTime = '—';
 let dailyDaysLoaded = 0;
 
@@ -2480,6 +2738,7 @@ async function loadDaily() {
 }
 
 // Render from cached dailyRawBooks, applying the current status filter —
+// called on initial load AND whenever the status filter changes (no re-fetch).
 function renderDaily() {
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
@@ -2507,6 +2766,7 @@ function renderDaily() {
 }
 
 function filterDailyBooks() {
+  flushStatusesAtViewBoundary();
   booksPage.daily = 1;
   renderDaily();
 }
@@ -2733,6 +2993,7 @@ function togglePanel(catId) {
 }
 
 async function filterCatBooks() {
+  flushStatusesAtViewBoundary();
   booksPage.category = 1;
   await ensureStatusOverrides();
   const query = document.getElementById('cat-search').value.toLowerCase().trim();
@@ -2894,6 +3155,10 @@ document.addEventListener('click', (e) => {
     document.getElementById('rc-fh-dropdown').classList.remove('open');
   }
 });
+
+// Browsers cannot await GitHub API work after a tab has been closed. Warn while
+// marks are unsaved OR cleanup is still active, so the user can cancel closing
+// and wait for the operation to finish.
 window.addEventListener('beforeunload', (e) => {
   const hasUnsaved = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
   const cleanupBusy = cleanupActivePromise !== null || cleanupQueuedIds.size > 0;
@@ -2915,6 +3180,8 @@ function registerBooks(books) {
   for (const b of books) {
     const bookId = normalizedBookId(b);
     if (!bookId) continue;
+    // Normalise alternate API field names once so filtering, read state,
+    // modal lookup and score fetching all refer to the same ID.
     b.book_id = bookId;
     applyStatusOverride(b);
     _bookRegistry[bookId] = b;
@@ -3311,6 +3578,7 @@ function toggleRcPanel(catId) {
 
 // ── Search: load any fetched-but-uncached rank categories, then filter ──
 async function filterRcBooks() {
+  flushStatusesAtViewBoundary();
   booksPage.rankcat = 1;
   await ensureStatusOverrides();
   const query = document.getElementById('rc-search').value.toLowerCase().trim();
