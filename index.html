@@ -1083,7 +1083,7 @@ let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 
 // ── Shared pagination for the three book tabs ──
 // Only the current slice exists in the DOM, so score loading is capped at the
 // same 200 books instead of walking through thousands of off-page cards.
-const BOOKS_PER_PAGE = 200;
+const BOOKS_PER_PAGE = 500;
 const booksPage = { daily: 1, category: 1, rankcat: 1 };
 
 function paginationPrefix(tab) {
