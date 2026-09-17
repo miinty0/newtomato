@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-16 22:35:02",
-  "update_date": "2026-09-16",
+  "update_time": "2026-09-17 22:39:31",
+  "update_date": "2026-09-17",
   "category_id": 745,
-  "total_count": 717,
-  "new_count": 6,
+  "total_count": 718,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7590727777817480254",
@@ -15684,6 +15684,29 @@
       "currentPos": 142,
       "rankPosDiff": 0,
       "read_count": "1039",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7676936573065104446",
+      "book_name": "心动9，直球导演和他的i人甜妹",
+      "author": "我不能太暖",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "暗恋",
+        "甜宠",
+        "一见钟情",
+        "情有独钟",
+        "娱乐圈"
+      ],
+      "abstract": "恋综甜宠文，温柔文艺片导演的直球和他的慢热i人甜妹小默契。\n江叙白看到她的第一眼，就希望能让这个一眼美好的女孩所有的美好。\n于是在节目中总会默默的关注着她的小情绪，在姐姐星星的撮合下，思思也敢于在众人面前坚定的向他走去。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o150edc7b0817778001de14263553439a",
+      "last_chapter_time": 1789650286,
+      "first_chapter_time": 1787514335,
+      "currentPos": 70,
+      "rankPosDiff": 0,
+      "read_count": "5642",
       "rankMold": 1
     }
   ]
