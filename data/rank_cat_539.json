@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-20 21:55:45",
-  "update_date": "2026-09-20",
+  "update_time": "2026-09-22 00:11:42",
+  "update_date": "2026-09-22",
   "category_id": 539,
-  "total_count": 592,
-  "new_count": 8,
+  "total_count": 593,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7582770497335610392",
@@ -13099,6 +13099,28 @@
       "currentPos": 130,
       "rankPosDiff": 0,
       "read_count": "1159",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7675266346426321945",
+      "book_name": "盗墓团宠：僵尸崽崽不咬人",
+      "author": "咖啡混合茶",
+      "tags": [
+        "悬疑脑洞",
+        "系统",
+        "穿越",
+        "盗墓",
+        "灵异",
+        "魂穿"
+      ],
+      "abstract": "新作品出炉，欢迎大家前往番茄小说阅读我的作品，希望大家能够喜欢，你们的关注是我写作的动力，我会努力讲好每个故事！",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o2493ba0da35f333d408b0b7e0a22b591",
+      "last_chapter_time": 1789985287,
+      "first_chapter_time": 1788589240,
+      "currentPos": 90,
+      "rankPosDiff": 0,
+      "read_count": "1737",
       "rankMold": 1
     }
   ]
