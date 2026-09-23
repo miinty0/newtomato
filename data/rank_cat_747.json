@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-22 22:20:23",
-  "update_date": "2026-09-22",
+  "update_time": "2026-09-23 22:39:58",
+  "update_date": "2026-09-23",
   "category_id": 747,
-  "total_count": 574,
-  "new_count": 9,
+  "total_count": 575,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -12469,6 +12469,28 @@
       "rankPosDiff": 0,
       "read_count": "1016",
       "rankMold": 1
+    },
+    {
+      "book_id": "7440060323899378712",
+      "book_name": "盗笔：论修仙与土夫子的适配性",
+      "author": "滑稽的兔先生",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "幻想言情",
+        "灵异",
+        "魂穿",
+        "悬疑恋爱"
+      ],
+      "abstract": "在修仙界划了千年水的白袅袅穿越了，某处深山老林里看着自己粗短的小胖手陷入沉思。\n别人穿越天胡开局，而自己……\n天都崩了！\n这还不算什么，自家老爹临死前唯一记挂的就是自家姑姑！\n接连知道自家姑姑已逝的噩耗后，东北张家祖宅迎来了偷孩子的贼！",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o8df2ec0844f566cf1683b3298431806f",
+      "last_chapter_time": 1790072806,
+      "first_chapter_time": 1753830016,
+      "currentPos": 175,
+      "rankPosDiff": 0,
+      "read_count": "11570",
+      "rankMold": 2
     }
   ]
 }
