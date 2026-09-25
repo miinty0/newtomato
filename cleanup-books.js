@@ -10,6 +10,7 @@ const SCRIPT_VERSION = '2026-08-18.4-pipe';
 //   node cleanup-books.js --mode last_chapter_time --year 2024 --data-dir ./data
 //   node cleanup-books.js --mode abstract --keyword "双男|主攻|主受" --data-dir ./data
 //   node cleanup-books.js --mode abstract --data-dir ./data
+//   node cleanup-books.js --mode combined --year 2024 --data-dir ./data
 
 function parseArgs(argv = process.argv.slice(2)) {
   const options = {
@@ -40,11 +41,13 @@ Cách dùng:
   node cleanup-books.js --mode first_chapter_time --year 2024 [--data-dir ./data] [--dry-run]
   node cleanup-books.js --mode last_chapter_time --year 2024 [--data-dir ./data] [--dry-run]
   node cleanup-books.js --mode abstract [--keyword "双男"] [--data-dir ./data] [--dry-run]
+  node cleanup-books.js --mode combined --year 2024 [--data-dir ./data] [--dry-run]
 
 Chế độ:
   first_chapter_time  Dọn theo năm của first_chapter_time ("year" vẫn là bí danh cũ).
   last_chapter_time   Dọn theo năm của last_chapter_time.
   abstract            Dùng mọi từ khóa đã lưu và có thể thêm từ mới bằng --keyword.
+  combined            Dọn nếu khớp abstract hoặc một trong hai mốc thời gian.
 
 Có thể nhập nhiều từ khóa mới trong --keyword, ngăn cách bằng dấu | hoặc xuống
 dòng. Danh sách được lưu tại data/cleanup_abstract_keywords.json sau lần chạy
@@ -55,9 +58,9 @@ thực thi thành công.
 }
 
 function validateOptions(options) {
-  const validModes = new Set(['year', 'first_chapter_time', 'last_chapter_time', 'abstract']);
+  const validModes = new Set(['year', 'first_chapter_time', 'last_chapter_time', 'abstract', 'combined']);
   if (!validModes.has(options.mode)) {
-    throw new Error('--mode phải là "first_chapter_time", "last_chapter_time" hoặc "abstract".');
+    throw new Error('--mode phải là "first_chapter_time", "last_chapter_time", "abstract" hoặc "combined".');
   }
 
   if (options.mode !== 'abstract') {
@@ -139,6 +142,13 @@ function bookMatches(book, options) {
     return year !== null && year <= options.year;
   }
 
+  if (options.mode === 'combined') {
+    const lastYear = lastChapterYear(book.last_chapter_time);
+    const firstYear = firstChapterYear(book.first_chapter_time);
+    if ((lastYear !== null && lastYear <= options.year) ||
+        (firstYear !== null && firstYear <= options.year)) return true;
+  }
+
   const abstract = String(book.abstract ?? book.description ?? '');
   const keywords = Array.isArray(options.abstractKeywords)
     ? options.abstractKeywords
@@ -186,7 +196,7 @@ function stageCleanup(options) {
   let abstractKeywords = [];
   let addedKeywords = [];
 
-  if (options.mode === 'abstract') {
+  if (options.mode === 'abstract' || options.mode === 'combined') {
     savedKeywords = readJson(keywordFilePath, []);
     if (!Array.isArray(savedKeywords) || savedKeywords.some(keyword => typeof keyword !== 'string')) {
       throw new Error('data/cleanup_abstract_keywords.json phải là một mảng chuỗi.');
@@ -308,7 +318,7 @@ function stageCleanup(options) {
     savedKeywords,
     abstractKeywords,
     addedKeywords,
-    keywordFileChanged: options.mode === 'abstract' && addedKeywords.length > 0,
+    keywordFileChanged: (options.mode === 'abstract' || options.mode === 'combined') && addedKeywords.length > 0,
     matchedIds,
     matchedBooks,
     sourceCounts,
@@ -333,6 +343,8 @@ function printPlan(plan) {
     criterion = `first_chapter_time thuộc năm ${plan.options.year} trở về trước`;
   } else if (plan.options.mode === 'last_chapter_time') {
     criterion = `last_chapter_time thuộc năm ${plan.options.year} trở về trước`;
+  } else if (plan.options.mode === 'combined') {
+    criterion = `abstract chứa từ khóa đã lưu, hoặc last_chapter_time/first_chapter_time thuộc năm ${plan.options.year} trở về trước`;
   } else {
     criterion = `abstract chứa ít nhất một trong ${plan.abstractKeywords.length} từ khóa đã lưu`;
   }
@@ -345,7 +357,7 @@ function printPlan(plan) {
   console.log(`Khớp:      ${plan.matchedIds.size} book ID`);
   console.log('='.repeat(68));
 
-  if (plan.options.mode === 'abstract') {
+  if (plan.options.mode === 'abstract' || plan.options.mode === 'combined') {
     console.log('\nTừ khóa đang áp dụng:');
     for (const keyword of plan.abstractKeywords) {
       const isNew = plan.addedKeywords.includes(keyword);
@@ -363,10 +375,16 @@ function printPlan(plan) {
   if (plan.matchedBooks.size > 0) {
     console.log('\nCác book sẽ dọn:');
     for (const book of plan.matchedBooks.values()) {
-      const year = plan.options.mode === 'last_chapter_time'
-        ? lastChapterYear(book.last_chapter_time)
-        : firstChapterYear(book.first_chapter_time);
-      console.log(`  ${book.book_id} | ${book.book_name || '(không có tên)'}${year ? ` | ${year}` : ''}`);
+      let years = '';
+      if (plan.options.mode === 'combined') {
+        years = ` | last=${lastChapterYear(book.last_chapter_time) ?? '—'} first=${firstChapterYear(book.first_chapter_time) ?? '—'}`;
+      } else {
+        const year = plan.options.mode === 'last_chapter_time'
+          ? lastChapterYear(book.last_chapter_time)
+          : firstChapterYear(book.first_chapter_time);
+        if (year) years = ` | ${year}`;
+      }
+      console.log(`  ${book.book_id} | ${book.book_name || '(không có tên)'}${years}`);
     }
   }
 
