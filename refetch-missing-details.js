@@ -87,11 +87,27 @@ function normalizeThumbUrl(url) {
 }
 
 // ========== Detect "missing detail" candidates ==========
+function hasFetchErrorMarker(value) {
+  return typeof value === 'string' && value.includes('\uFFFD');
+}
+
+function isUsableText(value) {
+  return typeof value === 'string' && value.trim() !== '' && !hasFetchErrorMarker(value);
+}
+
 function isMissingDetail(book) {
-  // A book can have a valid author and tags while its abstract is still missing.
-  // Hidden books were already checked; retrying their empty abstracts would loop forever.
+  if (!book || typeof book !== 'object') return false;
+  // Hidden books were already checked; retrying their empty fields would loop forever.
   if (book.status === 'Hidden' || book.author === '[Hidden]') return false;
-  return !String(book.abstract ?? '').trim();
+
+  const missingAuthor = !isUsableText(book.author) || book.author.trim() === 'Unknown';
+  const missingTags = !Array.isArray(book.tags) || !book.tags.some(isUsableText);
+  const missingAbstract = !isUsableText(book.abstract);
+  const corruptedField = [book.book_name, book.author, book.abstract, book.thumb_url]
+    .some(hasFetchErrorMarker) ||
+    (Array.isArray(book.tags) && book.tags.some(hasFetchErrorMarker));
+
+  return missingAuthor || missingTags || missingAbstract || corruptedField;
 }
 
 // Nuxt đôi khi serialize giá trị chưa set thành literal `undefined`
@@ -115,13 +131,13 @@ function parseDetailPage(html) {
   if (!page) return { kind: 'blocked', reason: 'không có page trong INITIAL_STATE' };
 
   const info = {};
-  if (page.bookName)   info.book_name   = page.bookName;
-  if (page.authorName) info.author      = page.authorName;
-  if (page.abstract)   info.description = page.abstract;
+  if (isUsableText(page.bookName)) info.book_name = page.bookName;
+  if (isUsableText(page.authorName) && page.authorName.trim() !== 'Unknown') info.author = page.authorName;
+  if (isUsableText(page.abstract)) info.description = page.abstract;
   const thumb = page.thumbUri || page.thumbUrl; // 2 tên field từng thấy tùy schema
-  if (thumb) info.hdImage = thumb;
+  if (isUsableText(thumb)) info.hdImage = thumb;
   if (page.categoryV2) {
-    try { info.tags = JSON.parse(page.categoryV2).map(c => c.Name).filter(Boolean); }
+    try { info.tags = JSON.parse(page.categoryV2).map(c => c.Name).filter(isUsableText); }
     catch (e) {}
   }
 
@@ -203,14 +219,15 @@ async function main() {
     fileCache[filename] = json;
     json.books.forEach((b, idx) => {
       if (!isMissingDetail(b)) return;
-      const id = b.book_id;
+      const id = String(b.book_id ?? '').trim();
+      if (!id) return;
       if (!idMap.has(id)) idMap.set(id, []);
       idMap.get(id).push({ file: filename, index: idx });
     });
   }
 
   let uniqueIds = [...idMap.keys()];
-  console.log(`Tổng số book_id thiếu abstract: ${uniqueIds.length}`);
+  console.log(`Tổng số book_id thiếu/lỗi author, tags, abstract hoặc text: ${uniqueIds.length}`);
 
   if (limit && uniqueIds.length > limit) {
     console.log(`Giới hạn theo --limit=${limit}`);
