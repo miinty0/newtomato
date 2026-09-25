@@ -124,8 +124,26 @@ function parseDetailPage(html) {
   if (!stateMatch) return { kind: 'blocked', reason: 'no __INITIAL_STATE__ (trang trắng)' };
 
   let state;
-  try { state = JSON.parse(sanitizeInitialStateJson(stateMatch[1])); }
-  catch (e) { return { kind: 'blocked', reason: `INITIAL_STATE không parse được: ${e.message}` }; }
+  let recoveredAppMount = false;
+  const serialized = sanitizeInitialStateJson(stateMatch[1]);
+  try {
+    state = JSON.parse(serialized);
+  } catch (error) {
+    // Some Fanqie responses inject the literal app mount inside the serialized
+    // abstract: ...¥@#<div id="app"></div>","thumbUri":... . The unescaped
+    // quotes in id="app" make the entire state invalid JSON. Recover only this
+    // exact mount fragment, and only when the repaired state parses cleanly.
+    const repaired = serialized.replace(/<div\s+id=(['"])app\1\s*><\/div>/i, '');
+    if (repaired === serialized) {
+      return { kind: 'blocked', reason: `INITIAL_STATE không parse được: ${error.message}` };
+    }
+    try {
+      state = JSON.parse(repaired);
+      recoveredAppMount = true;
+    } catch (repairError) {
+      return { kind: 'blocked', reason: `INITIAL_STATE không parse được sau khi bỏ app mount: ${repairError.message}` };
+    }
+  }
 
   const page = state?.page;
   if (!page) return { kind: 'blocked', reason: 'không có page trong INITIAL_STATE' };
@@ -133,7 +151,9 @@ function parseDetailPage(html) {
   const info = {};
   if (isUsableText(page.bookName)) info.book_name = page.bookName;
   if (isUsableText(page.authorName) && page.authorName.trim() !== 'Unknown') info.author = page.authorName;
-  if (isUsableText(page.abstract)) info.description = page.abstract;
+  // The injected mount interrupts the abstract; its tail may be truncated.
+  // Preserve an existing abstract and let later runs retry rather than save it.
+  if (!recoveredAppMount && isUsableText(page.abstract)) info.description = page.abstract;
   const thumb = page.thumbUri || page.thumbUrl; // 2 tên field từng thấy tùy schema
   if (isUsableText(thumb)) info.hdImage = thumb;
   if (page.categoryV2) {
@@ -147,8 +167,9 @@ function parseDetailPage(html) {
 
   if (!gotRealData) {
     // page load được nhưng rỗng hoàn toàn:
-    // status === null (explicit)  → sách bị ẩn/gỡ do vi phạm, xác nhận vĩnh viễn
+    // status === null (explicit)  → đánh dấu Hidden theo heuristic hiện có
     // status khác null (0/1/undefined) nhưng vẫn rỗng → bất thường, coi như blocked để retry sau
+    if (recoveredAppMount) return { kind: 'blocked', reason: 'INITIAL_STATE đã sửa app mount nhưng không có metadata tin cậy' };
     if (page.status === null) return { kind: 'hidden' };
     return { kind: 'blocked', reason: `page rỗng nhưng status=${page.status}` };
   }
@@ -156,7 +177,7 @@ function parseDetailPage(html) {
   const firstChapterMatch = html.match(/"realChapterOrder":"1","firstPassTime":"(\d+)"/);
   if (firstChapterMatch) info.first_chapter_time = parseInt(firstChapterMatch[1], 10);
 
-  return { kind: 'ok', info };
+  return { kind: 'ok', info, warning: recoveredAppMount ? 'INITIAL_STATE có app mount chèn vào abstract; đã lấy metadata khác, bỏ qua abstract bị cắt' : '' };
 }
 
 // Fetch + retry cho lỗi mạng/429/5xx. Sau MAX_RETRY lần vẫn fail → coi là blocked (dừng run).
@@ -286,6 +307,7 @@ async function main() {
         console.log(`  → sách bị ẩn/gỡ do vi phạm, đánh dấu Hidden (${occurrences.length} chỗ)`);
       } else if (result.kind === 'ok') {
         const info = result.info;
+        if (result.warning) console.log(`  ⚠️ [${bookId}] ${result.warning}`);
         for (const { file, index } of occurrences) {
           const book = fileCache[file].books[index];
           if (info.book_name)   book.book_name = info.book_name;
