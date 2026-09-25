@@ -456,6 +456,8 @@
   }
   .tag.completed { background: #e8f4ec; color: var(--green); border-color: #c3deca; }
   .tag.ongoing   { background: #fdf3e1; color: #8a6a00; border-color: #e8d490; }
+  .tag.special-hidden { background: #fce8ed; color: #a21d47; border-color: #f4b5ca; }
+  .tag.special-unranked { background: #fff4df; color: #945500; border-color: #f3d396; }
 
   .book-footer { display: flex; align-items: center; justify-content: space-between; }
   .book-time { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
@@ -814,6 +816,7 @@
   <button class="tab-btn" data-tab="daily" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" data-tab="category" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
   <button class="tab-btn" data-tab="rankcat" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
+  <button class="tab-btn" data-tab="special" onclick="switchTab('special', this)">⚠ Hidden / thiếu rank</button>
   <div style="flex:1"></div>
   <div class="status-filter" id="status-filter" title="Lọc theo trạng thái truyện — áp dụng cho tất cả danh mục & tab, không cần tải lại từ GitHub">
     <button class="status-filter-btn" data-value="all" onclick="setStatusFilter('all')">Tất cả</button>
@@ -841,7 +844,7 @@
     </div>
 
     <div class="home-filter-hint">
-      <strong>Bộ lọc trạng thái hiện tại:</strong> <span id="home-filter-label">Tất cả</span> — đổi ở góc phải thanh tab (áp dụng cho mọi danh mục &amp; mọi tab, lọc ngay trên dữ liệu đã tải, không cần tải lại).
+      <strong>Bộ lọc trạng thái hiện tại:</strong> <span id="home-filter-label">Tất cả</span> — đổi ở góc phải thanh tab (áp dụng cho Hàng ngày, Danh mục và Rank đọc; tab Hidden / thiếu rank luôn hiển thị đủ kết quả).
     </div>
 
     <div class="home-grid">
@@ -861,6 +864,12 @@
         <div class="home-card-icon">📈</div>
         <div class="home-card-title">Rank đọc theo danh mục</div>
         <div class="home-card-desc">Xem bảng xếp hạng lượt đọc theo danh mục. Không phụ thuộc tab Hàng ngày nên vào là tải ngay, không phải chờ.</div>
+        <div class="home-card-cta">Vào tab →</div>
+      </div>
+      <div class="home-card" id="home-card-special" onclick="goToTab('special')">
+        <div class="home-card-icon">⚠️</div>
+        <div class="home-card-title">Hidden / thiếu rank</div>
+        <div class="home-card-desc">Tìm truyện bị đánh dấu Hidden hoặc thiếu rank trong dữ liệu đã lưu. Quét các nguồn khi bạn mở tab này.</div>
         <div class="home-card-cta">Vào tab →</div>
       </div>
     </div>
@@ -1026,6 +1035,34 @@
     <div id="rankcat-pagination-bottom" class="pagination"></div>
   </div>
 
+  <!-- ════ HIDDEN / UNRANKED TAB ════ -->
+  <div id="tab-special" class="tab-panel">
+    <div class="section-header">
+      <div>
+        <div class="section-title">Hidden / thiếu rank</div>
+        <div id="special-update-info" class="update-info">Chỉ quét dữ liệu khi mở tab này.</div>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-outline btn-sm" id="special-reload-btn" onclick="loadSpecial()">↻ Quét lại</button>
+      </div>
+    </div>
+    <div class="cat-toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input id="special-search" type="text" placeholder="Tìm tên truyện, book_id, tag hoặc từ khóa…" oninput="filterSpecialBooks()" />
+      </div>
+    </div>
+    <div class="read-submit-bar" id="special-read-bar" style="display:none">
+      <div class="read-submit-info">Đã đánh dấu <strong id="special-marked-count">0</strong> sách đã đọc.</div>
+      <button class="btn btn-success btn-sm" onclick="submitRead('special')">✓ Lưu danh sách đã đọc</button>
+    </div>
+    <div id="special-pagination-top" class="pagination"></div>
+    <div id="special-books" class="books-grid">
+      <div class="state-box"><div class="icon">⚠️</div>Mở tab để quét dữ liệu.</div>
+    </div>
+    <div id="special-pagination-bottom" class="pagination"></div>
+  </div>
+
 </main>
 
 <!-- ── Abstract modal ── -->
@@ -1056,6 +1093,7 @@ let CFG = { user: '', repo: '', token: '' };
 let dailyLoaded  = false;
 let catInitDone  = false;
 let rcInitDone   = false;
+let specialLoaded = false;
 
 // ── Global status filter (Ongoing / Completed / All) ──
 // Applies across every tab & category. Persisted in localStorage. Changing
@@ -1067,7 +1105,7 @@ let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 
 // Only the current slice exists in the DOM, so score loading is capped at the
 // same 200 books instead of walking through thousands of off-page cards.
 const BOOKS_PER_PAGE = 500;
-const booksPage = { daily: 1, category: 1, rankcat: 1 };
+const booksPage = { daily: 1, category: 1, rankcat: 1, special: 1 };
 
 function paginationPrefix(tab) {
   return tab === 'category' ? 'cat' : tab;
@@ -1131,6 +1169,7 @@ function setBooksPage(tab, pageNumber) {
   if (tab === 'daily') renderDaily();
   else if (tab === 'category') renderCatPanels();
   else if (tab === 'rankcat') renderRcPanels();
+  else if (tab === 'special') renderSpecial();
 
   requestAnimationFrame(() => {
     const top = document.getElementById(`${paginationPrefix(tab)}-pagination-top`);
@@ -1639,6 +1678,7 @@ function switchTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+  document.getElementById('status-filter').style.display = id === 'special' ? 'none' : '';
 
   // Lazy-load: only fetch a tab's data the first time it's actually opened.
   if (id === 'daily' && !dailyLoaded) {
@@ -1653,6 +1693,10 @@ function switchTab(id, btn) {
     rcInitDone = true;
     document.getElementById('home-card-rankcat')?.classList.add('loaded');
     detectExistingRankCats();
+  } else if (id === 'special' && !specialLoaded) {
+    specialLoaded = true;
+    document.getElementById('home-card-special')?.classList.add('loaded');
+    loadSpecial();
   }
 }
 
@@ -1699,6 +1743,20 @@ async function ghRaw(filePath) {
   const text = b64DecodeUTF8(meta.content);
   return JSON.parse(text);
 }
+
+async function ghListDirectory(filePath) {
+  const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}?ref=data`;
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
+  });
+  if (!res.ok) throw new Error(`${filePath}: HTTP ${res.status}`);
+  const entries = await res.json();
+  if (!Array.isArray(entries)) throw new Error(`${filePath}: không đọc được danh sách file`);
+  if (entries.length >= 1000) throw new Error(`${filePath}: danh sách file vượt giới hạn GitHub API`);
+  return entries;
+}
+
 async function ghRawLarge(filePath) {
   const ref = filePath.startsWith('data/') ? '?ref=data' : '';
   const contentsUrl = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}${ref}`;
@@ -1776,7 +1834,7 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
 
 
 // Read list helpers
-const pendingRead = { daily: new Set(), category: new Set(), rankcat: new Set() };
+const pendingRead = { daily: new Set(), category: new Set(), rankcat: new Set(), special: new Set() };
 const cleanupQueuedIds = new Set();
 let cleanupActivePromise = null;
 function updateReadBar(tab) {
@@ -1804,6 +1862,10 @@ async function runFullCleanup() {
     }
     btn.textContent = `🧹 Đang dọn ${allReadIds.size} ID…`;
     await cleanupAfterRead(allReadIds);
+    if (specialLoaded) {
+      specialBooks = specialBooks.filter(book => !allReadIds.has(normalizedBookId(book)));
+      renderSpecial();
+    }
   } catch(e) {
     toast('Lỗi: ' + e.message, 'err');
   } finally {
@@ -2005,6 +2067,7 @@ async function submitRead(tab) {
     for (const id of justRead) {
       dailyReadSet.add(id);
       rcReadSet.add(id);
+      specialReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
     pendingRead[tab].clear();
@@ -2014,6 +2077,10 @@ async function submitRead(tab) {
     // off the old background cleanup halfway through.
     btn.textContent = '🧹 Đang dọn dữ liệu…';
     await cleanupAfterRead(justRead);
+    if (specialLoaded) {
+      specialBooks = specialBooks.filter(book => !justRead.has(normalizedBookId(book)));
+      renderSpecial();
+    }
     // Mark cards visually
     document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
       c.dataset.pendingRead = '';
@@ -2631,6 +2698,11 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     : book.status === 'Ongoing'
       ? `<span class="tag ongoing">Còn tiếp</span>`
       : '';
+  const specialTags = tab === 'special'
+    ? `${book._specialHidden ? '<span class="tag special-hidden">Hidden</span>' : ''}` +
+      `${book._specialNoRank ? '<span class="tag special-unranked">Thiếu rank</span>' : ''}` +
+      `${(book._specialSources || []).map(source => `<span class="tag">${source}</span>`).join('')}`
+    : '';
   const rc = rankChangeHTML(book.rank_change);
   const isPending = pendingRead[tab] && pendingRead[tab].has(bookId);
   const readBtn = isRead
@@ -2640,7 +2712,9 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     : `<button class="btn-read" onclick="toggleRead('${bookId}', this, '${tab}')">+</button>`;
 
   // rank-cat specific: currentPos + rankPosDiff + read_count
-  const posDisplay = book.currentPos != null
+  const posDisplay = tab === 'special' && book._specialNoRank
+    ? '<span>#?</span>'
+    : book.currentPos != null
     ? `<span>#${book.currentPos}</span>${book.rankPosDiff != null ? rankChangeHTML(-book.rankPosDiff) : ''}`
     : `<span>#${book.hot_rank || '?'}</span>${rc}`;
   const readCountBadge = book.read_count != null
@@ -2662,7 +2736,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
       <div class="book-author notranslate">${book.author || ''}</div>
       <a href="https://fanqienovel.com/page/${bookId}" target="_blank" rel="noopener" class="book-id-link notranslate">#${bookId}</a>
       ${book.abstract ? `<div class="book-abstract" id="abs-${bookId}">${book.abstract}</div><button class="btn-abstract" onclick="openAbstract('${bookId}', this)">Xem thêm ▾</button>` : ''}
-      <div class="book-tags">${statusTag}${tags}</div>
+      <div class="book-tags">${specialTags}${statusTag}${tags}</div>
       <div class="book-footer">
         <div class="book-time notranslate">${fmtTime(book.last_chapter_time)}${book.first_chapter_time ? '-' + fmtTime(book.first_chapter_time) : ''}</div>
         ${readBtn}
@@ -3676,6 +3750,165 @@ async function detectExistingRankCats() {
     if (changed) { saveRcHistory(h); renderRcHistory(); }
   } catch(e) {}
 }
+// HIDDEN / UNRANKED TAB
+// Read only on entry. Scan each saved book source once and keep just the
+// exceptional books, so the other tabs never pay for this full data scan.
+let specialBooks = [];
+let specialReadSet = new Set();
+let specialScanErrors = 0;
+
+function hasSavedRank(book, filePath) {
+  const field = /^data\/rank_cat_\d+\.json$/.test(filePath) ? 'currentPos' : 'hot_rank';
+  const raw = book[field];
+  return raw != null && raw !== '' && Number.isFinite(Number(raw)) && Number(raw) > 0;
+}
+
+function specialSourceLabel(filePath) {
+  if (filePath.startsWith('data/history/')) return 'Lịch sử';
+  if (filePath.startsWith('data/category_')) return 'Danh mục';
+  if (filePath.startsWith('data/rank_cat_')) return 'Rank đọc';
+  return 'Mới nhất';
+}
+
+function addSpecialBooks(matches, data, filePath) {
+  if (!Array.isArray(data?.books)) return;
+  for (const book of data.books) {
+    if (!book || typeof book !== 'object') continue;
+    const id = normalizedBookId(book);
+    if (!id) continue;
+    const hidden = book.status === 'Hidden' || book.author === '[Hidden]';
+    const noRank = !hasSavedRank(book, filePath);
+    if (!hidden && !noRank) continue;
+
+    const source = specialSourceLabel(filePath);
+    let entry = matches.get(id);
+    if (!entry) {
+      entry = { book: { ...book, book_id: id, tags: Array.isArray(book.tags) ? book.tags : [] }, hidden, noRank, sources: new Set([source]) };
+      matches.set(id, entry);
+      continue;
+    }
+    // Prefer the Hidden record, and fill missing detail from other copies.
+    if (hidden && !entry.hidden) entry.book = { ...book, book_id: id, tags: Array.isArray(book.tags) ? book.tags : [] };
+    entry.hidden ||= hidden;
+    entry.noRank ||= noRank;
+    entry.sources.add(source);
+    for (const field of ['book_name', 'author', 'abstract', 'thumb_url']) {
+      const placeholder = (field === 'author' && ['Unknown', '[Hidden]'].includes(entry.book.author)) ||
+        (field === 'book_name' && /^ID:\d+$/.test(entry.book.book_name || ''));
+      if ((!entry.book[field] || placeholder) && book[field] && !String(book[field]).includes('\uFFFD')) {
+        if (field !== 'author' || (book.author !== 'Unknown' && book.author !== '[Hidden]')) {
+          entry.book[field] = book[field];
+        }
+      }
+    }
+    if ((!Array.isArray(entry.book.tags) || entry.book.tags.length === 0) && Array.isArray(book.tags)) {
+      entry.book.tags = book.tags;
+    }
+    if (book.rankMold === 1) entry.book.rankMold = 1;
+  }
+}
+
+async function loadSpecial() {
+  const btn = document.getElementById('special-reload-btn');
+  const infoEl = document.getElementById('special-update-info');
+  const container = document.getElementById('special-books');
+  btn.disabled = true;
+  booksPage.special = 1;
+  clearPagination('special');
+  unobserveScoresIn(container);
+  container.innerHTML = '<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tìm truyện Hidden / thiếu rank…</div>';
+
+  try {
+    await ensureStatusOverrides();
+    const [rootFiles, historyFiles, readIds] = await Promise.all([
+      ghListDirectory('data'),
+      ghListDirectory('data/history'),
+      ghRaw('data/read.json'),
+    ]);
+    specialReadSet = new Set(readIds.map(String));
+    const rootPaths = rootFiles
+      .filter(f => f.type === 'file' && /^(?:latest|category_\d+|rank_cat_\d+)\.json$/.test(f.name))
+      .map(f => `data/${f.name}`);
+    const historyPaths = historyFiles
+      .filter(f => f.type === 'file' && /^\d{4}-\d{2}-\d{2}\.json$/.test(f.name))
+      .map(f => `data/history/${f.name}`).sort().reverse();
+    const files = [
+      ...rootPaths.filter(p => p === 'data/latest.json'),
+      ...historyPaths,
+      ...rootPaths.filter(p => p !== 'data/latest.json').sort(),
+    ];
+    const matches = new Map();
+    const failures = [];
+    let next = 0;
+    let finished = 0;
+    const scan = async () => {
+      while (next < files.length) {
+        const filePath = files[next++];
+        try {
+          addSpecialBooks(matches, await ghRawLarge(filePath), filePath);
+        } catch (error) {
+          failures.push(filePath);
+          console.warn('Không tải được ' + filePath + ':', error);
+        }
+        finished++;
+        infoEl.textContent = `Đang quét ${finished}/${files.length} file · tìm thấy ${matches.size} truyện…`;
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(5, files.length) }, scan));
+    specialScanErrors = failures.length;
+    specialBooks = [...matches.entries()].map(([id, entry]) => ({
+      ...entry.book,
+      book_id: id,
+      status: entry.hidden ? 'Hidden' : entry.book.status,
+      _specialHidden: entry.hidden,
+      _specialNoRank: entry.noRank,
+      _specialSources: [...entry.sources],
+    })).sort((a, b) =>
+      Number(b._specialHidden) - Number(a._specialHidden) ||
+      (a.book_id < b.book_id ? -1 : a.book_id > b.book_id ? 1 : 0)
+    );
+    registerBooks(specialBooks);
+    for (const book of specialBooks) if (book._specialHidden) book.status = 'Hidden';
+    specialLoaded = true;
+    renderSpecial();
+  } catch (error) {
+    specialLoaded = false;
+    infoEl.textContent = 'Không tải được danh sách nguồn.';
+    container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${error.message}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderSpecial() {
+  const container = document.getElementById('special-books');
+  const infoEl = document.getElementById('special-update-info');
+  const query = document.getElementById('special-search').value.toLowerCase().trim();
+  const books = query ? specialBooks.filter(b =>
+    normalizedBookId(b).includes(query) || bookMatchesQuery(b, query)
+  ) : specialBooks;
+  unobserveScoresIn(container);
+  const hiddenCount = specialBooks.filter(b => b._specialHidden).length;
+  const noRankCount = specialBooks.filter(b => b._specialNoRank).length;
+  infoEl.textContent = `${specialBooks.length} truyện · ${hiddenCount} Hidden · ${noRankCount} thiếu rank` +
+    (specialScanErrors ? ` · ⚠ ${specialScanErrors} file lỗi, bấm Quét lại` : '') +
+    (query ? ` · tìm thấy ${books.length}` : '');
+  if (books.length === 0) {
+    clearPagination('special');
+    container.innerHTML = `<div class="state-box"><div class="icon">📭</div>${query ? 'Không có truyện khớp tìm kiếm.' : 'Không tìm thấy truyện Hidden hoặc thiếu rank trong các file đã quét.'}</div>`;
+    return;
+  }
+  const page = renderPagination('special', books.length);
+  const pageBooks = books.slice(page.start, page.end);
+  container.innerHTML = pageBooks.map(b => bookCardHTML(b, 'special', specialReadSet)).join('');
+  loadScoresForCards(pageBooks, container);
+}
+
+function filterSpecialBooks() {
+  booksPage.special = 1;
+  if (specialLoaded) renderSpecial();
+}
+
 async function initApp() {
   // Cheap, local-only setup (dropdown options, localStorage-cached history).
   // No network calls here — nothing loads until the user opens a tab.
