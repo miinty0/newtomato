@@ -88,10 +88,10 @@ function normalizeThumbUrl(url) {
 
 // ========== Detect "missing detail" candidates ==========
 function isMissingDetail(book) {
-  const noAuthor   = !book.author || book.author === 'Unknown';
-  const noTags     = !book.tags || book.tags.length === 0;
-  const noAbstract = !book.abstract || book.abstract === '';
-  return noAuthor && noTags && noAbstract;
+  // A book can have a valid author and tags while its abstract is still missing.
+  // Hidden books were already checked; retrying their empty abstracts would loop forever.
+  if (book.status === 'Hidden' || book.author === '[Hidden]') return false;
+  return !String(book.abstract ?? '').trim();
 }
 
 // Nuxt đôi khi serialize giá trị chưa set thành literal `undefined`
@@ -210,7 +210,7 @@ async function main() {
   }
 
   let uniqueIds = [...idMap.keys()];
-  console.log(`Tổng số book_id thiếu detail (author/tags/abstract): ${uniqueIds.length}`);
+  console.log(`Tổng số book_id thiếu abstract: ${uniqueIds.length}`);
 
   if (limit && uniqueIds.length > limit) {
     console.log(`Giới hạn theo --limit=${limit}`);
