@@ -1806,9 +1806,13 @@ async function ghGetFile(filePath) {
 
 async function ghPutFile(filePath, content, message, sha) {
   const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/${filePath}`;
-  // UTF-8 safe base64 encode
+  // Convert large UTF-8 files in chunks to avoid allocating one array per byte.
   const utf8Bytes = new TextEncoder().encode(content);
-  const b64 = btoa(Array.from(utf8Bytes, b => String.fromCharCode(b)).join(''));
+  const chunks = [];
+  for (let i = 0; i < utf8Bytes.length; i += 0x8000) {
+    chunks.push(String.fromCharCode(...utf8Bytes.subarray(i, i + 0x8000)));
+  }
+  const b64 = btoa(chunks.join(''));
   const branch = filePath.startsWith('data/') ? 'data' : 'main';
   const body = { message, content: b64, branch };
   if (sha) body.sha = sha;
@@ -1935,38 +1939,40 @@ async function performCleanup(ids) {
       }
     } catch(e) { noteFailure('data/latest.json', e); }
 
-    // ── 2. Clean history files ──
+    // ── 2. Clean every history file, including dates outside history_index.json ──
     try {
       const idxMeta = await ghGetFile('data/history_index.json');
       const histDates = JSON.parse(b64DecodeUTF8(idxMeta.content));
-      const remainingDates = [];
+      const historyEntries = await ghListDirectory('data/history');
+      const allDates = historyEntries
+        .filter(f => f.type === 'file' && /^\d{4}-\d{2}-\d{2}\.json$/.test(f.name))
+        .map(f => f.name.slice(0, -5));
+      const deletedDates = new Set();
 
-      for (const date of histDates) {
+      for (const date of allDates) {
         try {
           const filePath = `data/history/${date}.json`;
           const meta = await ghGetFile(filePath);
           const data = JSON.parse(b64DecodeUTF8(meta.content));
           const filtered = (data.books || []).filter(b => !ids.has(String(b.book_id)));
 
+          if (filtered.length === (data.books || []).length) continue;
           if (filtered.length === 0) {
-            // Delete the file entirely
             await ghDeleteFile(filePath, meta.sha, `cleanup: remove empty history ${date}`);
-          } else if (filtered.length !== (data.books || []).length) {
+            deletedDates.add(date);
+          } else {
             data.books = filtered;
             data.total_count = filtered.length;
             await ghPutFile(filePath, JSON.stringify(data, null, 2), `cleanup: remove read books from history ${date}`, meta.sha);
-            remainingDates.push(date);
-          } else {
-            remainingDates.push(date);
           }
-        } catch(e) { remainingDates.push(date); noteFailure(`data/history/${date}.json`, e); }
+        } catch(e) { noteFailure(`data/history/${date}.json`, e); }
       }
 
-      // Update history_index.json if any dates were removed
+      const remainingDates = histDates.filter(date => !deletedDates.has(String(date)));
       if (remainingDates.length !== histDates.length) {
         await ghPutFile('data/history_index.json', JSON.stringify(remainingDates, null, 2), `cleanup: remove ${histDates.length - remainingDates.length} empty history file(s)`, idxMeta.sha);
       }
-    } catch(e) { noteFailure('data/history_index.json', e); }
+    } catch(e) { noteFailure('data/history/', e); }
 
     // ── 3. Clean cache.json ──
     try {
