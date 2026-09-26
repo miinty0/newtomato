@@ -52,7 +52,7 @@ jobs:
 
       - name: cleanup newly fetched and existing books
         if: ${{ github.event_name == 'schedule' }}
-        run: node cleanup-books.js --mode combined --year 2024 --data-dir ./data
+        run: node cleanup-books.js --mode combined --last-year 2024 --first-year 2023 --data-dir ./data
 
       - name: save to data branch
         run: |
