@@ -10,12 +10,14 @@ const SCRIPT_VERSION = '2026-08-18.4-pipe';
 //   node cleanup-books.js --mode last_chapter_time --year 2024 --data-dir ./data
 //   node cleanup-books.js --mode abstract --keyword "双男|主攻|主受" --data-dir ./data
 //   node cleanup-books.js --mode abstract --data-dir ./data
-//   node cleanup-books.js --mode combined --year 2024 --data-dir ./data
+//   node cleanup-books.js --mode combined --last-year 2024 --first-year 2023 --data-dir ./data
 
 function parseArgs(argv = process.argv.slice(2)) {
   const options = {
     mode: '',
     year: '',
+    lastYear: '',
+    firstYear: '',
     keyword: '',
     dataDir: path.join(__dirname, 'data'),
     dryRun: false,
@@ -25,6 +27,8 @@ function parseArgs(argv = process.argv.slice(2)) {
     const arg = argv[i];
     if (arg === '--mode' && argv[i + 1] !== undefined) options.mode = argv[++i].trim();
     else if (arg === '--year' && argv[i + 1] !== undefined) options.year = argv[++i].trim();
+    else if (arg === '--last-year' && argv[i + 1] !== undefined) options.lastYear = argv[++i].trim();
+    else if (arg === '--first-year' && argv[i + 1] !== undefined) options.firstYear = argv[++i].trim();
     else if (arg === '--keyword' && argv[i + 1] !== undefined) options.keyword = argv[++i];
     else if (arg === '--data-dir' && argv[i + 1] !== undefined) options.dataDir = path.resolve(argv[++i]);
     else if (arg === '--dry-run') options.dryRun = true;
@@ -41,13 +45,13 @@ Cách dùng:
   node cleanup-books.js --mode first_chapter_time --year 2024 [--data-dir ./data] [--dry-run]
   node cleanup-books.js --mode last_chapter_time --year 2024 [--data-dir ./data] [--dry-run]
   node cleanup-books.js --mode abstract [--keyword "双男"] [--data-dir ./data] [--dry-run]
-  node cleanup-books.js --mode combined --year 2024 [--data-dir ./data] [--dry-run]
+  node cleanup-books.js --mode combined --last-year 2024 --first-year 2023 [--data-dir ./data] [--dry-run]
 
 Chế độ:
   first_chapter_time  Dọn theo năm của first_chapter_time ("year" vẫn là bí danh cũ).
   last_chapter_time   Dọn theo năm của last_chapter_time.
   abstract            Dùng mọi từ khóa đã lưu và có thể thêm từ mới bằng --keyword.
-  combined            Dọn nếu khớp abstract hoặc một trong hai mốc thời gian.
+  combined            Dọn nếu khớp abstract hoặc từng mốc thời gian riêng.
 
 Có thể nhập nhiều từ khóa mới trong --keyword, ngăn cách bằng dấu | hoặc xuống
 dòng. Danh sách được lưu tại data/cleanup_abstract_keywords.json sau lần chạy
@@ -63,7 +67,15 @@ function validateOptions(options) {
     throw new Error('--mode phải là "first_chapter_time", "last_chapter_time", "abstract" hoặc "combined".');
   }
 
-  if (options.mode !== 'abstract') {
+  if (options.mode === 'combined') {
+    for (const [key, flag] of [['lastYear', '--last-year'], ['firstYear', '--first-year']]) {
+      const year = Number(options[key]);
+      if (options[key] === '' || !Number.isInteger(year) || year < 1900 || year > 2100) {
+        throw new Error(`${flag} phải là một năm hợp lệ từ 1900 đến 2100.`);
+      }
+      options[key] = year;
+    }
+  } else if (options.mode !== 'abstract') {
     const year = Number(options.year);
     if (!Number.isInteger(year) || year < 1900 || year > 2100) {
       throw new Error('--year phải là một năm hợp lệ từ 1900 đến 2100.');
@@ -145,8 +157,8 @@ function bookMatches(book, options) {
   if (options.mode === 'combined') {
     const lastYear = lastChapterYear(book.last_chapter_time);
     const firstYear = firstChapterYear(book.first_chapter_time);
-    if ((lastYear !== null && lastYear <= options.year) ||
-        (firstYear !== null && firstYear <= options.year)) return true;
+    if ((lastYear !== null && lastYear <= options.lastYear) ||
+        (firstYear !== null && firstYear <= options.firstYear)) return true;
   }
 
   const abstract = String(book.abstract ?? book.description ?? '');
@@ -344,7 +356,7 @@ function printPlan(plan) {
   } else if (plan.options.mode === 'last_chapter_time') {
     criterion = `last_chapter_time thuộc năm ${plan.options.year} trở về trước`;
   } else if (plan.options.mode === 'combined') {
-    criterion = `abstract chứa từ khóa đã lưu, hoặc last_chapter_time/first_chapter_time thuộc năm ${plan.options.year} trở về trước`;
+    criterion = `abstract chứa từ khóa đã lưu, hoặc last_chapter_time thuộc năm ${plan.options.lastYear} trở về trước, hoặc first_chapter_time thuộc năm ${plan.options.firstYear} trở về trước`;
   } else {
     criterion = `abstract chứa ít nhất một trong ${plan.abstractKeywords.length} từ khóa đã lưu`;
   }
