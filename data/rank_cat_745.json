@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-25 22:59:28",
-  "update_date": "2026-09-25",
+  "update_time": "2026-09-26 22:03:32",
+  "update_date": "2026-09-26",
   "category_id": 745,
-  "total_count": 748,
-  "new_count": 7,
+  "total_count": 749,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7590727777817480254",
@@ -16353,6 +16353,28 @@
       "currentPos": 150,
       "rankPosDiff": 0,
       "read_count": "1001",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7641912975720188953",
+      "book_name": "恋爱脑觉醒后，团播被神豪宠疯了",
+      "author": "王悄悄",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "系统",
+        "宠妻",
+        "娱乐圈",
+        "直播"
+      ],
+      "abstract": "【女主事业批＋多男主＋个播＋团播＋娱乐圈＋甜宠】\n巅峰时期，孟朝颜恋爱脑上头，为爱退圈，亲手把星途掐了。\n结果呢？渣男翻脸比翻书还快，情场事业双双扑街，全网看笑话。\n她深夜翻来覆去emo了八百遍：要是当初没被爱情PUA，何至于混成这样？\n可惜人生没有撤回键！\n就在低谷之际，重启人生系统，突然加载成功。没法重来，但能从现在开始逆天改命。\n从此，孟朝颜彻底撕碎了恋爱脑，一头扎进团播赛道，开卷！\n心怀鬼胎的神豪大哥轮番示好，疯狂爆金币！\n谈恋爱？往后稍稍！\n她现在只想搞钱搞事业！",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oed8ca1ddf8cd61219a41d6855385594f",
+      "last_chapter_time": 1790383493,
+      "first_chapter_time": 1788222042,
+      "currentPos": 146,
+      "rankPosDiff": 0,
+      "read_count": "1051",
       "rankMold": 1
     }
   ]
