@@ -767,6 +767,23 @@
   .home-card-desc { font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 14px; }
   .home-card-cta { font-size: 12px; font-weight: 600; color: var(--accent); }
   .home-card.loaded .home-card-cta::after { content: ' ✓'; }
+  .home-read-import {
+    margin-top: 24px; padding: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  .home-read-title { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .home-read-help { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+  #home-read-ids {
+    display: block; width: 100%; min-height: 86px; box-sizing: border-box;
+    padding: 11px 12px; resize: vertical; border: 1px solid var(--border2);
+    border-radius: 8px; background: var(--surface); color: var(--text);
+    font: 12px/1.6 'DM Mono', monospace;
+  }
+  #home-read-ids:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .home-read-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+  #home-read-preview { font-size: 12px; color: var(--muted); }
+  #home-read-preview.invalid { color: var(--accent); }
 
   /* ── Rank-cat read count badge ── */
   .read-count-badge {
@@ -816,12 +833,12 @@
   <button class="tab-btn" data-tab="daily" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" data-tab="category" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
   <button class="tab-btn" data-tab="rankcat" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
-  <button class="tab-btn" data-tab="special" onclick="switchTab('special', this)">⚠ Hidden / thiếu rank</button>
   <div style="flex:1"></div>
-  <div class="status-filter" id="status-filter" title="Lọc theo trạng thái truyện — áp dụng cho tất cả danh mục & tab, không cần tải lại từ GitHub">
+  <div class="status-filter" id="status-filter" title="Lọc truyện theo trạng thái; Ẩn gồm Hidden và thiếu rank">
     <button class="status-filter-btn" data-value="all" onclick="setStatusFilter('all')">Tất cả</button>
-    <button class="status-filter-btn" data-value="Ongoing" onclick="setStatusFilter('Ongoing')">🟡 Đang ra</button>
-    <button class="status-filter-btn" data-value="Completed" onclick="setStatusFilter('Completed')">🟢 Hoàn thành</button>
+    <button class="status-filter-btn" data-value="Ongoing" onclick="setStatusFilter('Ongoing')">Còn tiếp</button>
+    <button class="status-filter-btn" data-value="Completed" onclick="setStatusFilter('Completed')">Hoàn thành</button>
+    <button class="status-filter-btn" data-value="Hidden" onclick="setStatusFilter('Hidden')">Ẩn</button>
   </div>
   <button class="tab-btn" id="retry-scores-btn" onclick="retryLoadingScores()" title="Tải đồng thời toàn bộ score còn thiếu trên trang hiện tại và tự lặp lại đến khi hoàn tất; bấm lần nữa để dừng" style="font-size:12px;padding:10px 14px;color:var(--muted);">⭐ Retry score</button>
   <button class="tab-btn" id="cleanup-btn" onclick="runFullCleanup()" title="Dọn truyện đã đọc khỏi latest, history, cache, category, rank-cat và các file seen" style="font-size:12px;padding:10px 14px;color:var(--muted);">🧹 Dọn dẹp</button>
@@ -844,7 +861,7 @@
     </div>
 
     <div class="home-filter-hint">
-      <strong>Bộ lọc trạng thái hiện tại:</strong> <span id="home-filter-label">Tất cả</span> — đổi ở góc phải thanh tab (áp dụng cho Hàng ngày, Danh mục và Rank đọc; tab Hidden / thiếu rank luôn hiển thị đủ kết quả).
+      <strong>Bộ lọc trạng thái hiện tại:</strong> <span id="home-filter-label">Tất cả</span> — chọn Ẩn để xem truyện Hidden hoặc thiếu rank trong dữ liệu đã lưu.
     </div>
 
     <div class="home-grid">
@@ -866,13 +883,17 @@
         <div class="home-card-desc">Xem bảng xếp hạng lượt đọc theo danh mục. Không phụ thuộc tab Hàng ngày nên vào là tải ngay, không phải chờ.</div>
         <div class="home-card-cta">Vào tab →</div>
       </div>
-      <div class="home-card" id="home-card-special" onclick="goToTab('special')">
-        <div class="home-card-icon">⚠️</div>
-        <div class="home-card-title">Hidden / thiếu rank</div>
-        <div class="home-card-desc">Tìm truyện bị đánh dấu Hidden hoặc thiếu rank trong dữ liệu đã lưu. Quét các nguồn khi bạn mở tab này.</div>
-        <div class="home-card-cta">Vào tab →</div>
-      </div>
     </div>
+
+    <section class="home-read-import" aria-labelledby="home-read-title">
+      <div class="home-read-title" id="home-read-title">Dán danh sách đã đọc</div>
+      <div class="home-read-help">Nhập các fanqie_id, ngăn cách bằng dấu |. Ví dụ: 7651234567890123456 | 7659876543210987654</div>
+      <textarea id="home-read-ids" rows="3" spellcheck="false" placeholder="fanqie_id | fanqie_id | ..." oninput="updateHomeReadPreview()"></textarea>
+      <div class="home-read-actions">
+        <span id="home-read-preview" aria-live="polite">Dán ID để lưu và dọn khỏi dữ liệu.</span>
+        <button class="btn btn-success btn-sm" id="home-read-save" onclick="saveHomeReadIds()" disabled>✓ Lưu danh sách đã đọc</button>
+      </div>
+    </section>
   </div>
 
   <!-- ════ DAILY TAB ════ -->
@@ -1035,12 +1056,12 @@
     <div id="rankcat-pagination-bottom" class="pagination"></div>
   </div>
 
-  <!-- ════ HIDDEN / UNRANKED TAB ════ -->
+  <!-- ════ HIDDEN FILTER RESULTS ════ -->
   <div id="tab-special" class="tab-panel">
     <div class="section-header">
       <div>
-        <div class="section-title">Hidden / thiếu rank</div>
-        <div id="special-update-info" class="update-info">Chỉ quét dữ liệu khi mở tab này.</div>
+        <div class="section-title">Truyện ẩn / thiếu rank</div>
+        <div id="special-update-info" class="update-info">Chỉ quét dữ liệu khi chọn bộ lọc Ẩn.</div>
       </div>
       <div class="action-row">
         <button class="btn btn-outline btn-sm" id="special-reload-btn" onclick="loadSpecial()">↻ Quét lại</button>
@@ -1058,7 +1079,7 @@
     </div>
     <div id="special-pagination-top" class="pagination"></div>
     <div id="special-books" class="books-grid">
-      <div class="state-box"><div class="icon">⚠️</div>Mở tab để quét dữ liệu.</div>
+      <div class="state-box"><div class="icon">⚠️</div>Chọn Ẩn để quét dữ liệu.</div>
     </div>
     <div id="special-pagination-bottom" class="pagination"></div>
   </div>
@@ -1094,12 +1115,13 @@ let dailyLoaded  = false;
 let catInitDone  = false;
 let rcInitDone   = false;
 let specialLoaded = false;
+let specialLoading = false;
 
-// ── Global status filter (Ongoing / Completed / All) ──
-// Applies across every tab & category. Persisted in localStorage. Changing
-// it re-renders from already-cached data (no re-fetch from GitHub needed).
+// The Hidden option opens the combined Hidden / missing-rank results lazily.
 const STATUS_FILTER_KEY = 'fq_status_filter';
-let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all'; // 'all' | 'Ongoing' | 'Completed'
+let statusFilter = localStorage.getItem(STATUS_FILTER_KEY) || 'all';
+if (!['all', 'Ongoing', 'Completed', 'Hidden'].includes(statusFilter)) statusFilter = 'all';
+let lastRegularTab = 'home';
 
 // ── Shared pagination for the three book tabs ──
 // Only the current slice exists in the DOM, so score loading is capped at the
@@ -1188,19 +1210,36 @@ function filterByStatus(books) {
 }
 
 function statusFilterLabel(value = statusFilter) {
-  if (value === 'Ongoing') return '🟡 Đang ra';
-  if (value === 'Completed') return '🟢 Hoàn thành';
+  if (value === 'Ongoing') return 'Còn tiếp';
+  if (value === 'Completed') return 'Hoàn thành';
+  if (value === 'Hidden') return 'Ẩn';
   return 'Tất cả';
 }
 
 function setStatusFilter(value) {
+  if (!['all', 'Ongoing', 'Completed', 'Hidden'].includes(value)) return;
   flushStatusesAtViewBoundary();
+  const wasHidden = statusFilter === 'Hidden';
   statusFilter = value;
   localStorage.setItem(STATUS_FILTER_KEY, value);
   updateStatusFilterUI();
-  booksPage.daily = booksPage.category = booksPage.rankcat = 1;
-  // Re-render whichever tabs already have cached data — purely local,
-  // no network call, so switching filters stays instant and light.
+  booksPage.daily = booksPage.category = booksPage.rankcat = booksPage.special = 1;
+
+  if (value === 'Hidden') {
+    const activePanel = document.querySelector('.tab-panel.active');
+    if (activePanel && activePanel.id !== 'tab-special') lastRegularTab = activePanel.id.slice(4);
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tabs-bar .tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-special').classList.add('active');
+    if (specialLoaded) renderSpecial();
+    else loadSpecial();
+    return;
+  }
+
+  if (wasHidden) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${lastRegularTab}"]`);
+    if (btn) switchTab(lastRegularTab, btn);
+  }
   if (dailyLoaded) renderDaily();
   renderCatPanels();
   renderRcPanels();
@@ -1674,13 +1713,19 @@ function toast(msg, type = '') {
 
 function switchTab(id, btn) {
   flushStatusesAtViewBoundary();
+  const exitingHidden = statusFilter === 'Hidden';
+  if (exitingHidden) {
+    statusFilter = 'all';
+    localStorage.setItem(STATUS_FILTER_KEY, statusFilter);
+    updateStatusFilterUI();
+  }
+  lastRegularTab = id;
+  const hadDaily = dailyLoaded, hadCategory = catInitDone, hadRankCat = rcInitDone;
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tabs-bar .tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
-  document.getElementById('status-filter').style.display = id === 'special' ? 'none' : '';
 
-  // Lazy-load: only fetch a tab's data the first time it's actually opened.
   if (id === 'daily' && !dailyLoaded) {
     dailyLoaded = true;
     document.getElementById('home-card-daily')?.classList.add('loaded');
@@ -1693,10 +1738,11 @@ function switchTab(id, btn) {
     rcInitDone = true;
     document.getElementById('home-card-rankcat')?.classList.add('loaded');
     detectExistingRankCats();
-  } else if (id === 'special' && !specialLoaded) {
-    specialLoaded = true;
-    document.getElementById('home-card-special')?.classList.add('loaded');
-    loadSpecial();
+  }
+  if (exitingHidden) {
+    if (id === 'daily' && hadDaily) renderDaily();
+    if (id === 'category' && hadCategory) renderCatPanels();
+    if (id === 'rankcat' && hadRankCat) renderRcPanels();
   }
 }
 
@@ -1852,6 +1898,7 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
 
 // Read list helpers
 const pendingRead = { daily: new Set(), category: new Set(), rankcat: new Set(), special: new Set() };
+let homeReadSaving = false;
 const cleanupQueuedIds = new Set();
 let cleanupActivePromise = null;
 function updateReadBar(tab) {
@@ -2073,6 +2120,74 @@ async function performCleanup(ids) {
   } catch(e) {
     console.error('Cleanup chưa hoàn tất:', e);
     throw e;
+  }
+}
+
+function parseHomeReadIds(value) {
+  const tokens = String(value || '').split(/[|\r\n]+/).map(s => s.trim()).filter(Boolean);
+  const invalid = tokens.filter(id => !/^\d{15,20}$/.test(id));
+  return { ids: [...new Set(tokens.filter(id => /^\d{15,20}$/.test(id)))], invalid };
+}
+
+function updateHomeReadPreview() {
+  const input = document.getElementById('home-read-ids');
+  const preview = document.getElementById('home-read-preview');
+  const button = document.getElementById('home-read-save');
+  const { ids, invalid } = parseHomeReadIds(input.value);
+  preview.classList.toggle('invalid', invalid.length > 0);
+  preview.textContent = invalid.length
+    ? `Có ${invalid.length} giá trị không phải fanqie_id: ${invalid.slice(0, 3).join(', ')}`
+    : ids.length ? `${ids.length} ID duy nhất sẽ được lưu và dọn.` : 'Dán ID để lưu và dọn khỏi dữ liệu.';
+  button.disabled = homeReadSaving || ids.length === 0 || invalid.length > 0;
+}
+
+async function saveHomeReadIds() {
+  if (homeReadSaving) return;
+  const input = document.getElementById('home-read-ids');
+  const button = document.getElementById('home-read-save');
+  const { ids, invalid } = parseHomeReadIds(input.value);
+  if (invalid.length || ids.length === 0) { updateHomeReadPreview(); return; }
+
+  homeReadSaving = true;
+  button.disabled = true;
+  button.textContent = '⏳ Đang lưu…';
+  let readSaved = false;
+  try {
+    const meta = await ghGetFile('data/read.json');
+    const current = JSON.parse(b64DecodeUTF8(meta.content)).map(String);
+    const existing = new Set(current);
+    const added = ids.filter(id => !existing.has(id));
+    if (added.length) {
+      await ghPutFile('data/read.json', JSON.stringify([...current, ...added], null, 2),
+        `mark ${added.length} pasted book(s) as read`, meta.sha);
+    }
+    readSaved = true;
+
+    const selected = new Set(ids);
+    for (const id of selected) {
+      dailyReadSet.add(id);
+      rcReadSet.add(id);
+      specialReadSet.add(id);
+      for (const cat of Object.values(catData)) cat.readSet.add(id);
+    }
+    button.textContent = '🧹 Đang dọn dữ liệu…';
+    await cleanupAfterRead(selected);
+    dailyRawBooks = dailyRawBooks.filter(book => !selected.has(normalizedBookId(book)));
+    if (dailyLoaded) renderDaily();
+    if (Object.keys(catData).length) renderCatPanels();
+    if (Object.keys(rcData).length) renderRcPanels();
+    if (specialLoaded) {
+      specialBooks = specialBooks.filter(book => !selected.has(normalizedBookId(book)));
+      renderSpecial();
+    }
+    input.value = '';
+    toast(`✓ Đã lưu ${added.length} ID mới và dọn ${ids.length} ID khỏi dữ liệu.`, 'ok');
+  } catch (error) {
+    toast((readSaved ? 'ID đã lưu, dọn chưa hoàn tất: ' : 'Không lưu được ID: ') + error.message, 'err');
+  } finally {
+    homeReadSaving = false;
+    button.textContent = '✓ Lưu danh sách đã đọc';
+    updateHomeReadPreview();
   }
 }
 
@@ -3265,7 +3380,7 @@ document.addEventListener('click', (e) => {
 // and wait for the operation to finish.
 window.addEventListener('beforeunload', (e) => {
   const hasUnsaved = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
-  const cleanupBusy = cleanupActivePromise !== null || cleanupQueuedIds.size > 0;
+  const cleanupBusy = homeReadSaving || cleanupActivePromise !== null || cleanupQueuedIds.size > 0;
   const statusSyncBusy = statusSyncActivePromise !== null || pendingStatusOverrides.size > 0;
   if (hasUnsaved || cleanupBusy || statusSyncBusy) {
     e.preventDefault();
@@ -3841,6 +3956,8 @@ function addSpecialBooks(matches, data, filePath) {
 }
 
 async function loadSpecial() {
+  if (specialLoading) return;
+  specialLoading = true;
   const btn = document.getElementById('special-reload-btn');
   const infoEl = document.getElementById('special-update-info');
   const container = document.getElementById('special-books');
@@ -3908,6 +4025,7 @@ async function loadSpecial() {
     infoEl.textContent = 'Không tải được danh sách nguồn.';
     container.innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Lỗi tải dữ liệu: ${error.message}</div>`;
   } finally {
+    specialLoading = false;
     btn.disabled = false;
   }
 }
@@ -3949,6 +4067,7 @@ async function initApp() {
   renderFetchHistory();
   renderRcHistory();
   updateStatusFilterUI();
+  if (statusFilter === 'Hidden') setStatusFilter('Hidden');
 }
 
 loadConfig();
