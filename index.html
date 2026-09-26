@@ -1788,7 +1788,20 @@ async function ghGetFile(filePath) {
     headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  const meta = await res.json();
+  if (!meta.content || meta.encoding === 'none' || meta.truncated) {
+    if (!meta.sha) throw new Error(`${filePath}: file lớn nhưng thiếu SHA`);
+    const blobRes = await fetch(`https://api.github.com/repos/${CFG.user}/${CFG.repo}/git/blobs/${meta.sha}`, {
+      cache: 'no-store',
+      headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' },
+    });
+    if (!blobRes.ok) throw new Error(`${filePath}: Blob API HTTP ${blobRes.status}`);
+    const blob = await blobRes.json();
+    if (blob.encoding !== 'base64' || !blob.content) throw new Error(`${filePath}: blob không có nội dung base64`);
+    meta.content = blob.content;
+    meta.encoding = blob.encoding;
+  }
+  return meta;
 }
 
 async function ghPutFile(filePath, content, message, sha) {
@@ -1862,6 +1875,8 @@ async function runFullCleanup() {
     }
     btn.textContent = `🧹 Đang dọn ${allReadIds.size} ID…`;
     await cleanupAfterRead(allReadIds);
+    if (Object.keys(catData).length) renderCatPanels();
+    if (Object.keys(rcData).length) renderRcPanels();
     if (specialLoaded) {
       specialBooks = specialBooks.filter(book => !allReadIds.has(normalizedBookId(book)));
       renderSpecial();
@@ -1901,6 +1916,11 @@ async function performCleanup(ids) {
   if (ids.size === 0) return;
 
   toast(`🧹 Đang dọn ${ids.size} ID khỏi toàn bộ file dữ liệu…`, '');
+  const failedFiles = [];
+  const noteFailure = (filePath, error) => {
+    failedFiles.push(`${filePath}: ${error.message || error}`);
+    console.warn(`${filePath} cleanup failed:`, error);
+  };
 
   try {
     // ── 1. Clean latest.json ──
@@ -1913,7 +1933,7 @@ async function performCleanup(ids) {
         latest.total_count = filtered.length;
         await ghPutFile('data/latest.json', JSON.stringify(latest, null, 2), `cleanup: remove ${ids.size} read book(s) from latest`, latestMeta.sha);
       }
-    } catch(e) { console.warn('latest.json cleanup failed:', e.message); }
+    } catch(e) { noteFailure('data/latest.json', e); }
 
     // ── 2. Clean history files ──
     try {
@@ -1939,14 +1959,14 @@ async function performCleanup(ids) {
           } else {
             remainingDates.push(date);
           }
-        } catch(e) { console.warn(`history/${date} cleanup failed:`, e.message); }
+        } catch(e) { remainingDates.push(date); noteFailure(`data/history/${date}.json`, e); }
       }
 
       // Update history_index.json if any dates were removed
       if (remainingDates.length !== histDates.length) {
         await ghPutFile('data/history_index.json', JSON.stringify(remainingDates, null, 2), `cleanup: remove ${histDates.length - remainingDates.length} empty history file(s)`, idxMeta.sha);
       }
-    } catch(e) { console.warn('history cleanup failed:', e.message); }
+    } catch(e) { noteFailure('data/history_index.json', e); }
 
     // ── 3. Clean cache.json ──
     try {
@@ -1959,7 +1979,7 @@ async function performCleanup(ids) {
       if (cacheChanged) {
         await ghPutFile('data/cache.json', JSON.stringify(cache, null, 2), `cleanup: remove ${ids.size} read book(s) from cache`, cacheMeta.sha);
       }
-    } catch(e) { console.warn('cache.json cleanup failed:', e.message); }
+    } catch(e) { noteFailure('data/cache.json', e); }
 
     // ── 4. Clean ALL category files from GitHub ──
       try {
@@ -1968,7 +1988,9 @@ async function performCleanup(ids) {
         cache: 'no-store',
         headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
       });
-      const files = res.ok ? await res.json() : [];
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const files = await res.json();
+      if (!Array.isArray(files) || files.length >= 1000) throw new Error('Danh sách file data/ không đầy đủ');
 
       for (const f of files) {
         // ── category_*.json ──
@@ -1987,7 +2009,7 @@ async function performCleanup(ids) {
               // Update in-memory catData if loaded
               if (catData[catId]) catData[catId].data.books = filtered;
         }
-          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
+          } catch(e) { noteFailure(`data/${f.name}`, e); }
           continue;
     }
 
@@ -2002,7 +2024,7 @@ async function performCleanup(ids) {
               await ghPutFile(`data/${f.name}`, JSON.stringify(filtered, null, 2),
                 `cleanup: remove read IDs from ${f.name}`, meta.sha);
             }
-          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
+          } catch(e) { noteFailure(`data/${f.name}`, e); }
         }
 
         // ── rank_cat_*.json ──
@@ -2019,7 +2041,7 @@ async function performCleanup(ids) {
                 `cleanup: remove read books from rank_cat ${rcCatId}`, meta.sha);
               if (rcData[rcCatId]) rcData[rcCatId].data.books = filtered;
             }
-          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
+          } catch(e) { noteFailure(`data/${f.name}`, e); }
           continue;
         }
 
@@ -2033,14 +2055,18 @@ async function performCleanup(ids) {
               await ghPutFile(`data/${f.name}`, JSON.stringify(filtered, null, 2),
                 `cleanup: remove read IDs from ${f.name}`, meta.sha);
             }
-          } catch(e) { console.warn(`${f.name} cleanup failed:`, e.message); }
+          } catch(e) { noteFailure(`data/${f.name}`, e); }
         }
       }
-    } catch(e) { console.warn('category list failed:', e.message); }
+    } catch(e) { noteFailure('data/ (danh sách file)', e); }
 
+    if (failedFiles.length) {
+      throw new Error(`Còn ${failedFiles.length} file chưa dọn: ${failedFiles.slice(0, 5).join('; ')}`);
+    }
     toast('✓ Đã dọn xong toàn bộ file dữ liệu', 'ok');
   } catch(e) {
-    toast('⚠ Cleanup lỗi: ' + e.message, 'err');
+    console.error('Cleanup chưa hoàn tất:', e);
+    throw e;
   }
 }
 
