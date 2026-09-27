@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-26 22:03:27",
-  "update_date": "2026-09-26",
+  "update_time": "2026-09-27 22:59:33",
+  "update_date": "2026-09-27",
   "category_id": 539,
-  "total_count": 591,
-  "new_count": 2,
+  "total_count": 592,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7582770497335610392",
@@ -13060,6 +13060,29 @@
       "currentPos": 56,
       "rankPosDiff": 0,
       "read_count": "3937",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7681264071361973273",
+      "book_name": "无限噩梦：我在诡异副本里封神",
+      "author": "熬夜也要写小说",
+      "tags": [
+        "悬疑脑洞",
+        "悬疑",
+        "惊悚游戏",
+        "风水秘术",
+        "无CP",
+        "群像",
+        "灵异"
+      ],
+      "abstract": "【无限流+无cp+微群像+解密逃亡+惊悚与爽感并存】\n作为一个社畜，许晏清最大的愿望就是种一棵摇钱树，然后早日过上自由的生活。\n理想是丰满的，现实是骨感的。\n又是一个午夜降临，许晏清还在拼命敲代码，就在她以为自己快要猝死时，一个神秘空间【梦墟】向她敞开大门。\n这是一个以梦为媒介的异世界，诡怪横行、危机丛生，可只要通关梦墟，就能在现实世界里获得一切。\n危险与机遇共生，死亡与新生并存。\n从一无所知的新人，到令人闻风丧胆的主宰；从被诅咒的社畜，到主动登上圣坛的神明。\n且看她杀穿噩梦，一路封神！",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe8414ff7857de433efc5f7b9743b5edd",
+      "last_chapter_time": 1790439308,
+      "first_chapter_time": 1788434058,
+      "currentPos": 71,
+      "rankPosDiff": 56,
+      "read_count": "2778",
       "rankMold": 1
     }
   ]
