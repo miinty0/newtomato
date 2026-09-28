@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-09-27 22:59:57",
-  "update_date": "2026-09-27",
+  "update_time": "2026-09-29 01:57:57",
+  "update_date": "2026-09-29",
   "category_id": 747,
-  "total_count": 580,
-  "new_count": 10,
+  "total_count": 581,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7591716077432753177",
@@ -12604,6 +12604,27 @@
       "currentPos": 149,
       "rankPosDiff": 0,
       "read_count": "1143",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7675966710322564121",
+      "book_name": "残骨问痛",
+      "author": "小星官n年",
+      "tags": [
+        "女频悬疑",
+        "悬疑",
+        "推理",
+        "破案",
+        "悬疑恋爱"
+      ],
+      "abstract": "世人皆道死人不会说谎，却不知死人最会喊疼。\n指尖过处，死者的痛便成了她青栾的痛。\n她以痛觉为尺，丈量人心；以残躯为刃，剖开皇权秘辛。\n这双手摸尽了冰冷尸骨，尝遍了人间苦楚，直到遇见萧岐。\n他总是拈花含笑，袖中藏刃，一副与人为善的面孔却独独少了温度。\n一个比尸骨还要冷还要虚假的人在触碰她时，竟也迟疑了。\n昏暗灯影下，他指尖微凉，眼神深不见底，却说：\n“青仵作连死人的痛都受得住……怎么碰到活人，手反而抖了？”",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oa0eca87336eeab1d5f59edaa7b8f82ba",
+      "last_chapter_time": 1790604170,
+      "first_chapter_time": 1787205933,
+      "currentPos": 141,
+      "rankPosDiff": 0,
+      "read_count": "1157",
       "rankMold": 1
     }
   ]
