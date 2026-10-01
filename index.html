@@ -3041,8 +3041,8 @@ function initCatSelect() {
     const el = document.createElement('div');
     el.className = 'cat-select-option';
     el.dataset.value = c.id;
-    el.dataset.slug = slugify(c.name);
-    el.textContent = c.name;
+    el.dataset.slug = slugify(`${c.id} - ${c.name}`);
+    el.textContent = `${c.id} - ${c.name}`;
     el.onclick = () => selectCatOption(c.id, c.name);
     list.appendChild(el);
   });
@@ -3075,7 +3075,7 @@ function filterCatOptions() {
 function selectCatOption(id, name) {
   _catSelectValue = id;
   booksPage.category = 1;
-  document.getElementById('cat-select-label').textContent = name;
+  document.getElementById('cat-select-label').textContent = `${id} - ${name}`;
   document.querySelectorAll('#cat-select-list .cat-select-option').forEach(o => {
     o.classList.toggle('selected', o.dataset.value == id);
   });
@@ -3598,8 +3598,8 @@ async function initRcSelect() {
     const el = document.createElement('div');
     el.className = 'cat-select-option';
     el.dataset.value = c.id;
-    el.dataset.slug = slugify(c.name);
-    el.textContent = c.name;
+    el.dataset.slug = slugify(`${c.id} - ${c.name}`);
+    el.textContent = `${c.id} - ${c.name}`;
     el.onclick = () => selectRcOption(c.id, c.name);
     list.appendChild(el);
   });
@@ -3629,7 +3629,7 @@ function filterRcOptions() {
 function selectRcOption(id, name) {
   rcSelectValue = id;
   booksPage.rankcat = 1;
-  document.getElementById('rc-select-label').textContent = name;
+  document.getElementById('rc-select-label').textContent = `${id} - ${name}`;
   document.querySelectorAll('#rc-select-list .cat-select-option').forEach(o => {
     o.classList.toggle('selected', o.dataset.value == id);
   });
