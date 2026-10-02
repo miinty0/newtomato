@@ -842,6 +842,7 @@
   </div>
   <button class="tab-btn" id="retry-scores-btn" onclick="retryLoadingScores()" title="Tải đồng thời toàn bộ score còn thiếu trên trang hiện tại và tự lặp lại đến khi hoàn tất; bấm lần nữa để dừng" style="font-size:12px;padding:10px 14px;color:var(--muted);">⭐ Retry score</button>
   <button class="tab-btn" id="cleanup-btn" onclick="runFullCleanup()" title="Dọn truyện đã đọc khỏi latest, history, cache, category, rank-cat và các file seen" style="font-size:12px;padding:10px 14px;color:var(--muted);">🧹 Dọn dẹp</button>
+  <button class="tab-btn" onclick="fqRetryAutomaticRead().catch(error => toast(error.message, 'err'))" title="Thử lưu lại các truyện đủ điều kiện nếu lần ghi read tự động bị lỗi">↻ Thử lại read tự động</button>
 </div>
 
 <!-- ── Toast ── -->
@@ -2153,14 +2154,8 @@ async function saveHomeReadIds() {
   button.textContent = '⏳ Đang lưu…';
   let readSaved = false;
   try {
-    const meta = await ghGetFile('data/read.json');
-    const current = JSON.parse(b64DecodeUTF8(meta.content)).map(String);
-    const existing = new Set(current);
-    const added = ids.filter(id => !existing.has(id));
-    if (added.length) {
-      await ghPutFile('data/read.json', JSON.stringify([...current, ...added], null, 2),
-        `mark ${added.length} pasted book(s) as read`, meta.sha);
-    }
+    const result = await mergeReadIds(new Set(ids), `mark pasted books as read`);
+    const added = { length: result.added };
     readSaved = true;
 
     const selected = new Set(ids);
@@ -2197,17 +2192,7 @@ async function submitRead(tab) {
   const btn = document.querySelector(`#${prefix}-read-bar .btn-success`);
   btn.disabled = true; btn.textContent = '⏳ Đang lưu…';
   try {
-    // Fetch current read.json
-    let currentIds = [];
-    let sha = null;
-    try {
-      const meta = await ghGetFile('data/read.json');
-      sha = meta.sha;
-      currentIds = JSON.parse(b64DecodeUTF8(meta.content));
-    } catch(e) {}
-
-    const merged = Array.from(new Set([...currentIds, ...pendingRead[tab]]));
-    await ghPutFile('data/read.json', JSON.stringify(merged, null, 2), `mark ${pendingRead[tab].size} book(s) as read`, sha);
+    await mergeReadIds(new Set(pendingRead[tab]), `mark ${pendingRead[tab].size} book(s) as read`);
 
     // Update in-memory readSets so re-renders stay correct
     const justRead = new Set(pendingRead[tab]);
@@ -2285,12 +2270,146 @@ let statusFlushRequested = false;
 let statusFlushAfterInflight = false;
 let statusRenderTimer = null;
 
+// Only resolved numeric scores can trigger this policy. Dates are Unix seconds.
+function qualifiesForAutomaticRead(firstChapterTime, score, now = Date.now()) {
+  if (firstChapterTime == null || score == null) return false;
+  const dateText = String(firstChapterTime).trim();
+  const scoreText = String(score).trim();
+  if (!/^\d+(?:\.\d+)?$/.test(dateText) ||
+      !/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(scoreText)) return false;
+  const timestamp = Number(dateText);
+  const rating = Number(scoreText);
+  return Number.isFinite(timestamp) && timestamp > 0 &&
+    Number.isFinite(rating) && rating >= 0 && rating < 7.5 &&
+    now - timestamp * 1000 > 300 * 86400000;
+}
+
+const automaticReadQueue = new Set();
+const automaticReadSaved = new Set();
+let automaticReadTimer = null;
+let automaticReadActive = null;
+let automaticReadQueuedAt = 0;
+
+function considerAutomaticRead(bookId, score, metadata) {
+  bookId = String(bookId);
+  if (automaticReadSaved.has(bookId)) return;
+  const firstChapterTime = metadata?.first_chapter_time ??
+    _bookRegistry[bookId]?.first_chapter_time;
+  if (!qualifiesForAutomaticRead(firstChapterTime, score)) return;
+  automaticReadQueue.add(bookId);
+  if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+  scheduleAutomaticRead();
+}
+
+function scheduleAutomaticRead() {
+  if (automaticReadTimer || automaticReadActive || !automaticReadQueue.size) return;
+  automaticReadTimer = setTimeout(() => {
+    automaticReadTimer = null;
+    // Give current score requests time to finish, but a waiting bridge must
+    // never prevent resolved books from being saved.
+    if (scoreRequests.size && Date.now() - automaticReadQueuedAt < 30000) {
+      scheduleAutomaticRead();
+    } else {
+      flushAutomaticRead().catch(error => {
+        console.warn('Automatic read save failed:', error);
+        toast('Không lưu được read tự động: ' + error.message + '. Bấm Thử lại read tự động trên Trang chủ.', 'err');
+      });
+    }
+  }, 5000);
+}
+
+async function mergeReadIds(ids, message) {
+  const write = async () => {
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      let sha = null;
+      let current = [];
+      try {
+        const meta = await ghGetFile('data/read.json');
+        sha = meta.sha;
+        current = JSON.parse(b64DecodeUTF8(meta.content)).map(String);
+      } catch (error) {
+        if (!/HTTP 404/.test(error.message)) throw error;
+      }
+      const existing = new Set(current);
+      const added = [...ids].map(String).filter(id => !existing.has(id));
+      const merged = [...new Set([...current, ...added])];
+      try {
+        if (added.length) await ghPutFile('data/read.json', JSON.stringify(merged, null, 2), message, sha);
+        return { ids: new Set(merged), added: added.length };
+      } catch (error) {
+        if (!isStatusShaConflict(error) || attempt === 5) throw error;
+        await statusSyncDelay(attempt);
+      }
+    }
+  };
+  if (navigator.locks?.request) {
+    return navigator.locks.request('fq-read:' + CFG.user + '/' + CFG.repo, { mode: 'exclusive' }, write);
+  }
+  return write();
+}
+
+function applyReadIdsLocally(ids) {
+  for (const id of ids) {
+    dailyReadSet.add(id);
+    rcReadSet.add(id);
+    specialReadSet.add(id);
+    for (const cat of Object.values(catData)) cat.readSet.add(id);
+    for (const rc of Object.values(rcData)) rc.readSet.add(id);
+    for (const [tab, pending] of Object.entries(pendingRead)) {
+      pending.delete(id);
+      updateReadBar(tab);
+    }
+  }
+  dailyRawBooks = dailyRawBooks.filter(book => !ids.has(normalizedBookId(book)));
+  specialBooks = specialBooks.filter(book => !ids.has(normalizedBookId(book)));
+  if (dailyLoaded) renderDaily();
+  if (Object.keys(catData).length) renderCatPanels();
+  if (Object.keys(rcData).length) renderRcPanels();
+  if (specialLoaded) renderSpecial();
+}
+
+async function flushAutomaticRead() {
+  if (automaticReadActive) return automaticReadActive;
+  if (!automaticReadQueue.size) return;
+  const batch = new Set(automaticReadQueue);
+  automaticReadQueue.clear();
+  automaticReadQueuedAt = 0;
+  automaticReadActive = (async () => {
+    try {
+      const result = await mergeReadIds(batch, 'auto read: older than 300 days and score below 7.5');
+      for (const id of batch) automaticReadSaved.add(id);
+      applyReadIdsLocally(result.ids);
+      toast('✓ Tự đưa ' + result.added + ' truyện trên 300 ngày, score <7.5 vào read.', 'ok');
+      await cleanupAfterRead(batch);
+    } catch (error) {
+      for (const id of batch) automaticReadQueue.add(id);
+      throw error;
+    }
+  })().finally(() => {
+    automaticReadActive = null;
+    // A failed batch stays queued for an explicit retry rather than looping
+    // GitHub writes indefinitely. New scores can also schedule a retry.
+  });
+  try {
+    await automaticReadActive;
+  } catch (error) {
+    throw error;
+  }
+  scheduleAutomaticRead();
+}
+
+window.fqRetryAutomaticRead = () => {
+  clearTimeout(automaticReadTimer);
+  automaticReadTimer = null;
+  return flushAutomaticRead();
+};
+
 function mappedFanqieStatus(creationStatus) {
   const value = creationStatus === null || creationStatus === ''
     ? NaN
     : Number(creationStatus);
-  if (value === 0) return 'Ongoing';
-  if (value === 1) return 'Completed';
+  if (value === 0) return 'Completed';
+  if (value === 1) return 'Ongoing';
   return null; // 2/3/4 and unknown values are intentionally ignored
 }
 
@@ -2340,7 +2459,7 @@ function queueStatusOverride(bookId, status, creationStatus) {
 }
 
 function handleFetchedBookStatus(bookId, metadata) {
-  const status = metadata?.status || mappedFanqieStatus(metadata?.creation_status);
+  const status = mappedFanqieStatus(metadata?.creation_status) || metadata?.status;
   if (status !== 'Ongoing' && status !== 'Completed') return;
 
   const instances = _bookInstances.get(String(bookId));
@@ -2583,6 +2702,7 @@ function requestScore(bookId) {
       }
       const value = String(score);
       scoreCache.set(bookId, value);
+      considerAutomaticRead(bookId, value, metadata);
       scoreErrors.delete(bookId);
       updateScoreBadges(bookId, value);
       return value;
@@ -3422,6 +3542,7 @@ function registerBooks(books) {
     _bookRegistry[bookId] = b;
     if (!_bookInstances.has(bookId)) _bookInstances.set(bookId, new Set());
     _bookInstances.get(bookId).add(b);
+    if (scoreCache.has(bookId)) considerAutomaticRead(bookId, scoreCache.get(bookId));
   }
 }
 
