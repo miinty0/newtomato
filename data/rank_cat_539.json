@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-10-03 00:05:49",
+  "update_time": "2026-10-03 22:33:43",
   "update_date": "2026-10-03",
   "category_id": 539,
-  "total_count": 612,
-  "new_count": 2,
+  "total_count": 613,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7582770497335610392",
@@ -13520,6 +13520,28 @@
       "currentPos": 122,
       "rankPosDiff": 0,
       "read_count": "1254",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7677852366313376792",
+      "book_name": "我一F级恶毒女配吃好点很合理吧",
+      "author": "香野村妇",
+      "tags": [
+        "悬疑脑洞",
+        "系统",
+        "穿越",
+        "扮猪吃虎",
+        "灵异",
+        "基建"
+      ],
+      "abstract": "【诡异迷雾】+【男竞修罗场】+【基建】+【打怪升级】+【多男主】\n姜小七穿到了一个‘女尊’世界精神力废物的小孤儿身上，绑定了生殖系统。\n绑定男人获得好感就有礼物？生子就奖励序列能力？？\n于是，姜小七租了一间豪华小公寓，为了生存，她一个小狐狸天天扮猪吃老虎，拐回一个又一个好看哥哥。\n从此，再帅的男人都是工具人。\n结果在这生育力低下、诡异恒生的废土之上，姜小七一胎生了九个序列非凡，从此成了各方心怀怪胎掌权者争夺的对象，她带着男人们闯入秘境，一边寻找真正的神明，一边建立了一方真正的自由自在的女尊世界——",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o591ca6fcc2631122c38e97772ae4d5fa",
+      "last_chapter_time": 1790956773,
+      "first_chapter_time": 1787641737,
+      "currentPos": 112,
+      "rankPosDiff": 0,
+      "read_count": "2573",
       "rankMold": 1
     }
   ]
