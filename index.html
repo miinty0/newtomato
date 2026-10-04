@@ -1752,11 +1752,10 @@ function switchTab(id, btn) {
     document.getElementById('home-card-rankcat')?.classList.add('loaded');
     detectExistingRankCats();
   }
-  if (exitingHidden) {
-    if (id === 'daily' && hadDaily) renderDaily();
-    if (id === 'category' && hadCategory) renderCatPanels();
-    if (id === 'rankcat' && hadRankCat) renderRcPanels();
-  }
+  // Returning to an already loaded tab resumes its lazy score scan.
+  if (id === 'daily' && hadDaily) renderDaily();
+  if (id === 'category' && hadCategory) renderCatPanels();
+  if (id === 'rankcat' && hadRankCat) renderRcPanels();
 }
 
 // Programmatic navigation from the Home tab's nav cards (they have no <button> element to pass in).
@@ -2720,7 +2719,10 @@ function setCategoryScoreMinimum(tab, input) {
   syncCategoryScoreControl('category');
   syncCategoryScoreControl('rankcat');
   syncCategoryScoreControl('daily');
-  applyCategoryScoreFilters();
+  booksPage[tab] = 1;
+  if (tab === 'daily') renderDaily();
+  else if (tab === 'category') renderCatPanels();
+  else renderRcPanels();
 }
 
 function scoreFilteredBookCardHTML(book, tab, readSet, catId) {
@@ -2732,6 +2734,7 @@ function applyCategoryScoreFilters() {
   for (const [rootId, infoId] of [['daily-books', 'daily-score-filter-info'], ['cat-panels', 'cat-score-filter-info'], ['rankcat-books', 'rc-score-filter-info']]) {
     const root = document.getElementById(rootId);
     if (!root) continue;
+    if (root.dataset.qualifiedPaging === '1') continue;
     let hidden = 0, waiting = 0, enabled = false;
     const minimums = new Map();
     root.querySelectorAll('.book-card[data-score-category]').forEach(card => {
@@ -2753,7 +2756,7 @@ function applyCategoryScoreFilters() {
   }
 }
 
-function qualifiedBookIdsForTab(tab) {
+function scoreCandidatesForTab(tab) {
   const prefix = tab === 'daily' ? 'daily' : tab === 'category' ? 'cat' : 'rc';
   const query = document.getElementById(prefix + '-search').value.toLowerCase().trim();
   let groups;
@@ -2764,8 +2767,8 @@ function qualifiedBookIdsForTab(tab) {
     const selectedId = tab === 'category' ? _catSelectValue : rcSelectValue;
     groups = Object.entries(data).filter(([id]) => query || String(id) === String(selectedId));
   }
-  const ids = new Set();
-  let waiting = 0;
+  const seen = new Set();
+  const candidates = [];
   for (const [catId, { data, readSet }] of groups) {
     const minimum = categoryScoreMinimum(catId);
     let books = filterByStatus(data.books || []);
@@ -2777,12 +2780,165 @@ function qualifiedBookIdsForTab(tab) {
       compareBooksByRank(a, b, tab === 'category' ? 'hot_rank' : 'currentPos'));
     for (const book of books) {
       const id = normalizedBookId(book);
-      if (!id) continue;
-      if (minimum !== null && !scoreCache.has(id)) { waiting++; continue; }
-      if (scorePassesMinimum(scoreCache.get(id), minimum)) ids.add(id);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      candidates.push({ id, book, catId, minimum, readSet });
     }
   }
-  return { ids: [...ids], waiting };
+  return candidates;
+}
+
+function qualifiedBookIdsForTab(tab) {
+  const ids = [];
+  let waiting = 0;
+  for (const row of scoreCandidatesForTab(tab)) {
+    if (row.minimum !== null && !scoreCache.has(row.id)) { waiting++; continue; }
+    if (scorePassesMinimum(scoreCache.get(row.id), row.minimum)) ids.push(row.id);
+  }
+  return { ids, waiting };
+}
+
+const qualifiedScoreScans = new Map();
+
+function qualifiedScanRoot(tab) {
+  return document.getElementById(tab === 'daily' ? 'daily-books' : tab === 'category' ? 'cat-panels' : 'rankcat-books');
+}
+
+function qualifiedScanIsCurrent(state) {
+  return qualifiedScoreScans.get(state.tab) === state &&
+    qualifiedScanRoot(state.tab)?.dataset.qualifiedPaging === '1' &&
+    document.getElementById('tab-' + state.tab)?.classList.contains('active');
+}
+
+function refreshQualifiedMatches(state) {
+  state.matches = state.candidates.slice(0, state.cursor).filter(row =>
+    row.minimum === null || (scoreCache.has(row.id) && scorePassesMinimum(scoreCache.get(row.id), row.minimum)));
+}
+
+function drawQualifiedScorePage(state) {
+  if (!qualifiedScanIsCurrent(state)) return;
+  const tab = state.tab;
+  const root = qualifiedScanRoot(tab);
+  unobserveScoresIn(root);
+  root.className = 'books-grid';
+  const current = booksPage[tab] || 1;
+  const start = (current - 1) * BOOKS_PER_PAGE;
+  const rows = state.matches.slice(start, start + BOOKS_PER_PAGE);
+  root.innerHTML = rows.map(row => scoreFilteredBookCardHTML(row.book, tab,
+    row.readSet || dailyReadSet, row.catId)).join('') ||
+    '<div class="state-box">' + (state.running ? '⏳ Đang lấy score để gom card đạt ngưỡng…' :
+      state.errors ? '⚠️ Còn score bị lỗi; bấm Thử lại quét score.' : 'Không có truyện đạt ngưỡng ở trang này.') + '</div>';
+  // Only resolved qualifying cards are mounted. Scanning is independent of
+  // intersection observers and can continue across source-page boundaries.
+  loadScoresForCards(rows.map(row => row.book), root);
+  const done = state.cursor >= state.candidates.length && !state.running && !state.errors;
+  const hasNext = state.matches.length > start + BOOKS_PER_PAGE ||
+    (rows.length === BOOKS_PER_PAGE && !done);
+  const label = 'Trang ' + current + ' · hiện ' + rows.length + '/' + BOOKS_PER_PAGE +
+    ' · đã xét ' + state.cursor + '/' + state.candidates.length +
+    ' · đạt ngưỡng ' + state.matches.length +
+    (done ? ' · đã quét hết' : state.running ? ' · đang quét' : state.errors ? ' · còn lỗi/chờ thử lại' : ' · trang sau tải khi bấm');
+  const updateInfo = document.getElementById(tab === 'daily' ? 'daily-update-info' :
+    tab === 'rankcat' ? 'rankcat-update-info' : 'cat-qualified-update-info');
+  if (updateInfo) updateInfo.textContent = label;
+  const controls = '<span class="pagination-info">' + label + '</span>' +
+    '<button class="pagination-btn" onclick="setBooksPage(\'' + tab + '\', ' + (current - 1) + ')" ' +
+    (current === 1 ? 'disabled' : '') + '>‹ Trang trước</button>' +
+    '<button class="pagination-btn" onclick="setBooksPage(\'' + tab + '\', ' + (current + 1) + ')" ' +
+    (!hasNext || state.running ? 'disabled' : '') + '>Trang sau ›</button>' +
+    (state.errors ? '<button class="pagination-btn" onclick="retryQualifiedScoreScan(\'' + tab + '\')">Thử lại quét score</button>' : '');
+  const prefix = paginationPrefix(tab);
+  for (const position of ['top', 'bottom']) document.getElementById(prefix + '-pagination-' + position).innerHTML = controls;
+  const info = document.getElementById((tab === 'category' ? 'cat' : tab === 'rankcat' ? 'rc' : 'daily') + '-score-filter-info');
+  info.textContent = done ? 'Đã quét hết: ' + state.matches.length + ' truyện đạt ngưỡng.' :
+    state.errors ? 'Score lỗi được giữ để thử lại, không coi là điểm thấp.' :
+    state.running ? 'Đang gom đủ card đạt ngưỡng cho trang này…' : 'Đã đủ card. Bấm Trang sau để quét tiếp.';
+}
+
+function scheduleQualifiedDraw(state) {
+  if (state.drawTimer) return;
+  state.drawTimer = setTimeout(() => {
+    state.drawTimer = null;
+    refreshQualifiedMatches(state);
+    drawQualifiedScorePage(state);
+  }, 400);
+}
+
+async function scanQualifiedScorePage(state) {
+  if (state.running || state.errors || !qualifiedScanIsCurrent(state)) return;
+  const target = (booksPage[state.tab] || 1) * BOOKS_PER_PAGE;
+  refreshQualifiedMatches(state);
+  if (state.matches.length >= target || state.cursor >= state.candidates.length) {
+    drawQualifiedScorePage(state);
+    return;
+  }
+  state.running = true;
+  drawQualifiedScorePage(state);
+  try {
+    while (qualifiedScanIsCurrent(state) && state.matches.length < target && state.cursor < state.candidates.length) {
+      const from = state.cursor;
+      const size = Math.min(8, target - state.matches.length, state.candidates.length - from);
+      const batch = state.candidates.slice(from, from + size);
+      state.cursor += batch.length;
+      const failed = [];
+      await Promise.all(batch.map(async (row, offset) => {
+        try {
+          if (row.minimum !== null && !scoreCache.has(row.id)) await requestScore(row.id);
+        } catch (_) {
+          failed.push(from + offset);
+        } finally {
+          scheduleQualifiedDraw(state);
+        }
+      }));
+      refreshQualifiedMatches(state);
+      if (failed.length) {
+        // Resume at the first failed item. Later successes use cached scores,
+        // so retrying cannot drop or reorder these books.
+        state.cursor = Math.min(...failed);
+        state.errors = failed.length;
+        refreshQualifiedMatches(state);
+        break;
+      }
+    }
+  } finally {
+    state.running = false;
+    clearTimeout(state.drawTimer);
+    state.drawTimer = null;
+    refreshQualifiedMatches(state);
+    drawQualifiedScorePage(state);
+    if (qualifiedScanIsCurrent(state)) requestStatusFlush();
+  }
+}
+
+function retryQualifiedScoreScan(tab) {
+  const state = qualifiedScoreScans.get(tab);
+  if (!state) return;
+  state.errors = 0;
+  scanQualifiedScorePage(state).catch(error => toast(error.message, 'err'));
+}
+
+function renderQualifiedScorePage(tab) {
+  const root = qualifiedScanRoot(tab);
+  const candidates = scoreCandidatesForTab(tab);
+  if (!candidates.some(row => row.minimum !== null)) {
+    root.dataset.qualifiedPaging = '';
+    qualifiedScoreScans.delete(tab);
+    return false;
+  }
+  const key = JSON.stringify(candidates.map(row => [row.id, row.catId, row.minimum]));
+  let state = qualifiedScoreScans.get(tab);
+  if (!state || state.key !== key) {
+    state = { tab, key, candidates, cursor: 0, matches: [], running: false, errors: 0, drawTimer: null };
+    qualifiedScoreScans.set(tab, state);
+    booksPage[tab] = 1;
+  } else {
+    state.candidates = candidates;
+  }
+  root.dataset.qualifiedPaging = '1';
+  refreshQualifiedMatches(state);
+  drawQualifiedScorePage(state);
+  scanQualifiedScorePage(state).catch(error => toast('Quét score lỗi: ' + error.message, 'err'));
+  return true;
 }
 
 async function copyQualifiedBookIds(tab) {
@@ -2811,6 +2967,7 @@ function activePageScoreIds() {
 }
 
 function maybeFlushStatusesAfterCurrentPage() {
+  if ([...qualifiedScoreScans.values()].some(state => state.running && qualifiedScanIsCurrent(state))) return;
   if (scoreRetryState.running || pendingStatusOverrides.size === 0) return;
   const bookIds = activePageScoreIds();
   if (bookIds.length === 0) return;
@@ -3237,6 +3394,7 @@ async function loadDaily() {
 // called on initial load AND whenever the status filter changes (no re-fetch).
 function renderDaily() {
   syncCategoryScoreControl('daily');
+  if (renderQualifiedScorePage('daily')) return;
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
   const query = document.getElementById('daily-search').value.toLowerCase().trim();
@@ -3391,6 +3549,8 @@ async function loadCategory(catId) {
 
 function renderCatPanels() {
   syncCategoryScoreControl('category');
+  if (renderQualifiedScorePage('category')) return;
+  document.getElementById('cat-panels').className = 'cat-panels';
   const query = document.getElementById('cat-search').value.toLowerCase().trim();
   const panelsEl = document.getElementById('cat-panels');
   unobserveScoresIn(panelsEl);
@@ -3952,6 +4112,7 @@ function bookMatchesQuery(b, query) {
 // ── Render: no query -> single selected category (mold split); query -> search across all loaded rank categories ──
 function renderRcPanels() {
   syncCategoryScoreControl('rankcat');
+  if (renderQualifiedScorePage('rankcat')) return;
   const query     = document.getElementById('rc-search').value.toLowerCase().trim();
   const container = document.getElementById('rankcat-books');
   const infoEl    = document.getElementById('rankcat-update-info');
