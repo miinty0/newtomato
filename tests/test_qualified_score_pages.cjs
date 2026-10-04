@@ -11,7 +11,7 @@ function harness(total, passes, options = {}) {
   const scores = new Map();
   const booksPage = { daily: 1, category: 1, rankcat: 1 };
   const ctx = vm.createContext({ console, JSON, Map, Set, Math, Promise, clearTimeout, setTimeout,
-    BOOKS_PER_PAGE: 500, booksPage, scoreCache: scores, dailyReadSet: new Set(),
+    BOOKS_PER_PAGE: 500, booksPage, scoreCache: scores, dailyReadSet: new Set(), automaticReadHidden: new Set(),
     document: { getElementById(id) {
       if (id.startsWith('tab-')) return { classList: { contains: () => active } };
       if (['daily-books','cat-panels','rankcat-books'].includes(id)) return root;
@@ -62,5 +62,12 @@ async function run(h, tab = 'daily') {
   const pause = harness(1754, 900, { pause: true });
   s = await run(pause); assert.equal(pause.calls.length,8);
   pause.activate(); await run(pause); assert.equal(s.matches.length,500);
+  const hidden = harness(600, 600);
+  s = await run(hidden);
+  hidden.ctx.automaticReadHidden.add('2');
+  await run(hidden);
+  assert.equal(s.matches.length, 500);
+  assert.equal(s.matches.some(row => row.id === '2'), false);
+  assert.equal(hidden.calls.length, 501);
   console.log('PASS: 400/1754 exhaustive fill, 502/1754 lazy next page, all tabs, cached return, failed-score retry, pause/resume');
 })().catch(error=>{console.error(error);process.exitCode=1;});

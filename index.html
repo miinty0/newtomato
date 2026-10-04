@@ -301,6 +301,7 @@
   .book-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
   .book-card.is-read { opacity: .45; }
   .book-card.score-filter-hidden { display: none; }
+  .book-card.automatic-read-hidden { display: none; }
   .score-filter-control { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
   .score-filter-control input { width: 74px; padding: 7px 8px; border: 1px solid var(--border2); border-radius: 8px; background: var(--surface); color: var(--text); }
   .book-card.pending-read {
@@ -1218,6 +1219,7 @@ function unobserveScoresIn(root) {
 }
 
 function filterByStatus(books) {
+  books = books.filter(book => !automaticReadHidden.has(normalizedBookId(book)));
   if (statusFilter === 'all') return books;
   return books.filter(b => b.status === statusFilter);
 }
@@ -2297,6 +2299,9 @@ function qualifiesForAutomaticRead(firstChapterTime, score, now = Date.now()) {
 
 const automaticReadQueue = new Set();
 const automaticReadSaved = new Set();
+// Keep hiding independent of queue clearing and slow GitHub cleanup. Failed
+// saves remain queued for retry, rather than making the cards flicker back.
+const automaticReadHidden = new Set();
 let automaticReadTimer = null;
 let automaticReadActive = null;
 let automaticReadQueuedAt = 0;
@@ -2307,6 +2312,10 @@ function considerAutomaticRead(bookId, score, metadata) {
   const firstChapterTime = metadata?.first_chapter_time ??
     _bookRegistry[bookId]?.first_chapter_time;
   if (!qualifiesForAutomaticRead(firstChapterTime, score)) return;
+  automaticReadHidden.add(bookId);
+  document.querySelectorAll('.book-card[data-id]').forEach(card => {
+    if (String(card.dataset.id) === bookId) card.classList.add('automatic-read-hidden');
+  });
   automaticReadQueue.add(bookId);
   if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
   scheduleAutomaticRead();
@@ -2812,7 +2821,8 @@ function qualifiedScanIsCurrent(state) {
 
 function refreshQualifiedMatches(state) {
   state.matches = state.candidates.slice(0, state.cursor).filter(row =>
-    row.minimum === null || (scoreCache.has(row.id) && scorePassesMinimum(scoreCache.get(row.id), row.minimum)));
+    !automaticReadHidden.has(row.id) &&
+    (row.minimum === null || (scoreCache.has(row.id) && scorePassesMinimum(scoreCache.get(row.id), row.minimum))));
 }
 
 function drawQualifiedScorePage(state) {
@@ -3267,6 +3277,7 @@ function compareBooksByRank(a, b, field) {
 
 function bookCardHTML(book, tab, readSet = new Set()) {
   const bookId = normalizedBookId(book);
+  if (automaticReadHidden.has(bookId)) return '';
   const htmlId = escapeHTML(bookId);
   const jsId = htmlJSString(bookId);
   const jsTab = htmlJSString(tab);

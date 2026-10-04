@@ -8,11 +8,15 @@ let remote = ['existing'];
 let failConflict = true;
 let writes = 0;
 let cleaned = [];
+const cards = ['candidate', 'candidate', 'other'].map(id => ({
+  dataset: { id }, classList: { add(value) { this.hidden = value; } },
+}));
 const context = vm.createContext({
   Date, Number, String, Set, Map, Promise, console,
   navigator: {}, window: {}, CFG: { user: 'test', repo: 'test' },
   setTimeout: () => 1, clearTimeout: () => {},
   scoreRequests: new Map(), _bookRegistry: {},
+  document: { querySelectorAll: () => cards },
   dailyReadSet: new Set(), rcReadSet: new Set(), specialReadSet: new Set(),
   catData: { a: { readSet: new Set() } }, rcData: { b: { readSet: new Set() } },
   pendingRead: { daily: new Set(['candidate']) },
@@ -41,13 +45,23 @@ for (const raw of [0, '0']) assert.equal(context.mappedFanqieStatus(raw), 'Compl
 for (const raw of [1, '1']) assert.equal(context.mappedFanqieStatus(raw), 'Ongoing');
 for (const raw of [null, undefined, '', 2, 3, 4]) assert.equal(context.mappedFanqieStatus(raw), null);
 (async () => {
+  context.considerAutomaticRead('candidate', '7.4', {
+    first_chapter_time: (Date.now() - 301 * 86400000) / 1000,
+  });
+  assert.equal(cards[0].classList.hidden, 'automatic-read-hidden');
+  assert.equal(cards[1].classList.hidden, 'automatic-read-hidden');
+  assert.equal(cards[2].classList.hidden, undefined);
+  assert.equal(vm.runInContext("automaticReadHidden.has('candidate')", context), true);
   const result = await context.mergeReadIds(new Set(['candidate', 'existing']), 'test');
   assert.deepEqual(remote.sort(), ['another-tab', 'candidate', 'existing']);
   assert.equal(result.added, 1);
   await context.mergeReadIds(new Set(['candidate']), 'test');
   assert.equal(writes, 1);
   vm.runInContext("automaticReadQueue.add('candidate')", context);
-  await context.flushAutomaticRead();
+  const saving = context.flushAutomaticRead();
+  assert.equal(vm.runInContext("automaticReadQueue.size", context), 0);
+  assert.equal(vm.runInContext("automaticReadHidden.has('candidate')", context), true);
+  await saving;
   assert(context.dailyReadSet.has('candidate'));
   assert(context.rcData.b.readSet.has('candidate'));
   assert.equal(context.pendingRead.daily.size, 0);
