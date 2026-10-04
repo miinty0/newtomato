@@ -919,6 +919,9 @@
         <span class="search-icon">🔍</span>
         <input id="daily-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterDailyBooks()" />
       </div>
+      <label class="score-filter-control" title="Ngưỡng riêng của tab hằng ngày. Để trống để hiện tất cả.">Score &gt; <input id="daily-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('daily', this)" /></label>
+      <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('daily')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
+      <span id="daily-score-filter-info" class="section-meta"></span>
     </div>
 
     <!-- Read submit bar -->
@@ -966,6 +969,7 @@
       <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
       <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với rank-cat. Để trống để hiện tất cả.">Score &gt; <input id="cat-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('category', this)" disabled /></label>
       <span id="cat-score-filter-info" class="section-meta"></span>
+      <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('category')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
       <button class="btn btn-danger btn-sm" id="cat-scrape-btn" onclick="triggerCatScrape()" disabled>▶ Scrape danh mục</button>
 
       <div class="fetch-history-wrap" id="fh-wrap">
@@ -1033,6 +1037,7 @@
       <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
       <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với tab danh mục. Để trống để hiện tất cả.">Score &gt; <input id="rc-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('rankcat', this)" disabled /></label>
       <span id="rc-score-filter-info" class="section-meta"></span>
+      <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('rankcat')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
       <button class="btn btn-danger btn-sm" id="rc-scrape-btn" onclick="triggerRankCatScrape()" disabled>▶ Scrape danh mục</button>
 
       <div class="fetch-history-wrap" id="rc-fh-wrap">
@@ -2685,15 +2690,16 @@ function scorePassesMinimum(score, minimum) {
 
 function syncCategoryScoreControl(tab) {
   const isCategory = tab === 'category';
-  const catId = isCategory ? _catSelectValue : rcSelectValue;
-  const input = document.getElementById(isCategory ? 'cat-score-min' : 'rc-score-min');
+  const catId = tab === 'daily' ? '__daily' : isCategory ? _catSelectValue : rcSelectValue;
+  const prefix = tab === 'daily' ? 'daily' : isCategory ? 'cat' : 'rc';
+  const input = document.getElementById(prefix + '-score-min');
   input.disabled = !catId;
   input.value = categoryScoreMinimum(catId) ?? '';
-  document.getElementById(isCategory ? 'cat-score-filter-info' : 'rc-score-filter-info').textContent = '';
+  document.getElementById(prefix + '-score-filter-info').textContent = '';
 }
 
 function setCategoryScoreMinimum(tab, input) {
-  const catId = tab === 'category' ? _catSelectValue : rcSelectValue;
+  const catId = tab === 'daily' ? '__daily' : tab === 'category' ? _catSelectValue : rcSelectValue;
   if (!catId) return;
   const raw = input.value.trim();
   const minimum = raw === '' ? null : Number(raw);
@@ -2713,6 +2719,7 @@ function setCategoryScoreMinimum(tab, input) {
   }
   syncCategoryScoreControl('category');
   syncCategoryScoreControl('rankcat');
+  syncCategoryScoreControl('daily');
   applyCategoryScoreFilters();
 }
 
@@ -2722,7 +2729,7 @@ function scoreFilteredBookCardHTML(book, tab, readSet, catId) {
 }
 
 function applyCategoryScoreFilters() {
-  for (const [rootId, infoId] of [['cat-panels', 'cat-score-filter-info'], ['rankcat-books', 'rc-score-filter-info']]) {
+  for (const [rootId, infoId] of [['daily-books', 'daily-score-filter-info'], ['cat-panels', 'cat-score-filter-info'], ['rankcat-books', 'rc-score-filter-info']]) {
     const root = document.getElementById(rootId);
     if (!root) continue;
     let hidden = 0, waiting = 0, enabled = false;
@@ -2743,6 +2750,53 @@ function applyCategoryScoreFilters() {
     if (info) info.textContent = enabled
       ? 'Trang này: ẩn ' + hidden + ' · chờ score ' + waiting + ' (N/A cũng ẩn)'
       : '';
+  }
+}
+
+function qualifiedBookIdsForTab(tab) {
+  const prefix = tab === 'daily' ? 'daily' : tab === 'category' ? 'cat' : 'rc';
+  const query = document.getElementById(prefix + '-search').value.toLowerCase().trim();
+  let groups;
+  if (tab === 'daily') {
+    groups = [['__daily', { data: { books: dailyRawBooks } }]];
+  } else {
+    const data = tab === 'category' ? catData : rcData;
+    const selectedId = tab === 'category' ? _catSelectValue : rcSelectValue;
+    groups = Object.entries(data).filter(([id]) => query || String(id) === String(selectedId));
+  }
+  const ids = new Set();
+  let waiting = 0;
+  for (const [catId, { data, readSet }] of groups) {
+    const minimum = categoryScoreMinimum(catId);
+    let books = filterByStatus(data.books || []);
+    if (tab === 'rankcat') books = books.filter(book => !readSet.has(book.book_id));
+    if (query) books = books.filter(book => tab === 'category'
+      ? (book.book_name || '').toLowerCase().includes(query) || (book.abstract || '').toLowerCase().includes(query)
+      : bookMatchesQuery(book, query));
+    books = [...books].sort((a, b) => tab === 'daily' ? 0 :
+      compareBooksByRank(a, b, tab === 'category' ? 'hot_rank' : 'currentPos'));
+    for (const book of books) {
+      const id = normalizedBookId(book);
+      if (!id) continue;
+      if (minimum !== null && !scoreCache.has(id)) { waiting++; continue; }
+      if (scorePassesMinimum(scoreCache.get(id), minimum)) ids.add(id);
+    }
+  }
+  return { ids: [...ids], waiting };
+}
+
+async function copyQualifiedBookIds(tab) {
+  const { ids, waiting } = qualifiedBookIdsForTab(tab);
+  if (!ids.length) {
+    toast('Chưa có ID đạt ngưỡng để copy.' + (waiting ? ' Còn truyện chưa có score.' : ''), '');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(ids.join('\n'));
+    toast('✓ Đã copy ' + ids.length + ' ID, mỗi ID một dòng.' +
+      (waiting ? ' Đã bỏ qua ' + waiting + ' lượt truyện chưa có score.' : ''), 'ok');
+  } catch (error) {
+    toast('Không copy được: ' + error.message + '. Giữ tab đang focus rồi bấm Copy lại.', 'err');
   }
 }
 
@@ -3182,6 +3236,7 @@ async function loadDaily() {
 // Render from cached dailyRawBooks, applying the current status filter —
 // called on initial load AND whenever the status filter changes (no re-fetch).
 function renderDaily() {
+  syncCategoryScoreControl('daily');
   const container = document.getElementById('daily-books');
   const infoEl = document.getElementById('daily-update-info');
   const query = document.getElementById('daily-search').value.toLowerCase().trim();
@@ -3203,7 +3258,7 @@ function renderDaily() {
   }
   const page = renderPagination('daily', books.length);
   const pageBooks = books.slice(page.start, page.end);
-  container.innerHTML = pageBooks.map(b => bookCardHTML(b, 'daily', dailyReadSet)).join('');
+  container.innerHTML = pageBooks.map(b => scoreFilteredBookCardHTML(b, 'daily', dailyReadSet, '__daily')).join('');
   loadScoresForCards(pageBooks, container);
 }
 
