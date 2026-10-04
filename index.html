@@ -300,6 +300,9 @@
   }
   .book-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
   .book-card.is-read { opacity: .45; }
+  .book-card.score-filter-hidden { display: none; }
+  .score-filter-control { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .score-filter-control input { width: 74px; padding: 7px 8px; border: 1px solid var(--border2); border-radius: 8px; background: var(--surface); color: var(--text); }
   .book-card.pending-read {
     background: #9bc3aa;
     border-color: #a7d7b8;
@@ -961,6 +964,8 @@
         <input id="cat-search" type="text" placeholder="Tìm tên truyện hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
       </div>
       <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
+      <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với rank-cat. Để trống để hiện tất cả.">Score &gt; <input id="cat-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('category', this)" disabled /></label>
+      <span id="cat-score-filter-info" class="section-meta"></span>
       <button class="btn btn-danger btn-sm" id="cat-scrape-btn" onclick="triggerCatScrape()" disabled>▶ Scrape danh mục</button>
 
       <div class="fetch-history-wrap" id="fh-wrap">
@@ -1026,6 +1031,8 @@
       </div>
 
       <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
+      <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với tab danh mục. Để trống để hiện tất cả.">Score &gt; <input id="rc-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('rankcat', this)" disabled /></label>
+      <span id="rc-score-filter-info" class="section-meta"></span>
       <button class="btn btn-danger btn-sm" id="rc-scrape-btn" onclick="triggerRankCatScrape()" disabled>▶ Scrape danh mục</button>
 
       <div class="fetch-history-wrap" id="rc-fh-wrap">
@@ -2651,12 +2658,92 @@ function ensureScoreBadges(root = document) {
   });
 }
 
-function updateScoreBadges(bookId, score) {
+function updateScoreBadges(bookId, score, deferFilter = false) {
   document.querySelectorAll('.score-badge').forEach(el => {
     if (scoreBadgeBookId(el) !== String(bookId)) return;
     el.className = 'score-badge';
     el.textContent = '⭐' + score;
   });
+  if (!deferFilter) applyCategoryScoreFilters();
+}
+
+// Presentation-only: these settings never write read.json or delete books.
+function categoryScoreMinimum(catId) {
+  if (!catId) return null;
+  const raw = localStorage.getItem('fq_score_min:' + CFG.user + '/' + CFG.repo + ':' + catId);
+  if (raw == null || raw.trim() === '') return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 && value <= 10 ? value : null;
+}
+
+function scorePassesMinimum(score, minimum) {
+  if (minimum === null || score === undefined) return true; // Still waiting.
+  if (score === null || String(score).trim() === '') return false;
+  const value = Number(score);
+  return Number.isFinite(value) && value >= 0 && value <= 10 && value > minimum;
+}
+
+function syncCategoryScoreControl(tab) {
+  const isCategory = tab === 'category';
+  const catId = isCategory ? _catSelectValue : rcSelectValue;
+  const input = document.getElementById(isCategory ? 'cat-score-min' : 'rc-score-min');
+  input.disabled = !catId;
+  input.value = categoryScoreMinimum(catId) ?? '';
+  document.getElementById(isCategory ? 'cat-score-filter-info' : 'rc-score-filter-info').textContent = '';
+}
+
+function setCategoryScoreMinimum(tab, input) {
+  const catId = tab === 'category' ? _catSelectValue : rcSelectValue;
+  if (!catId) return;
+  const raw = input.value.trim();
+  const minimum = raw === '' ? null : Number(raw);
+  if (minimum !== null && (!Number.isFinite(minimum) || minimum < 0 || minimum > 10)) {
+    toast('Ngưỡng score phải từ 0 đến 10.', 'err');
+    syncCategoryScoreControl(tab);
+    return;
+  }
+  try {
+    const key = 'fq_score_min:' + CFG.user + '/' + CFG.repo + ':' + catId;
+    if (minimum === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, String(minimum));
+  } catch (error) {
+    toast('Không lưu được ngưỡng score: ' + error.message, 'err');
+    syncCategoryScoreControl(tab);
+    return;
+  }
+  syncCategoryScoreControl('category');
+  syncCategoryScoreControl('rankcat');
+  applyCategoryScoreFilters();
+}
+
+function scoreFilteredBookCardHTML(book, tab, readSet, catId) {
+  return bookCardHTML(book, tab, readSet).replace('class="book-card',
+    'data-score-category="' + escapeHTML(catId) + '" class="book-card');
+}
+
+function applyCategoryScoreFilters() {
+  for (const [rootId, infoId] of [['cat-panels', 'cat-score-filter-info'], ['rankcat-books', 'rc-score-filter-info']]) {
+    const root = document.getElementById(rootId);
+    if (!root) continue;
+    let hidden = 0, waiting = 0, enabled = false;
+    const minimums = new Map();
+    root.querySelectorAll('.book-card[data-score-category]').forEach(card => {
+      const catId = card.dataset.scoreCategory;
+      if (!minimums.has(catId)) minimums.set(catId, categoryScoreMinimum(catId));
+      const minimum = minimums.get(catId);
+      if (minimum !== null) enabled = true;
+      const id = String(card.dataset.id);
+      const score = scoreCache.has(id) ? scoreCache.get(id) : undefined;
+      const hide = !scorePassesMinimum(score, minimum);
+      card.classList.toggle('score-filter-hidden', hide);
+      if (hide) hidden++;
+      if (minimum !== null && score === undefined) waiting++;
+    });
+    const info = document.getElementById(infoId);
+    if (info) info.textContent = enabled
+      ? 'Trang này: ẩn ' + hidden + ' · chờ score ' + waiting + ' (N/A cũng ẩn)'
+      : '';
+  }
 }
 
 function activePageScoreIds() {
@@ -2919,9 +3006,10 @@ function loadScoresForCards(books, root = document) {
   root.querySelectorAll('.score-badge').forEach(el => {
     const bookId = scoreBadgeBookId(el);
     if (!wanted.has(bookId)) return;
-    if (scoreCache.has(bookId)) updateScoreBadges(bookId, scoreCache.get(bookId));
+    if (scoreCache.has(bookId)) updateScoreBadges(bookId, scoreCache.get(bookId), true);
     else observer.observe(el);
   });
+  applyCategoryScoreFilters();
 }
 // Formatting helpers
 // API, cached and user-provided strings are text, never HTML. Escape both text
@@ -3194,6 +3282,7 @@ function filterCatOptions() {
 
 function selectCatOption(id, name) {
   _catSelectValue = id;
+  syncCategoryScoreControl('category');
   booksPage.category = 1;
   document.getElementById('cat-select-label').textContent = `${id} - ${name}`;
   document.querySelectorAll('#cat-select-list .cat-select-option').forEach(o => {
@@ -3246,6 +3335,7 @@ async function loadCategory(catId) {
 }
 
 function renderCatPanels() {
+  syncCategoryScoreControl('category');
   const query = document.getElementById('cat-search').value.toLowerCase().trim();
   const panelsEl = document.getElementById('cat-panels');
   unobserveScoresIn(panelsEl);
@@ -3328,7 +3418,7 @@ function renderCatPanels() {
         <span class="cat-panel-chevron">▼</span>
       </div>
       <div class="cat-panel-body">
-        <div class="books-grid">${pageBooks.map(b => bookCardHTML(b, 'category', readSet)).join('')}</div>
+        <div class="books-grid">${pageBooks.map(b => scoreFilteredBookCardHTML(b, 'category', readSet, catId)).join('')}</div>
       </div>
     </div>`;
   }
@@ -3749,6 +3839,7 @@ function filterRcOptions() {
 }
 function selectRcOption(id, name) {
   rcSelectValue = id;
+  syncCategoryScoreControl('rankcat');
   booksPage.rankcat = 1;
   document.getElementById('rc-select-label').textContent = `${id} - ${name}`;
   document.querySelectorAll('#rc-select-list .cat-select-option').forEach(o => {
@@ -3805,6 +3896,7 @@ function bookMatchesQuery(b, query) {
 
 // ── Render: no query -> single selected category (mold split); query -> search across all loaded rank categories ──
 function renderRcPanels() {
+  syncCategoryScoreControl('rankcat');
   const query     = document.getElementById('rc-search').value.toLowerCase().trim();
   const container = document.getElementById('rankcat-books');
   const infoEl    = document.getElementById('rankcat-update-info');
@@ -3841,7 +3933,7 @@ function renderRcPanels() {
 
     const page = renderPagination('rankcat', allBooks.length);
     const pageBooks = allBooks.slice(page.start, page.end);
-    container.innerHTML = pageBooks.map(b => bookCardHTML(b, 'rankcat', readSet)).join('');
+    container.innerHTML = pageBooks.map(b => scoreFilteredBookCardHTML(b, 'rankcat', readSet, selectedId)).join('');
     loadScoresForCards(pageBooks, container);
     return;
   }
@@ -3898,7 +3990,7 @@ function renderRcPanels() {
         <span class="cat-panel-chevron">▼</span>
       </div>
       <div class="cat-panel-body">
-        <div class="books-grid">${pageBooks.map(b => bookCardHTML(b, 'rankcat', readSet)).join('')}</div>
+        <div class="books-grid">${pageBooks.map(b => scoreFilteredBookCardHTML(b, 'rankcat', readSet, catId)).join('')}</div>
       </div>
     </div>`;
   }
