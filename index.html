@@ -304,6 +304,7 @@
   .book-card.automatic-read-hidden { display: none; }
   .score-filter-control { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
   .score-filter-control input { width: 74px; padding: 7px 8px; border: 1px solid var(--border2); border-radius: 8px; background: var(--surface); color: var(--text); }
+  .fh-visited-check { color: var(--green); font-weight: 700; margin-right: 5px; }
   .book-card.pending-read {
     background: #9bc3aa;
     border-color: #a7d7b8;
@@ -3633,6 +3634,8 @@ async function loadCategory(catId) {
       return;
     }
   }
+  recordCategoryVisit('category', catId);
+  renderFetchHistory();
   renderCatPanels();
 }
 
@@ -3795,6 +3798,26 @@ async function triggerCatScrape() {
 
 const FH_KEY = 'fq_fetch_history';
 
+function categoryVisitDay(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(date);
+}
+
+function categoryVisitKey(tab, catId) {
+  return 'fq_category_visit:' + CFG.user + '/' + CFG.repo + ':' + tab + ':' + catId;
+}
+
+function recordCategoryVisit(tab, catId) {
+  try { localStorage.setItem(categoryVisitKey(tab, catId), categoryVisitDay()); }
+  catch (error) { console.warn('Không lưu được dấu đã truy cập:', error); }
+}
+
+function categoryVisitedToday(tab, catId) {
+  try { return localStorage.getItem(categoryVisitKey(tab, catId)) === categoryVisitDay(); }
+  catch (_) { return false; }
+}
+
 function loadFetchHistory() {
   try { return JSON.parse(localStorage.getItem(FH_KEY)) || {}; }
   catch(e) { return {}; }
@@ -3830,7 +3853,7 @@ function renderFetchHistory() {
     const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     return `<div class="fh-item" onclick="jumpToCategory(${htmlJSString(id)})">
-      <span class="fh-item-name">${escapeHTML(info.name)}</span>
+      <span class="fh-item-name">${categoryVisitedToday('category', id) ? '<span class="fh-visited-check" title="Đã truy cập hôm nay" aria-label="Đã truy cập hôm nay">✓</span>' : ''}${escapeHTML(info.name)}</span>
       <span class="fh-item-date notranslate">${escapeHTML(dateStr)} ${escapeHTML(timeStr)}</span>
     </div>`;
   }).join('');
@@ -3838,6 +3861,7 @@ function renderFetchHistory() {
 
 function toggleFetchHistory(e) {
   e.stopPropagation();
+  renderFetchHistory();
   document.getElementById('fh-dropdown').classList.toggle('open');
 }
 
@@ -4037,13 +4061,14 @@ function renderRcHistory() {
     const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     return `<div class="fh-item" onclick="jumpToRcCat(${htmlJSString(id)})">
-      <span class="fh-item-name">${escapeHTML(info.name)}</span>
+      <span class="fh-item-name">${categoryVisitedToday('rankcat', id) ? '<span class="fh-visited-check" title="Đã truy cập hôm nay" aria-label="Đã truy cập hôm nay">✓</span>' : ''}${escapeHTML(info.name)}</span>
       <span class="fh-item-date notranslate">${escapeHTML(dateStr)} ${escapeHTML(timeStr)}</span>
     </div>`;
   }).join('');
 }
 function toggleRcHistory(e) {
   e.stopPropagation();
+  renderRcHistory();
   document.getElementById('rc-fh-dropdown').classList.toggle('open');
 }
 function jumpToRcCat(catId) {
@@ -4175,6 +4200,8 @@ async function loadRankCat() {
     rcData[catId] = { data, readSet: rcReadSet };
     registerBooks(data.books || []);
     recordRcFetch(catId, data.update_time);
+    recordCategoryVisit('rankcat', catId);
+    renderRcHistory();
     renderRcPanels();
   } catch(e) {
     clearPagination('rankcat');
