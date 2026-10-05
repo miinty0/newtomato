@@ -33,6 +33,9 @@ const context = vm.createContext({
   cleanupAfterRead: async ids => { cleaned.push([...ids]); },
 });
 vm.runInContext(source, context);
+const queuedCopySource = html.slice(html.indexOf('function queueCopiedIdsAsRead('),
+  html.indexOf('function offerCopiedIdsAsRead('));
+vm.runInContext(queuedCopySource, context);
 const q = context.qualifiesForAutomaticRead;
 const ago = days => (now - days * 86400000) / 1000;
 assert.equal(q(ago(301), '7.4', now), true);
@@ -77,5 +80,14 @@ for (const raw of [null, undefined, '', 2, 3, 4]) assert.equal(context.mappedFan
   await context.window.fqRetryAutomaticRead();
   assert(remote.includes('unsaved'));
   assert(context.dailyReadSet.has('unsaved'));
+  const copiedId = '7630000000000000001';
+  context.queueCopiedIdsAsRead([copiedId, copiedId]);
+  assert.equal(vm.runInContext('automaticReadQueue.size', context), 1);
+  assert.equal(vm.runInContext('copiedReadQueued.size', context), 1);
+  assert.equal(vm.runInContext('automaticReadHidden.has("7630000000000000001")', context), true);
+  await context.window.fqRetryAutomaticRead();
+  assert(remote.includes(copiedId));
+  assert.equal(vm.runInContext('copiedReadQueued.size', context), 0);
+  assert.deepEqual(cleaned[cleaned.length - 1], [copiedId]);
   console.log('PASS: boundaries, invalid data, status mapping, conflict merge, deduplication, cleanup, failed-save retry');
 })().catch(error => { console.error(error); process.exitCode = 1; });

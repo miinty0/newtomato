@@ -2299,6 +2299,7 @@ function qualifiesForAutomaticRead(firstChapterTime, score, now = Date.now()) {
 
 const automaticReadQueue = new Set();
 const automaticReadSaved = new Set();
+const copiedReadQueued = new Set();
 // Keep hiding independent of queue clearing and slow GitHub cleanup. Failed
 // saves remain queued for retry, rather than making the cards flicker back.
 const automaticReadHidden = new Set();
@@ -2392,15 +2393,20 @@ async function flushAutomaticRead() {
   if (automaticReadActive) return automaticReadActive;
   if (!automaticReadQueue.size) return;
   const batch = new Set(automaticReadQueue);
+  const copiedCount = [...batch].filter(id => copiedReadQueued.has(id)).length;
   automaticReadQueue.clear();
   automaticReadQueuedAt = 0;
   automaticReadActive = (async () => {
     try {
-      const result = await mergeReadIds(batch, 'auto read: older than 300 days and score below 7.5');
+      const result = await mergeReadIds(batch, copiedCount
+        ? 'mark queued copied book IDs and automatic read candidates as read'
+        : 'auto read: older than 300 days and score below 7.5');
       for (const id of batch) automaticReadSaved.add(id);
       applyReadIdsLocally(result.ids);
-      toast('✓ Tự đưa ' + result.added + ' truyện trên 300 ngày, score <7.5 vào read.', 'ok');
+      toast(copiedCount ? '✓ Đã lưu ' + result.added + ' ID mới từ hàng đợi read.' :
+        '✓ Tự đưa ' + result.added + ' truyện trên 300 ngày, score <7.5 vào read.', 'ok');
       await cleanupAfterRead(batch);
+      for (const id of batch) copiedReadQueued.delete(id);
     } catch (error) {
       for (const id of batch) automaticReadQueue.add(id);
       throw error;
@@ -2961,9 +2967,81 @@ async function copyQualifiedBookIds(tab) {
     await navigator.clipboard.writeText(ids.join('\n'));
     toast('✓ Đã copy ' + ids.length + ' ID, mỗi ID một dòng.' +
       (waiting ? ' Đã bỏ qua ' + waiting + ' lượt truyện chưa có score.' : ''), 'ok');
+    offerCopiedIdsAsRead(ids);
   } catch (error) {
     toast('Không copy được: ' + error.message + '. Giữ tab đang focus rồi bấm Copy lại.', 'err');
   }
+}
+
+function queueCopiedIdsAsRead(ids) {
+  const selected = new Set(ids.map(String));
+  for (const id of selected) {
+    automaticReadHidden.add(id);
+    copiedReadQueued.add(id);
+    automaticReadQueue.add(id);
+  }
+  document.querySelectorAll('.book-card[data-id]').forEach(card => {
+    if (selected.has(String(card.dataset.id))) card.classList.add('automatic-read-hidden');
+  });
+  if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+  scheduleAutomaticRead();
+  // Refill qualifying pages immediately; queued IDs are excluded even while
+  // saving or cleanup is in flight.
+  if (dailyLoaded) renderDaily();
+  if (Object.keys(catData).length) renderCatPanels();
+  if (Object.keys(rcData).length) renderRcPanels();
+  if (specialLoaded) renderSpecial();
+  toast('✓ Đã thêm ' + selected.size + ' ID vừa copy vào hàng đợi read. Card đã ẩn; đang chờ lưu và dọn.', 'ok');
+}
+
+function offerCopiedIdsAsRead(ids) {
+  // Capture exactly the successful clipboard payload. Changing filters or
+  // receiving more scores while this prompt is open cannot change this list.
+  const copiedIds = [...new Set(ids.map(String))];
+  document.getElementById('copied-read-choice')?.closeCopiedReadChoice?.();
+  const overlay = document.createElement('div');
+  overlay.id = 'copied-read-choice';
+  overlay.className = 'modal-overlay open';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', 'copied-read-choice-title');
+  const box = document.createElement('div');
+  box.className = 'modal-box';
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+  const title = document.createElement('div');
+  title.id = 'copied-read-choice-title';
+  title.className = 'modal-title';
+  title.textContent = 'Đã copy ' + copiedIds.length + ' ID';
+  header.appendChild(title);
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.textContent = 'Thêm toàn bộ ID vừa copy vào hàng đợi read.json? Card sẽ ẩn ngay, sau đó tự lưu và dọn dữ liệu.';
+  const actions = document.createElement('div');
+  actions.className = 'action-row';
+  actions.style.cssText = 'padding:0 20px 20px;justify-content:flex-end';
+  const keep = document.createElement('button');
+  keep.className = 'btn btn-outline';
+  keep.textContent = 'Chỉ copy';
+  const add = document.createElement('button');
+  add.className = 'btn btn-success';
+  add.textContent = 'Thêm tất cả vào read';
+  const close = () => { document.removeEventListener('keydown', onKey); overlay.remove(); };
+  overlay.closeCopiedReadChoice = close;
+  const onKey = event => { if (event.key === 'Escape') close(); };
+  keep.addEventListener('click', close);
+  add.addEventListener('click', () => {
+    add.disabled = true;
+    close();
+    queueCopiedIdsAsRead(copiedIds);
+  });
+  overlay.addEventListener('click', event => { if (event.target === overlay) close(); });
+  actions.append(keep, add);
+  box.append(header, body, actions);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown', onKey);
+  keep.focus();
 }
 
 function activePageScoreIds() {
