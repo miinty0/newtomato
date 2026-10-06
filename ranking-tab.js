@@ -32,7 +32,7 @@ function fqRankRequest(action, payload = {}, timeout = 90000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       fqRankingState.pending.delete(id);
-      reject(new Error('Fanqie không phản hồi. Kiểm tra bridge v4.2.7 đang bật và tab Fanqie đã tải xong; dữ liệu cũ được giữ lại.'));
+      reject(new Error('Fanqie không phản hồi. Kiểm tra kết nối và đợi tab Fanqie tải xong; dữ liệu cũ được giữ lại.'));
     }, timeout);
     fqRankingState.pending.set(id, { resolve, reject, timer });
     worker.postMessage({ __wdFqBridge: FQ_RANK_CHANNEL, kind: 'request', id, action, payload }, FQ_RANK_ORIGIN);
@@ -42,12 +42,12 @@ function fqRankRequest(action, payload = {}, timeout = 90000) {
 async function fqConnectRankings() {
   fqRankingState.worker = window.open(FQ_RANK_ORIGIN + '/search', 'fq-ranking-worker');
   if (!fqRankingState.worker) { fqRankEl('fq-ranking-info').textContent = 'Trình duyệt chặn popup; cho phép mở tab Fanqie rồi thử lại.'; return; }
-  fqRankEl('fq-ranking-info').textContent = 'Đang chờ tab Fanqie tải bridge…';
+  fqRankEl('fq-ranking-info').textContent = 'Đang chờ kết nối tab Fanqie…';
   for (let attempt = 0; attempt < 12; attempt++) {
     try {
       const result = await fqRankRequest('ping', {}, 2500);
-      if (!result.capabilities?.includes('rank-filter-meta')) throw new Error('Cần cập nhật bridge v4.2.7.');
-      fqRankEl('fq-ranking-info').textContent = `Đã kết nối bridge ${result.version}. Bấm “Lấy danh sách mới”.`;
+      if (!result.capabilities?.includes('rank-filter-meta')) throw new Error('Kết nối Fanqie chưa hỗ trợ chức năng cần thiết.');
+      fqRankEl('fq-ranking-info').textContent = 'Đã kết nối Fanqie. Bấm “Lấy danh sách mới”.';
       return;
     } catch (error) {
       if (attempt === 11 || error.message.includes('Cần cập nhật')) { fqRankEl('fq-ranking-info').textContent = error.message; return; }

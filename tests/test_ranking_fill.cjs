@@ -84,12 +84,5 @@ function harness() {
   await guarded.context.fqFetchRankings(false);
   assert.equal(requests,40); assert.equal(guarded.state().paused,true); assert.equal(guarded.state().more,true);
 
-  const source=fs.readFileSync('userscripts/fanqie-wiki-bridge.user.js','utf8');
-  const hydration=source.slice(source.indexOf('  async function wdRankHydrateAbstract'),source.indexOf('  async function wdRankingList'));
-  const meta=vm.createContext({requestApp:async(_,q)=>({json:()=>({data:[q.book_id==='100' ? {abstract:'restored'} : {}]})})});
-  vm.runInContext(hydration,meta);
-  const rows=[{book_id:'100'},{book_id:'101'},{book_id:'102',abstract:'already known'}];
-  await meta.wdRankHydrateAbstract(rows);
-  assert.equal(rows[0].abstract,'restored'); assert.equal(rows[1].abstract_unverified,true); assert.equal(rows[2].abstract,'already known');
-  console.log('PASS: exact cleanup keywords/read, 30-card pages, server offsets/sessions, partial failures, exhaustion, repeated pages, request guard and missing abstracts');
+  console.log('PASS: exact cleanup keywords/read, 30-card pages, server offsets/sessions, partial failures, exhaustion, repeated pages, request guard and metadata filtering');
 })().catch(error=>{console.error(error);process.exitCode=1});

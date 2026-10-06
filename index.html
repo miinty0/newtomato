@@ -1114,7 +1114,7 @@
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
-  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.7</a> để lấy bảng trực tiếp. Chọn giới tính và kỳ xếp hạng rồi bấm lấy danh sách. Bảng tác giả và phát sóng hiển thị riêng; chỉ danh sách truyện hỗ trợ đánh dấu đã đọc và copy ID. Nếu mục đã chọn không được API hỗ trợ, danh sách cũ được giữ lại.</p>
+  <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc và từ khóa dọn dẹp. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
   <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
@@ -3232,7 +3232,7 @@ async function retryLoadingScores() {
     return;
   }
   if (typeof window.fqShareApiFetchBookMeta !== 'function') {
-    toast('Userscript Fanqie Share API Score Bridge chưa sẵn sàng. Hãy kiểm tra Tampermonkey.', 'err');
+    toast('Kết nối Fanqie chưa sẵn sàng. Hãy kiểm tra tab Fanqie.', 'err');
     return;
   }
 
@@ -3354,7 +3354,7 @@ function fetchScoreForBadge(el, attempts = 0) {
   const fetchFn = window.fqShareApiFetchBookMeta;
   if (typeof fetchFn !== 'function') {
     // Keep the unresolved badge visible so the manual retry button can handle
-    // it later if Tampermonkey takes longer than three seconds to initialise.
+    // it later if the Fanqie connection takes longer than three seconds to initialise.
     if (attempts >= 15) return; // 15 × 200ms = 3s
     setTimeout(() => fetchScoreForBadge(el, attempts + 1), 200);
     return;
@@ -4060,9 +4060,9 @@ async function translateModal() {
     return;
   }
 
-  // Check if userscript is loaded
+  // Check whether the translation service is available
   if (typeof window.tmTranslate !== 'function') {
-    alert('Cần cài Tampermonkey + userscript TM Translate để dịch.');
+    alert('Dịch vụ dịch văn bản chưa sẵn sàng.');
     return;
   }
 
