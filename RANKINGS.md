@@ -1,6 +1,6 @@
 # Bảng Fanqie trong newtomato
 
-Bridge: `0.0.7-wiki-4.2.6`. Giữ tên, namespace, attribution và giấy phép GPLv3 của Fanqie Assistant.
+Bridge: `0.0.7-wiki-4.2.7`. Giữ tên, namespace, attribution và giấy phép GPLv3 của Fanqie Assistant.
 
 ## Bảng trên ứng dụng
 
@@ -38,7 +38,7 @@ Bảng tác giả đọc metadata tác giả, bảng phát sóng đọc `video_d
 
 ## Cách dùng
 
-1. Cài userscript bridge 4.2.6 và tải lại tab Fanqie.
+1. Cài userscript bridge 4.2.7 và tải lại tab Fanqie.
 2. Mở tab Bảng Fanqie, bấm Kết nối tab Fanqie.
 3. Chọn mã bảng, giới tính, kỳ xếp hạng và bấm Lấy danh sách mới.
 4. Tải tiếp sử dụng offset và session_id của phản hồi. Chỉ truyện có chức năng Copy ID và đánh dấu đã đọc.
@@ -65,3 +65,15 @@ Kiểm tra APP dùng phản hồi giả lập để kiểm tra tham số, giới
 - Phản hồi landing và APP do người dùng cung cấp ngày 06/10/2026.
 - Template chính thức: https://lf-normal-gr-sourcecdn.bytegecko.com/obj/byte-gurd-source-gr/novel/dr/fe/drlynx_distribution/common-rank-list/template.js
 - Dịch tên tham số: https://dichngay.com/
+
+## Tải bù sau lọc
+
+Mỗi trang bảng xếp hạng hiển thị tối đa 30 card, độc lập với giới hạn trang của các tab khác. Trước mỗi lượt lấy/lấy tiếp, tải lại read.json và cleanup_abstract_keywords.json từ nhánh data. Từ khóa khớp cụm liên tiếp, phân biệt hoa/thường, chỉ trên tóm tắt như cleanup-books.js; không đổi sang khớp tên hay tag.
+
+Nếu thiếu tóm tắt hoặc gặp font PUA, bridge thử metadata APP với tối đa ba request song song. Truyện chưa xác minh tóm tắt tạm không hiện khi có từ khóa dọn dẹp; không tự thêm các trường hợp thiếu metadata vào read.json.
+
+Tải các trang tuần tự theo next_offset và session_id/rank_version do API trả về đến khi đủ card sau lọc. Giữ truyện dư để dùng cho trang sau. Không đoán offset ngẫu nhiên khi API báo hết. Landing và bảng cố định có thể không đủ 30 sau lọc. Bảng tác giả/phát sóng không áp dụng ID truyện/tóm tắt truyện, nhưng vẫn dùng trang 30 mục.
+
+Khi đánh dấu đã đọc hoặc luật read tự động ẩn card, render sẽ bù trang hiện tại nếu còn nguồn. Lỗi giữ các trang đã tải và offset để thử lại. Dừng nếu dữ liệu trang lặp, offset không tiến, trang rỗng hoặc has_more=false. Mỗi lượt tối đa 40 trang; có thể bấm tải tiếp để tiếp tục nếu sau lọc vẫn thiếu.
+
+Kiểm tra bổ sung: node tests/test_ranking_fill.cjs. Kiểm tra dùng API giả lập; không chứng minh mọi bảng Fanqie có nguồn hơn 30 truyện.

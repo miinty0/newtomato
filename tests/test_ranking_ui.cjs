@@ -15,7 +15,7 @@ const context = vm.createContext({
   booksPage: { rankings: 1 }, automaticReadHidden: new Set(),
   filterByStatus: books => books, registerBooks() {}, unobserveScoresIn() {}, loadScoresForCards() {}, updateReadBar() {},
   renderPagination: () => ({ start: 0, end: 500 }), bookCardHTML: book => book.book_id,
-  setTimeout: () => 1, clearTimeout() {},
+  setTimeout: () => 1, clearTimeout() {}, ghRaw: async () => [],
 });
 vm.runInContext(fs.readFileSync('ranking-tab.js', 'utf8'), context);
 const state = () => vm.runInContext('fqRankingState', context);
@@ -27,11 +27,11 @@ const state = () => vm.runInContext('fqRankingState', context);
   listener({ origin: 'https://evil.example', source: worker, data: response }); assert.equal(state().pending.size, 1);
   listener({ origin: 'https://fanqienovel.com', source: {}, data: response }); assert.equal(state().pending.size, 1);
   listener({ origin: 'https://fanqienovel.com', source: worker, data: response }); await request; assert.equal(state().pending.size, 0);
-  context.fqRankRequest = async () => ({ books: [{ book_id: '123', book_name: 'book' }], has_more: true, next_offset: 30 });
-  await context.fqFetchRankings(false); assert.equal(state().books.length, 1); assert.equal(state().more, true);
-  await context.fqFetchRankings(true); assert.equal(state().books.length, 1); assert.equal(state().more, false);
+  context.fqRankRequest = async () => ({ books: Array.from({length:30},(_,i)=>({book_id:String(123+i),book_name:'book'})), has_more: true, next_offset: 30 });
+  await context.fqFetchRankings(false); assert.equal(state().books.length, 30); assert.equal(state().more, true);
+  await context.fqFetchRankings(true); assert.equal(state().books.length, 30); assert.equal(state().more, false);
   context.fqRankRequest = async () => { throw new Error('blocked'); };
-  await context.fqFetchRankings(false); assert.equal(state().books.length, 1); assert.equal(element('fq-ranking-info').textContent, 'blocked');
+  await context.fqFetchRankings(false); assert.equal(state().books.length, 30); assert.match(element('fq-ranking-info').textContent, /blocked/);
   let appPayload;
   element('fq-ranking-type').value = 'app-104'; element('fq-ranking-gender').value = '0'; element('fq-ranking-period').value = 'monthly';
   context.fqRankRequest = async (action, payload) => { assert.equal(action, 'app-rank-list'); appPayload = payload; return { books: [{ book_id: '125' }], title: 'Bảng danh tiếng', has_more: false }; };
@@ -47,6 +47,7 @@ const state = () => vm.runInContext('fqRankingState', context);
   let release;
   context.fqRankRequest = () => new Promise(resolve => release = resolve);
   const inflight = context.fqFetchRankings(false);
+  while (!release) await Promise.resolve();
   element('fq-ranking-type').value = 'reading'; context.fqRankingChanged();
   release({ books: [{ book_id: '999' }], has_more: false }); await inflight;
   assert.equal(state().books.length, 0); assert.equal(state().busy, false);

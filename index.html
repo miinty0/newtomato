@@ -1114,7 +1114,7 @@
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
-  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.6</a> để lấy bảng trực tiếp. Chọn giới tính và kỳ xếp hạng rồi bấm lấy danh sách. Bảng tác giả và phát sóng hiển thị riêng; chỉ danh sách truyện hỗ trợ đánh dấu đã đọc và copy ID. Nếu mục đã chọn không được API hỗ trợ, danh sách cũ được giữ lại.</p>
+  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.7</a> để lấy bảng trực tiếp. Chọn giới tính và kỳ xếp hạng rồi bấm lấy danh sách. Bảng tác giả và phát sóng hiển thị riêng; chỉ danh sách truyện hỗ trợ đánh dấu đã đọc và copy ID. Nếu mục đã chọn không được API hỗ trợ, danh sách cũ được giữ lại.</p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
   <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
@@ -1122,7 +1122,7 @@
   <div id="rankings-pagination-top" class="pagination"></div>
   <div id="rankings-books" class="books-grid"></div>
   <div id="rankings-pagination-bottom" class="pagination"></div>
-  <button id="fq-ranking-more" class="btn btn-outline" style="display:none;margin-top:14px" onclick="fqFetchRankings(true)">Tải tiếp từ Fanqie</button>
+  <button id="fq-ranking-more" class="btn btn-outline" style="display:none;margin-top:14px" onclick="fqFetchRankings(true)">Tải thêm 30 card sau lọc</button>
 </div>
 
   <div id="tab-special" class="tab-panel">
@@ -1210,15 +1210,17 @@ function clearPagination(tab) {
 }
 
 function paginationWindow(tab, totalItems) {
-  const totalPages = Math.max(1, Math.ceil(totalItems / BOOKS_PER_PAGE));
+  const pageSize = tab === 'rankings' ? 30 : BOOKS_PER_PAGE;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const current = Math.min(Math.max(1, Number(booksPage[tab]) || 1), totalPages);
   booksPage[tab] = current;
-  const start = (current - 1) * BOOKS_PER_PAGE;
-  return { current, totalPages, start, end: Math.min(start + BOOKS_PER_PAGE, totalItems) };
+  const start = (current - 1) * pageSize;
+  return { current, totalPages, start, end: Math.min(start + pageSize, totalItems) };
 }
 
 function paginationHTML(tab, totalItems, page) {
-  if (totalItems <= BOOKS_PER_PAGE) return '';
+  const pageSize = tab === 'rankings' ? 30 : BOOKS_PER_PAGE;
+  if (totalItems <= pageSize) return '';
 
   const wanted = [...new Set([1, page.current - 1, page.current, page.current + 1, page.totalPages]
     .filter(n => n >= 1 && n <= page.totalPages))].sort((a, b) => a - b);
@@ -1231,7 +1233,7 @@ function paginationHTML(tab, totalItems, page) {
   }
 
   return `
-    <span class="pagination-info">${page.start + 1}–${page.end} / ${totalItems} truyện · ${BOOKS_PER_PAGE}/trang</span>
+    <span class="pagination-info">${page.start + 1}–${page.end} / ${totalItems} truyện · ${pageSize}/trang</span>
     <button class="pagination-btn" onclick="setBooksPage('${tab}', 1)" ${page.current === 1 ? 'disabled' : ''} title="Trang đầu">«</button>
     <button class="pagination-btn" onclick="setBooksPage('${tab}', ${page.current - 1})" ${page.current === 1 ? 'disabled' : ''} title="Trang trước">‹</button>
     ${pageButtons}
@@ -2236,6 +2238,7 @@ async function saveHomeReadIds() {
       if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
+    if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
     button.textContent = '🧹 Đang dọn dữ liệu…';
     await cleanupAfterRead(selected);
     dailyRawBooks = dailyRawBooks.filter(book => !selected.has(normalizedBookId(book)));
@@ -2271,6 +2274,7 @@ async function submitRead(tab) {
       dailyReadSet.add(id);
       rcReadSet.add(id);
       specialReadSet.add(id);
+      if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
     pendingRead[tab].clear();
@@ -2278,6 +2282,7 @@ async function submitRead(tab) {
     // Keep this save operation open until every related data file has been
     // cleaned. This prevents a normal tab switch/close from silently cutting
     // off the old background cleanup halfway through.
+    if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
     btn.textContent = '🧹 Đang dọn dữ liệu…';
     await cleanupAfterRead(justRead);
     if (specialLoaded) {
@@ -2290,7 +2295,7 @@ async function submitRead(tab) {
       c.classList.remove('pending-read');
       c.classList.add('is-read');
     });
-    if (tab === 'rankings') renderRankings();
+    if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
     toast('Đã lưu danh sách đọc thành công ✓', 'ok');
   } catch(e) {
     toast('Lỗi: ' + e.message, 'err');
@@ -2377,6 +2382,7 @@ function considerAutomaticRead(bookId, score, metadata) {
     if (String(card.dataset.id) === bookId) card.classList.add('automatic-read-hidden');
   });
   automaticReadQueue.add(bookId);
+  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
   if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
   scheduleAutomaticRead();
 }
@@ -2433,6 +2439,7 @@ function applyReadIdsLocally(ids) {
     dailyReadSet.add(id);
     rcReadSet.add(id);
     specialReadSet.add(id);
+    if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
     for (const cat of Object.values(catData)) cat.readSet.add(id);
     for (const rc of Object.values(rcData)) rc.readSet.add(id);
     for (const [tab, pending] of Object.entries(pendingRead)) {
@@ -2446,6 +2453,7 @@ function applyReadIdsLocally(ids) {
   if (Object.keys(catData).length) renderCatPanels();
   if (Object.keys(rcData).length) renderRcPanels();
   if (specialLoaded) renderSpecial();
+  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
 }
 
 async function flushAutomaticRead() {
@@ -3050,6 +3058,7 @@ function queueCopiedIdsAsRead(ids) {
   if (Object.keys(catData).length) renderCatPanels();
   if (Object.keys(rcData).length) renderRcPanels();
   if (specialLoaded) renderSpecial();
+  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
   toast('✓ Đã thêm ' + selected.size + ' ID vừa copy vào hàng đợi read. Card đã ẩn; đang chờ lưu và dọn.', 'ok');
 }
 

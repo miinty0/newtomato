@@ -14,6 +14,7 @@
       book_name: cleanText(raw.book_name ?? raw.bookName ?? raw.title) || `Truyện #${id}`,
       author: cleanText(raw.author),
       abstract: cleanText(raw.abstract ?? raw.summary),
+      abstract_verified: raw.abstract_verified ?? (!raw.abstract_unverified && typeof (raw.abstract ?? raw.summary) === 'string' && !/[\uE000-\uF8FF]/.test(raw.abstract ?? raw.summary)),
       thumb_url: pic ? `https://p6-novel.byteimg.com/thumb/novel-pic/${pic[1]}` : (/^https:\/\//.test(thumb) ? thumb : ''),
       status: status === '0' || status === 'Completed' ? 'Completed' : status === '1' || status === 'Ongoing' ? 'Ongoing' : 'Unknown',
       currentPos: raw.currentPos ?? position,

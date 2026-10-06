@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番茄小说助手
 // @namespace    https://github.com/naiyQAQ/fanqie-assistant
-// @version      0.0.7-wiki-4.2.6
+// @version      0.0.7-wiki-4.2.7
 // @author       naiyQAQ
 // @description  番茄小说助手，去广告、去推广、解锁章节、优化体验；附加 WikiCV API bridge（Fanqie search + APP catalog/chapter + bookshelf multidetail realChapterOrder preflight + stable volume_name grouping + content_md5/version chapter audit + multi-detail metadata/status audit + batch_full raw (30 chapters/request) + missing-only retry + single-chapter fallback + full-text selected_items passthrough）。
 // @license      GPLv3
@@ -2301,6 +2301,22 @@
     if (json.code != null && Number(json.code) !== 0) throw new Error(json.message || `Ranking code ${json.code}`);
     return json;
   }
+  async function wdRankHydrateAbstract(rows) {
+    for (let i = 0; i < rows.length; i += 3) {
+      await Promise.all(rows.slice(i, i + 3).map(async book => {
+        const value = book.abstract ?? book.summary;
+        if (typeof value === "string" && !/[\uE000-\uF8FF]/.test(value)) return;
+        const id = book.book_id ?? book.bookId;
+        if (typeof id !== "string" || !/^\d+$/.test(id)) { book.abstract_unverified = true; return; }
+        try {
+          const response = await requestApp("/bookapi/multi-detail/v", { book_id: id });
+          const info = response.json()?.data?.[0];
+          if (typeof info?.abstract !== "string") throw new Error("Thiếu tóm tắt");
+          book.abstract = info.abstract; book.abstract_unverified = false;
+        } catch (_) { book.abstract_unverified = true; }
+      }));
+    }
+  }
   async function wdRankingList(payload) {
     const type = String(payload.type || 'peak');
     const offset = Math.max(0, Math.trunc(Number(payload.offset) || 0));
@@ -2338,6 +2354,7 @@
         } catch (_) { unresolved++; }
       }));
     }
+    if (payload.requireAbstract) await wdRankHydrateAbstract(rows);
     const hasMore = type !== 'peak' && rows.length > 0 && (total == null ? rows.length >= limit : offset + rows.length < total);
     return { type, books: rows, title, total, rank_version: version, next_offset: offset + rows.length, has_more: hasMore, unresolved, fetched_at: new Date().toISOString() };
   }
@@ -2506,6 +2523,7 @@
     const selected = group || (groups.length ? null : view);
     const entries = wdRankExtraEntries(selected, algo);
     const books = (algo === 205 || algo === 201 ? [] : wdAppRankBooks(selected)).map((book, i) => ({ ...book, currentPos: Number(payload.offset || 0) + i + 1 }));
+    if (payload.requireAbstract) await wdRankHydrateAbstract(books);
     if (!books.length && !entries.length && Number(payload.offset || 0) === 0) throw new Error(names[algo] + ": mục này chưa trả truyện; giữ dữ liệu cũ");
     return {
       title: names[algo] + (group ? " · " + wdRankTabName(group) : ""),
@@ -2559,12 +2577,16 @@
     if (action === "app-rank-list") return await wdAppRankingList(payload);
     if (action === 'app-rank-probe') return await wdProbeAppRank(payload);
     if (action === 'landing-probe') return await wdProbeSearchLanding(payload);
-    if (action === 'search-landing') return { sections: await getSearchLanding(), fetched_at: new Date().toISOString() };
+    if (action === 'search-landing') {
+      const sections = await getSearchLanding();
+      if (payload.requireAbstract) await wdRankHydrateAbstract(sections.flatMap(section => section.books || []));
+      return { sections, fetched_at: new Date().toISOString() };
+    }
     if (action === 'rank-list') return await wdRankingList(payload);
     if (action === "ping") return {
       ok: true,
-      version: "4.2.6",
-      capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe', 'app-rank-list'],
+      version: "4.2.7",
+      capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe', 'app-rank-list', 'rank-filter-meta'],
       item_id: wdBridgeReaderItemId(),
       path: unsafeWindow.location.pathname
     };
