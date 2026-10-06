@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番茄小说助手
 // @namespace    https://github.com/naiyQAQ/fanqie-assistant
-// @version      0.0.7-wiki-4.2.3
+// @version      0.0.7-wiki-4.2.4
 // @author       naiyQAQ
 // @description  番茄小说助手，去广告、去推广、解锁章节、优化体验；附加 WikiCV API bridge（Fanqie search + APP catalog/chapter + bookshelf multidetail realChapterOrder preflight + stable volume_name grouping + content_md5/version chapter audit + multi-detail metadata/status audit + batch_full raw (30 chapters/request) + missing-only retry + single-chapter fallback + full-text selected_items passthrough）。
 // @license      GPLv3
@@ -2404,6 +2404,42 @@
     };
   }
 
+  function wdRankSchemaParams(schema) {
+    let current = String(schema || "");
+    for (let depth = 0; depth < 6; depth++) {
+      let url;
+      try { url = new URL(current); } catch (_) { throw new Error("Đường dẫn bảng không hợp lệ"); }
+      const nested = url.searchParams.get("url") || url.searchParams.get("surl");
+      if (nested) { current = nested; continue; }
+      if (!url.pathname.includes("/common-rank-list/template.js")) throw new Error("Không tìm thấy common-rank-list");
+      const params = Object.fromEntries(url.searchParams);
+      delete params.version_code;
+      if (!/^\d+$/.test(params.cell_id || "")) throw new Error("Đường dẫn bảng thiếu cell_id");
+      return params;
+    }
+    throw new Error("Đường dẫn bảng lồng quá sâu");
+  }
+  let wdAppRankSchemaPromise;
+  async function wdAppRankSchema() {
+    if (!wdAppRankSchemaPromise) {
+      wdAppRankSchemaPromise = (async () => {
+        const json = await webGet("/bookapi/plan/v", wdLandingProbeParams(), "omit");
+        if (json?.code != null && Number(json.code) !== 0) throw new Error(json.message || "Không lấy được landing");
+        let found;
+        const visit = value => {
+          if (!value || typeof value !== "object" || found) return;
+          if (typeof value.cell_url === "string") {
+            try { found = wdRankSchemaParams(value.cell_url); } catch (_) {}
+          }
+          if (!found) for (const child of Object.values(value)) if (child && typeof child === "object") visit(child);
+        };
+        visit(json.data);
+        if (!found) throw new Error("Landing không có đường dẫn common-rank-list");
+        return found;
+      })().catch(error => { wdAppRankSchemaPromise = undefined; throw error; });
+    }
+    return await wdAppRankSchemaPromise;
+  }
   async function wdProbeAppRank(payload = {}) {
     const algo = Number(payload.algoType ?? 200);
     const allowed = new Set([100, 101, 102, 103, 104, 108, 109, 110, 111, 115, 116, 135, 200]);
@@ -2413,12 +2449,14 @@
       if (!Number.isInteger(n) || n < min || n > max) throw new Error("Giá trị không hợp lệ: " + name);
       return n;
     };
-    const gender = integer(payload.gender, 2, 0, 2, "gender");
+    const schemaParams = await wdAppRankSchema();
+    const gender = integer(payload.gender, schemaParams.list_gender ?? 2, 0, 2, "gender");
     const category = integer(payload.categoryId, 0, 0, 10000, "categoryId");
     const offset = integer(payload.offset, 0, 0, 100000, "offset");
     const period = String(payload.period || "daily");
     if (!["daily", "weekly", "monthly"].includes(period)) throw new Error("period không hợp lệ");
     const params = {
+      ...schemaParams,
       change_type: "1", offset: String(offset), limit: "12", book_type: "0",
       algo_type: String(algo), category_id: String(category), list_type: period,
       gender_list_type: String(gender), client_req_type: offset > 0 ? "2" : "1",
@@ -2426,14 +2464,15 @@
       rank_list_style_type: "1", web_page_key: "common-rank-list",
       web_page_version_code: "1", support_gender_list: "true"
     };
-    if (algo === 200) params.rank_list_sub_tab_type_list = "1,2";
+    params.rank_list_sub_tab_type_list = "1,2";
     if (payload.sessionId) params.session_id = String(payload.sessionId).slice(0, 200);
     if (payload.subTab != null) params.specific_sub_tab_type = String(integer(payload.subTab, 1, 1, 5, "subTab"));
     const response = await requestApp("/bookapi/bookmall/cell/change/v1/", params, { "X-Xs-From-Web": "1" });
     let json;
     try { json = response.json(); }
     catch (_) { throw new Error("APP rank API không trả JSON: " + String(response.responseText || "").slice(0, 160)); }
-    if (json?.code != null && Number(json.code) !== 0) throw new Error(json.message || "APP rank code " + json.code);
+    const apiCode = json?.code ?? json?.err_no ?? 0;
+    const apiError = Number(apiCode) !== 0 ? String(json?.message || json?.err_tips || "APP rank code " + apiCode) : null;
     const view = json?.data?.cell_view;
     const sections = [], cells = [];
     const visit = (cell, path) => {
@@ -2446,6 +2485,7 @@
     };
     visit(view, "data.cell_view");
     return {
+      ok: !apiError, error: apiError, code: apiCode,
       params, sections, cells, top_keys: Object.keys(json || {}),
       data_keys: Object.keys(json?.data || {}), fetched_at: new Date().toISOString(),
       raw: json
@@ -2459,7 +2499,7 @@
     if (action === 'rank-list') return await wdRankingList(payload);
     if (action === "ping") return {
       ok: true,
-      version: "4.2.3",
+      version: "4.2.4",
       capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe'],
       item_id: wdBridgeReaderItemId(),
       path: unsafeWindow.location.pathname
