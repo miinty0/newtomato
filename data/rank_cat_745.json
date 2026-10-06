@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-10-06 03:03:30",
-  "update_date": "2026-10-06",
+  "update_time": "2026-10-07 00:29:34",
+  "update_date": "2026-10-07",
   "category_id": 745,
-  "total_count": 761,
-  "new_count": 7,
+  "total_count": 763,
+  "new_count": 2,
   "books": [
     {
       "book_id": "7590727777817480254",
@@ -16610,6 +16610,49 @@
       "currentPos": 144,
       "rankPosDiff": 0,
       "read_count": "1008",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7685374960939830297",
+      "book_name": "独宠美人：主播她持宠而娇",
+      "author": "尔媛思忆巫",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "独宠",
+        "娱乐圈",
+        "虐渣"
+      ],
+      "abstract": "新作品出炉，欢迎大家前往番茄小说阅读我的作品，希望大家能够喜欢，你们的关注是我写作的动力，我会努力讲好每个故事！",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oc509da0f8b5adf5f58079847bbb0ef06",
+      "last_chapter_time": 1791227905,
+      "first_chapter_time": 1789407329,
+      "currentPos": 93,
+      "rankPosDiff": 0,
+      "read_count": "2398",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7689000518936431640",
+      "book_name": "苗疆赶山，网恋对象是变形记少爷",
+      "author": "牢爵",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "乡村",
+        "总裁",
+        "直播",
+        "位尊权重"
+      ],
+      "abstract": "【掉马+赶山+苗疆+言情】\n京圈太子顾野被亲爹断绝资金扔进十万大山，身无分文还要躲避野猪追杀。为了活命，他只能向黑水寨彪悍村姑黎夏低头，靠挑粪换红薯。好在他拥有顶级的商业头脑，利用信息差在山里搞起草药倒卖，企图攒钱回京与网恋半年的温柔仙女奔现。全网千万观众看着他白天被村姑当牛马，晚上躲被窝给仙女发语音哭诉。直到某天，顾野摔断腿在猪圈哀嚎，村姑黎夏兜里的手机却响起了特别关心提示音。\n掉马瞬间，顾野该如何面对这核爆级社死？",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6d75217781acf31ef68886945e8591a9",
+      "last_chapter_time": 1790921912,
+      "first_chapter_time": 1790235009,
+      "currentPos": 134,
+      "rankPosDiff": 0,
+      "read_count": "1100",
       "rankMold": 1
     }
   ]
