@@ -20,6 +20,7 @@ const end = source.indexOf('// DAILY TAB', start);
 const idStart = source.indexOf('function normalizedBookId');
 const idEnd = source.indexOf('function scoreBadgeBookId', idStart);
 const context = vm.createContext({
+  automaticReadHidden: new Set(),
   scoreCache: new Map(input.scores || []),
   pendingRead: { [input.tab]: new Set(input.pending || []) }
 });

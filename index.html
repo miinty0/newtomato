@@ -837,6 +837,7 @@
   <button class="tab-btn active" data-tab="home" onclick="switchTab('home', this)">🏠 Trang chủ</button>
   <button class="tab-btn" data-tab="daily" onclick="switchTab('daily', this)">📅 Hàng ngày</button>
   <button class="tab-btn" data-tab="category" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
+  <button class="tab-btn" data-tab="rankings" onclick="switchTab('rankings', this)">🏆 Bảng Fanqie</button>
   <button class="tab-btn" data-tab="rankcat" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
   <div style="flex:1"></div>
   <div class="status-filter" id="status-filter" title="Lọc truyện theo trạng thái; Ẩn gồm Hidden và thiếu rank">
@@ -1072,6 +1073,37 @@
   </div>
 
   <!-- ════ HIDDEN FILTER RESULTS ════ -->
+<div id="tab-rankings" class="tab-panel">
+  <div class="section-header"><h2>🏆 Bảng xếp hạng Fanqie</h2></div>
+  <div class="filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <select id="fq-ranking-type" onchange="fqRankingChanged()">
+      <option value="peak">巅峰榜 — Đỉnh cao</option>
+      <option value="editor">官网推荐 — Đề cử nữ tần trên web</option>
+      <option value="reading">阅读榜 — Đang đọc</option>
+      <option value="new">新书榜 — Truyện mới</option>
+      <option value="landing">Trang tìm kiếm — 热搜 / bảng đề cử</option>
+      <option disabled>推荐榜 (APP) — Chưa xác minh API</option>
+      <option disabled>完本榜 — Chưa xác minh API</option>
+      <option disabled>追更榜 — Chưa xác minh API</option>
+      <option disabled>黑马榜 — Chưa xác minh API</option>
+    </select>
+    <select id="fq-ranking-gender" onchange="fqRankingChanged(true)"><option value="1">Nam tần</option><option value="0">Nữ tần</option></select>
+    <select id="fq-ranking-category" onchange="fqRankingChanged()"></select>
+    <button class="btn btn-outline btn-sm" onclick="fqConnectRankings()">🔗 Kết nối tab Fanqie</button>
+    <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
+    <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
+  </div>
+  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.1</a> để lấy dữ liệu trực tiếp. Đề cử trên web và nội dung trang tìm kiếm có thể khác 推荐榜 trong APP. Các bảng chưa xác minh sẽ được bật khi có API và dữ liệu đúng loại.</p>
+  <p id="fq-ranking-info" class="update-info" role="status"></p>
+  <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
+  <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
+  <div id="rankings-read-bar" class="read-submit-bar" style="display:none">Đã đánh dấu <strong id="rankings-marked-count">0</strong> truyện. <button class="btn btn-success btn-sm" onclick="submitRead('rankings')">✓ Lưu danh sách đã đọc</button></div>
+  <div id="rankings-pagination-top" class="pagination"></div>
+  <div id="rankings-books" class="books-grid"></div>
+  <div id="rankings-pagination-bottom" class="pagination"></div>
+  <button id="fq-ranking-more" class="btn btn-outline" style="display:none;margin-top:14px" onclick="fqFetchRankings(true)">Tải tiếp từ Fanqie</button>
+</div>
+
   <div id="tab-special" class="tab-panel">
     <div class="section-header">
       <div>
@@ -1142,7 +1174,7 @@ let lastRegularTab = 'home';
 // Only the current slice exists in the DOM, so score loading is capped at the
 // same 200 books instead of walking through thousands of off-page cards.
 const BOOKS_PER_PAGE = 500;
-const booksPage = { daily: 1, category: 1, rankcat: 1, special: 1 };
+const booksPage = { rankings: 1, daily: 1, category: 1, rankcat: 1, special: 1 };
 
 function paginationPrefix(tab) {
   return tab === 'category' ? 'cat' : tab;
@@ -1207,6 +1239,7 @@ function setBooksPage(tab, pageNumber) {
   else if (tab === 'category') renderCatPanels();
   else if (tab === 'rankcat') renderRcPanels();
   else if (tab === 'special') renderSpecial();
+  else if (tab === 'rankings') renderRankings();
 
   requestAnimationFrame(() => {
     const top = document.getElementById(`${paginationPrefix(tab)}-pagination-top`);
@@ -1259,6 +1292,7 @@ function setStatusFilter(value) {
   if (dailyLoaded) renderDaily();
   renderCatPanels();
   renderRcPanels();
+  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) { booksPage.rankings = 1; renderRankings(); }
 }
 
 function updateStatusFilterUI() {
@@ -1755,6 +1789,7 @@ function switchTab(id, btn) {
     document.getElementById('home-card-rankcat')?.classList.add('loaded');
     detectExistingRankCats();
   }
+  if (id === 'rankings') initRankings();
   // Returning to an already loaded tab resumes its lazy score scan.
   if (id === 'daily' && hadDaily) renderDaily();
   if (id === 'category' && hadCategory) renderCatPanels();
@@ -1912,7 +1947,7 @@ async function ghDispatchWorkflow(workflowId, inputs = {}) {
 
 
 // Read list helpers
-const pendingRead = { daily: new Set(), category: new Set(), rankcat: new Set(), special: new Set() };
+const pendingRead = { rankings: new Set(), daily: new Set(), category: new Set(), rankcat: new Set(), special: new Set() };
 let homeReadSaving = false;
 const cleanupQueuedIds = new Set();
 let cleanupActivePromise = null;
@@ -2177,6 +2212,7 @@ async function saveHomeReadIds() {
       dailyReadSet.add(id);
       rcReadSet.add(id);
       specialReadSet.add(id);
+      if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
       for (const cat of Object.values(catData)) cat.readSet.add(id);
     }
     button.textContent = '🧹 Đang dọn dữ liệu…';
@@ -2233,6 +2269,7 @@ async function submitRead(tab) {
       c.classList.remove('pending-read');
       c.classList.add('is-read');
     });
+    if (tab === 'rankings') renderRankings();
     toast('Đã lưu danh sách đọc thành công ✓', 'ok');
   } catch(e) {
     toast('Lỗi: ' + e.message, 'err');
@@ -4633,5 +4670,7 @@ async function initApp() {
 
 loadConfig();
 </script>
+<script src="ranking-utils.js"></script>
+<script src="ranking-tab.js"></script>
 </body>
 </html>
