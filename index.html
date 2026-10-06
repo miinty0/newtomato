@@ -1077,27 +1077,44 @@
   <div class="section-header"><h2>🏆 Bảng xếp hạng Fanqie</h2></div>
   <div class="filter-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
     <select id="fq-ranking-type" onchange="fqRankingChanged()">
-      <option value="peak">巅峰榜 — Đỉnh cao</option>
-      <option value="editor">官网推荐 — Đề cử nữ tần trên web</option>
-      <option value="reading">阅读榜 — Đang đọc</option>
-      <option value="new">新书榜 — Truyện mới</option>
-      <option value="landing">Trang tìm kiếm — 热搜 / bảng đề cử</option>
-      <option value="app-200">巅峰榜 (APP) — Đỉnh cao / tháng</option>
-      <option value="app-101">推荐榜 (APP) — Đề cử · thử trực tiếp</option>
-      <option value="app-100">完本榜 (APP) — Hoàn thành · thử trực tiếp</option>
-      <option value="app-109">追更榜 (APP) — Theo chương · thử trực tiếp</option>
-      <option value="app-102">黑马榜 (APP) — Ngựa ô · thử trực tiếp</option>
-      <option value="app-111">阅读榜 (APP) — Đang đọc · thử trực tiếp</option>
-      <option value="app-108">新书榜 (APP) — Truyện mới · thử trực tiếp</option>
+      <optgroup label="Bảng trên ứng dụng">
+        <option value="app-101">101 – Bảng đề cử</option>
+        <option value="app-100">100 – Bảng hoàn thành</option>
+        <option value="app-200">200 – Bảng đỉnh cao</option>
+        <option value="app-104">104 – Bảng danh tiếng</option>
+        <option value="app-111">111 – Bảng đọc</option>
+        <option value="app-115">115 – Bảng điểm cao</option>
+        <option value="app-109">109 – Bảng theo dõi chương mới</option>
+        <option value="app-110">110 – Bảng bình luận nổi bật</option>
+        <option value="app-102">102 – Bảng ngựa ô</option>
+        <option value="app-205">205 – Bảng tác giả</option>
+        <option value="app-103">103 – Bảng tìm kiếm nổi bật</option>
+        <option value="app-146">146 – Bảng nhân khí</option>
+        <option value="app-188">188 – Bảng quà tặng</option>
+        <option value="app-197">197 – Bảng xuất bản tăng trưởng</option>
+        <option value="app-196">196 – Bảng xuất bản kinh điển</option>
+        <option value="app-135">135 – Bảng đề cử theo thể loại</option>
+        <option value="app-201">201 – Bảng phát sóng nổi bật</option>
+        <option value="app-116">116 – Bảng hoàn thành theo thể loại</option>
+        <option value="app-108">108 – Bảng truyện mới</option>
+      </optgroup>
+      <optgroup label="Bảng trên website">
+        <option value="peak">Đỉnh cao trên web</option>
+        <option value="editor">Đề cử nữ tần trên web</option>
+        <option value="reading">Đang đọc trên web</option>
+        <option value="new">Truyện mới trên web</option>
+        <option value="landing">Trang tìm kiếm – từ khóa và đề cử</option>
+      </optgroup>
     </select>
-    <select id="fq-ranking-subtab" style="display:none" onchange="fqRankingChanged()"><option value="1">月榜 — Bảng tháng</option><option value="5">男生榜 — Nam tần</option><option value="4">女生榜 — Nữ tần</option></select>
-    <select id="fq-ranking-gender" onchange="fqRankingChanged(true)"><option value="1">Nam tần</option><option value="0">Nữ tần</option></select>
+    <select id="fq-ranking-subtab" style="display:none" onchange="fqRankingChanged()"><option value="auto">Theo giới tính đã chọn</option><option value="1">Bảng tháng</option><option value="5">Nam tần</option><option value="4">Nữ tần</option></select>
+    <select id="fq-ranking-period" onchange="fqRankingChanged()"><option value="daily">Hằng ngày</option><option value="weekly">Hằng tuần</option><option value="monthly">Hằng tháng</option></select>
+    <select id="fq-ranking-gender" onchange="fqRankingChanged(true)"><option value="2">Toàn bộ</option><option value="1">Nam tần</option><option value="0">Nữ tần</option></select>
     <select id="fq-ranking-category" onchange="fqRankingChanged()"></select>
     <button class="btn btn-outline btn-sm" onclick="fqConnectRankings()">🔗 Kết nối tab Fanqie</button>
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
-  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.5</a> để lấy dữ liệu trực tiếp. 巅峰榜 APP đã xác nhận bảng tháng 30 truyện. Các mục “thử trực tiếp” được gọi khi bạn chọn; chưa xác nhận dữ liệu của từng bảng. API lỗi hoặc trả sai bảng sẽ giữ danh sách cũ.</p>
+  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.6</a> để lấy bảng trực tiếp. Chọn giới tính và kỳ xếp hạng rồi bấm lấy danh sách. Bảng tác giả và phát sóng hiển thị riêng; chỉ danh sách truyện hỗ trợ đánh dấu đã đọc và copy ID. Nếu mục đã chọn không được API hỗ trợ, danh sách cũ được giữ lại.</p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
   <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>

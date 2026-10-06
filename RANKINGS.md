@@ -1,33 +1,67 @@
 # Bảng Fanqie trong newtomato
 
-Kiểm tra ngày 06/10/2026. Bridge mới: `0.0.7-wiki-4.2.1`, dựa trên bản `4.2` của người dùng; giữ nguyên tên/namespace để Tampermonkey cập nhật cùng script. Mã gốc Fanqie Assistant giữ giấy phép GPLv3 và attribution trong userscript.
+Bridge: `0.0.7-wiki-4.2.6`. Giữ tên, namespace, attribution và giấy phép GPLv3 của Fanqie Assistant.
 
-| Loại | Kết quả |
+## Bảng trên ứng dụng
+
+Danh sách 19 mã dưới đây lấy từ `main_algo_type` và `sub_algo_type` trong đường dẫn landing chính thức. Tên đã dịch bằng Dịch Ngay ngày 06/10/2026, rồi chỉnh cách diễn đạt cho giao diện tiếng Việt.
+
+| Mã | Tên trên giao diện |
 | --- | --- |
-| 巅峰榜 | API chính thức `/api/author/misc/top_book_list/v1/` trả 30 truyện. Đã lưu snapshot và hỗ trợ lấy mới. Không giả định API có phân trang. |
-| 官网推荐 | `/api/rank/recommend/list?type=3` trả đề cử nữ tần trên website. Đây không phải bằng chứng cho 推荐榜 trong APP. |
-| 阅读榜 | `/api/rank/category/list`, `rankMold=2`, chọn giới tính và danh mục. Đã xác minh có dữ liệu. |
-| 新书榜 | Cùng API, `rankMold=1`. JavaScript chính thức hiện tại ghi `read:2,new:1`; không phải hoàn thành. |
-| 热搜 / 巅峰榜 / 漫画榜 trên trang tìm kiếm | `/reading/bookapi/plan/v` với `scene=10`, lấy bằng hàm ký `webGet` và `getSearchLanding` sẵn có trong bridge. Mục nào Fanqie trả về sẽ hiện đúng tên đó. Đây là các mục rút gọn, không mặc định là bảng đầy đủ. |
-| 推荐榜 APP / 完本榜 / 追更榜 / 黑马榜 | Chưa xác minh endpoint và dữ liệu đúng loại. UI ghi rõ chưa hỗ trợ. Không đoán mã số, không lọc truyện hoàn thành từ bảng khác rồi gọi là 完本榜. |
+| 100 | Bảng hoàn thành |
+| 101 | Bảng đề cử |
+| 102 | Bảng ngựa ô |
+| 103 | Bảng tìm kiếm nổi bật |
+| 104 | Bảng danh tiếng |
+| 108 | Bảng truyện mới |
+| 109 | Bảng theo dõi chương mới |
+| 110 | Bảng bình luận nổi bật |
+| 111 | Bảng đọc |
+| 115 | Bảng điểm cao |
+| 116 | Bảng hoàn thành theo thể loại |
+| 135 | Bảng đề cử theo thể loại |
+| 146 | Bảng nhân khí |
+| 188 | Bảng quà tặng |
+| 196 | Bảng xuất bản kinh điển |
+| 197 | Bảng xuất bản tăng trưởng |
+| 200 | Bảng đỉnh cao |
+| 201 | Bảng phát sóng nổi bật |
+| 205 | Bảng tác giả |
+
+APP gọi `/reading/bookapi/bookmall/cell/change/v1/` bằng chữ ký sẵn có. Bridge lấy đường dẫn `common-rank-list` từ `/reading/bookapi/plan/v`, giải mã các lớp URL và ghép tham số của đường dẫn vào request; giữ `cell_id` dạng chuỗi. Chỉ gửi riêng `algo_type` từng gây `PARAM_INVALID`.
+
+Phản hồi người dùng cung cấp đã xác nhận bảng đỉnh cao mã 200, nhóm tháng gồm 30 truyện. Người dùng sau đó xác nhận cả bảy bảng ban đầu chạy thành công (200, 101, 100, 109, 102, 111, 108). Các mã bổ sung được lấy từ cấu hình chính thức nhưng chưa được thử trực tiếp trong phiên của người dùng.
+
+Giới tính APP: nữ tần 0, nam tần 1, toàn bộ 2; truyền qua `gender_list_type`. Bảng đỉnh cao mặc định chọn nhóm tương ứng: tháng 1, nam tần 5, nữ tần 4. Có thể chọn nhóm riêng. Kỳ xếp hạng gửi `daily`, `weekly`, `monthly`; mã 104 có trong cấu hình `monthly_algo_type`. API có thể không hỗ trợ mọi cặp bảng/giới tính/kỳ.
+
+Bảng tác giả đọc metadata tác giả, bảng phát sóng đọc `video_data`. Những mục này được hiển thị riêng và không được đưa vào read.json hay coi là ID truyện. Tên bảng và bộ lọc hiển thị tiếng Việt; tên tác phẩm, tác giả và từ khóa vẫn là dữ liệu gốc.
 
 ## Cách dùng
 
-1. Cài/cập nhật `userscripts/fanqie-wiki-bridge.user.js` thay bản v4.2 trong Tampermonkey.
-2. Mở tab **Bảng Fanqie** trên newtomato. Snapshot 巅峰榜 và đề cử có thể xem ngay.
-3. Bấm **Kết nối tab Fanqie**. Cho phép popup khi trình duyệt yêu cầu. Giữ tab này mở; đây là nơi ký và thực hiện request.
-4. Chọn bảng, giới tính/danh mục khi có, rồi bấm **Lấy danh sách mới**. **Tải tiếp** dùng offset/rankVersion do API trả về.
-5. Các mục trên trang tìm kiếm có nút chọn riêng; từ khóa mở tìm kiếm Fanqie trong tab mới. Card dùng renderer, score, trạng thái và read.json hiện có. Copy ID lấy danh sách đã tải, bỏ truyện đã đọc và áp dụng bộ lọc trạng thái.
+1. Cài userscript bridge 4.2.6 và tải lại tab Fanqie.
+2. Mở tab Bảng Fanqie, bấm Kết nối tab Fanqie.
+3. Chọn mã bảng, giới tính, kỳ xếp hạng và bấm Lấy danh sách mới.
+4. Tải tiếp sử dụng offset và session_id của phản hồi. Chỉ truyện có chức năng Copy ID và đánh dấu đã đọc.
 
-Request thất bại giữ danh sách đã tải. Thay lựa chọn trong lúc request đang chạy không cho kết quả cũ ghi vào bảng mới. Các phản hồi bridge phải khớp origin Fanqie, tab worker và ID request.
+Danh sách website và landing vẫn có trong nhóm riêng. Bảng đọc/truyện mới trên website dùng mã danh mục của website và chỉ hỗ trợ nam/nữ tần. Snapshot website vẫn có thể xem khi chưa kết nối.
 
-Tên/abstract của API bảng theo danh mục có font riêng (ký tự PUA). Bridge lấy metadata chữ thật qua `/reading/bookapi/multi-detail/v` đã dùng trong v4.2, tối đa ba request song song. Nếu metadata lỗi, UI hiện □ và số mục lỗi; không giả vờ tên đã được giải mã.
+Lỗi API, bảng trả sai mã hoặc nhóm rỗng giữ dữ liệu cũ. Phản hồi bridge phải đúng origin, worker và ID request. Request cũ không ghi đè lựa chọn mới. Những bảng chưa được API hỗ trợ không được thay bằng bảng khác.
 
-## Nguồn xác minh
+## Kiểm tra
 
-- Script đính kèm `fanqie-assistant v0.0.6.2.user.js`: `getSearchLanding`, `/bookapi/plan/v`, cách đọc `cell_data/search_tag_data/book_data`.
-- [Website bảng Fanqie](https://fanqienovel.com/rank/5): danh mục từ `window.__INITIAL_STATE__.rank.rankCategoryTypeList` và hướng dẫn bảng đọc/truyện mới.
-- [JavaScript chính thức](https://lf-fe.fqnovelstatic.com/obj/novel-fanqie-fe/toutiao/muye/js/muye_5f7ec5dd.js): API bảng và `read:2,new:1`.
-- [API đỉnh cao](https://fanqienovel.com/api/author/misc/top_book_list/v1/) và API đề cử: đã gọi trực tiếp để tạo snapshot trong commit này.
+Chạy tại thư mục repo:
 
-Phạm vi kiểm tra: gọi trực tiếp API web; kiểm tra cú pháp và regression tests, mock bridge/metadata/UI. Chưa chạy userscript có chữ ký trong trình duyệt của người dùng, nên danh sách thực tế của trang tìm kiếm cần kiểm tra sau khi cài. Không thêm workflow tự động hay lịch scrape mới.
+```sh
+node tests/test_rankings.cjs
+node tests/test_app_rankings.cjs
+node tests/test_ranking_ui.cjs
+```
+
+Kiểm tra APP dùng phản hồi giả lập để kiểm tra tham số, giới tính, 19 mã, nhóm tháng, metadata, bảng tác giả/phát sóng và lỗi. Đây không phải bằng chứng 19 bảng đều trả dữ liệu trực tiếp.
+
+## Nguồn
+
+- Fanqie Assistant đính kèm, bản 0.0.6.2; bridge nền 4.2 của người dùng.
+- Phản hồi landing và APP do người dùng cung cấp ngày 06/10/2026.
+- Template chính thức: https://lf-normal-gr-sourcecdn.bytegecko.com/obj/byte-gurd-source-gr/novel/dr/fe/drlynx_distribution/common-rank-list/template.js
+- Dịch tên tham số: https://dichngay.com/

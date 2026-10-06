@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番茄小说助手
 // @namespace    https://github.com/naiyQAQ/fanqie-assistant
-// @version      0.0.7-wiki-4.2.5
+// @version      0.0.7-wiki-4.2.6
 // @author       naiyQAQ
 // @description  番茄小说助手，去广告、去推广、解锁章节、优化体验；附加 WikiCV API bridge（Fanqie search + APP catalog/chapter + bookshelf multidetail realChapterOrder preflight + stable volume_name grouping + content_md5/version chapter audit + multi-detail metadata/status audit + batch_full raw (30 chapters/request) + missing-only retry + single-chapter fallback + full-text selected_items passthrough）。
 // @license      GPLv3
@@ -2442,7 +2442,7 @@
   }
   async function wdProbeAppRank(payload = {}) {
     const algo = Number(payload.algoType ?? 200);
-    const allowed = new Set([100, 101, 102, 103, 104, 108, 109, 110, 111, 115, 116, 135, 200]);
+    const allowed = new Set([100, 101, 102, 103, 104, 108, 109, 110, 111, 115, 116, 135, 146, 188, 196, 197, 200, 201, 205]);
     if (!allowed.has(algo)) throw new Error("algoType chưa được xác minh");
     const integer = (value, fallback, min, max, name) => {
       const n = Number(value ?? fallback);
@@ -2493,7 +2493,7 @@
   }
 
   async function wdAppRankingList(payload = {}) {
-    const names = { 200: "巅峰榜", 101: "推荐榜", 100: "完本榜", 109: "追更榜", 102: "黑马榜", 111: "阅读榜", 108: "新书榜" };
+    const names = {"101": "Bảng đề cử", "100": "Bảng hoàn thành", "200": "Bảng đỉnh cao", "104": "Bảng danh tiếng", "111": "Bảng đọc", "115": "Bảng điểm cao", "109": "Bảng theo dõi chương mới", "110": "Bảng bình luận nổi bật", "102": "Bảng ngựa ô", "205": "Bảng tác giả", "103": "Bảng tìm kiếm nổi bật", "146": "Bảng nhân khí", "188": "Bảng quà tặng", "197": "Bảng xuất bản tăng trưởng", "196": "Bảng xuất bản kinh điển", "135": "Bảng đề cử theo thể loại", "201": "Bảng phát sóng nổi bật", "116": "Bảng hoàn thành theo thể loại", "108": "Bảng truyện mới"};
     const algo = Number(payload.algoType);
     if (!names[algo]) throw new Error("Bảng APP chưa hỗ trợ");
     const result = await wdProbeAppRank(payload);
@@ -2501,17 +2501,46 @@
     const data = result.raw?.data || {}, view = data.cell_view;
     if (Number(view?.algo) !== algo) throw new Error("API trả bảng khác yêu cầu; giữ dữ liệu cũ");
     const groups = Array.isArray(view.cell_data) ? view.cell_data.filter(cell => cell.rank_list_sub_tab_type != null) : [];
-    const group = payload.subTab == null ? groups.find(cell => wdAppRankBooks(cell).length) :
+    const group = payload.subTab == null ? groups.find(cell => wdAppRankBooks(cell).length || wdRankExtraEntries(cell, algo).length) :
       groups.find(cell => Number(cell.rank_list_sub_tab_type) === Number(payload.subTab));
-    const books = wdAppRankBooks(group || (groups.length ? null : view)).map((book, i) => ({ ...book, currentPos: Number(payload.offset || 0) + i + 1 }));
-    if (!books.length && Number(payload.offset || 0) === 0) throw new Error(names[algo] + ": mục này chưa trả truyện; giữ dữ liệu cũ");
+    const selected = group || (groups.length ? null : view);
+    const entries = wdRankExtraEntries(selected, algo);
+    const books = (algo === 205 || algo === 201 ? [] : wdAppRankBooks(selected)).map((book, i) => ({ ...book, currentPos: Number(payload.offset || 0) + i + 1 }));
+    if (!books.length && !entries.length && Number(payload.offset || 0) === 0) throw new Error(names[algo] + ": mục này chưa trả truyện; giữ dữ liệu cũ");
     return {
-      title: names[algo] + (group?.cell_name ? " · " + group.cell_name : ""),
+      title: names[algo] + (group ? " · " + wdRankTabName(group) : ""),
+      entries: books.length ? [] : entries,
       books, next_offset: Number(data.next_offset) || 0, has_more: Boolean(data.has_more),
       session_id: String(data.session_id || ""), rank_version: String(data.rank_version || ""),
       fetched_at: result.fetched_at, algo_type: algo,
-      tabs: groups.map(cell => ({ name: cell.cell_name, id: cell.rank_list_sub_tab_type }))
+      tabs: groups.map(cell => ({ name: wdRankTabName(cell), id: cell.rank_list_sub_tab_type }))
     };
+  }
+  function wdRankTabName(cell) {
+    return ({ 1: "Bảng tháng", 4: "Nữ tần", 5: "Nam tần" })[cell.rank_list_sub_tab_type] || "Mục " + cell.rank_list_sub_tab_type;
+  }
+  function wdRankExtraEntries(cell, algo) {
+    const rows = [], seen = new Set();
+    const add = (kind, raw, title, cover, detail, id) => {
+      if (!title) return;
+      const key = kind + ":" + (typeof id === "string" ? id : title);
+      if (seen.has(key)) return;
+      seen.add(key); rows.push({ id: key, kind, title: String(title), cover_url: String(cover || ""), detail: String(detail || ""), query: String(title) });
+    };
+    const visit = value => {
+      if (!value || typeof value !== "object") return;
+      if (algo === 205) {
+        for (const book of value.book_data || []) {
+          const author = book.original_author_infos?.[0] || {};
+          add("author", book, author.AuthorName || book.author, book.avatar_url, book.book_name, author.AuthorIdStr);
+        }
+        for (const author of value.all_author_data || []) add("author", author, author.AuthorName || author.author_name || author.name, author.avatar_url, "", author.AuthorIdStr || author.author_id);
+      }
+      if (algo === 201) for (const video of value.video_data || []) add("video", video, video.title || video.name, video.cover, video.card_tips, video.video_id || video.id);
+      for (const word of value.search_tag_data || []) add("hotword", word, word.word || word.search_word || word.title, "", "", word.id);
+      for (const child of value.cell_data || []) visit(child);
+    };
+    visit(cell); return rows;
   }
   function wdAppRankBooks(cell) {
     const books = [], seen = new Set();
@@ -2534,7 +2563,7 @@
     if (action === 'rank-list') return await wdRankingList(payload);
     if (action === "ping") return {
       ok: true,
-      version: "4.2.5",
+      version: "4.2.6",
       capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe', 'app-rank-list'],
       item_id: wdBridgeReaderItemId(),
       path: unsafeWindow.location.pathname
