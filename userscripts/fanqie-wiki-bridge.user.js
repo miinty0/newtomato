@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番茄小说助手
 // @namespace    https://github.com/naiyQAQ/fanqie-assistant
-// @version      0.0.7-wiki-4.2.1
+// @version      0.0.7-wiki-4.2.2
 // @author       naiyQAQ
 // @description  番茄小说助手，去广告、去推广、解锁章节、优化体验；附加 WikiCV API bridge（Fanqie search + APP catalog/chapter + bookshelf multidetail realChapterOrder preflight + stable volume_name grouping + content_md5/version chapter audit + multi-detail metadata/status audit + batch_full raw (30 chapters/request) + missing-only retry + single-chapter fallback + full-text selected_items passthrough）。
 // @license      GPLv3
@@ -2341,13 +2341,77 @@
     const hasMore = type !== 'peak' && rows.length > 0 && (total == null ? rows.length >= limit : offset + rows.length < total);
     return { type, books: rows, title, total, rank_version: version, next_offset: offset + rows.length, has_more: hasMore, unresolved, fetched_at: new Date().toISOString() };
   }
+  function wdLandingProbeParams(raw = {}) {
+    const params = {
+      search_source: "1", scene: "10", new_search_middle_page: "true",
+      search_middle_page_version: "2", from: "search_input_page", tab_name: "store",
+      bookstore_tab: "2", bookstore_tab_type: "2", hot_word_exchange: "false",
+      query_history_removed: "false", user_is_login: "0"
+    };
+    const numeric = {
+      scene: [0, 100], search_source: [0, 20], bookstore_tab: [0, 20],
+      bookstore_tab_type: [0, 20], search_middle_page_version: [1, 5]
+    };
+    const boolean = new Set(["new_search_middle_page", "hot_word_exchange", "query_history_removed"]);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("params phải là object");
+    for (const [key, value] of Object.entries(raw)) {
+      if (numeric[key]) {
+        const number = Number(value);
+        const [min, max] = numeric[key];
+        if (!Number.isInteger(number) || number < min || number > max) throw new Error("Giá trị không hợp lệ: " + key);
+        params[key] = String(number);
+      } else if (boolean.has(key)) {
+        if (![true, false, "true", "false"].includes(value)) throw new Error("Cần true/false: " + key);
+        params[key] = String(value);
+      } else throw new Error("Tham số chưa hỗ trợ: " + key);
+    }
+    return params;
+  }
+  async function wdProbeSearchLanding(payload = {}) {
+    const params = wdLandingProbeParams(payload.params || {});
+    const json = await webGet("/bookapi/plan/v", params, "omit");
+    if (json?.code != null && Number(json.code) !== 0) throw new Error(json.message || "Plan API code " + json.code);
+    const sections = [], cells = [], hints = [];
+    const visit = (cell, path) => {
+      if (!cell || typeof cell !== "object") return;
+      const words = collectWords(cell.search_tag_data), books = collectSugBooks(cell.book_data);
+      const title = String(cell.cell_name || cell.title || "");
+      cells.push({
+        path, title, cell_type: cell.cell_type ?? null, show_type: cell.show_type ?? null,
+        books: books.length, words: words.length, keys: Object.keys(cell)
+      });
+      if (words.length || books.length) pushSection(sections, title, words, books);
+      if (Array.isArray(cell.cell_data)) cell.cell_data.forEach((sub, i) => visit(sub, path + ".cell_data[" + i + "]"));
+    };
+    if (Array.isArray(json?.data)) json.data.forEach((cell, i) => visit(cell, "data[" + i + "]"));
+    let walked = 0;
+    const scan = (value, path, depth = 0) => {
+      if (!value || typeof value !== "object" || depth > 12 || walked++ > 5000 || hints.length >= 100) return;
+      for (const [key, child] of Object.entries(value)) {
+        const childPath = path ? path + "." + key : key;
+        if (/schema|scheme|url|rank_id|board_id|category_id|cell_id|plan_id/i.test(key) &&
+            child != null && ["string", "number"].includes(typeof child)) {
+          hints.push({ path: childPath, value: String(child).slice(0, 2000) });
+        }
+        if (child && typeof child === "object") scan(child, childPath, depth + 1);
+      }
+    };
+    scan(json, "");
+    return {
+      params, sections, cells, hints, top_keys: Object.keys(json || {}),
+      fetched_at: new Date().toISOString(),
+      ...(payload.includeRaw === true ? { raw: json } : {})
+    };
+  }
+
   async function wdBridgeHandle(action, payload) {
+    if (action === 'landing-probe') return await wdProbeSearchLanding(payload);
     if (action === 'search-landing') return { sections: await getSearchLanding(), fetched_at: new Date().toISOString() };
     if (action === 'rank-list') return await wdRankingList(payload);
     if (action === "ping") return {
       ok: true,
-      version: "4.2.1",
-      capabilities: ['search-landing', 'rank-list'],
+      version: "4.2.2",
+      capabilities: ['search-landing', 'rank-list', 'landing-probe'],
       item_id: wdBridgeReaderItemId(),
       path: unsafeWindow.location.pathname
     };
