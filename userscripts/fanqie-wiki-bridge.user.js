@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番茄小说助手
 // @namespace    https://github.com/naiyQAQ/fanqie-assistant
-// @version      0.0.7-wiki-4.2.2
+// @version      0.0.7-wiki-4.2.3
 // @author       naiyQAQ
 // @description  番茄小说助手，去广告、去推广、解锁章节、优化体验；附加 WikiCV API bridge（Fanqie search + APP catalog/chapter + bookshelf multidetail realChapterOrder preflight + stable volume_name grouping + content_md5/version chapter audit + multi-detail metadata/status audit + batch_full raw (30 chapters/request) + missing-only retry + single-chapter fallback + full-text selected_items passthrough）。
 // @license      GPLv3
@@ -2404,14 +2404,63 @@
     };
   }
 
+  async function wdProbeAppRank(payload = {}) {
+    const algo = Number(payload.algoType ?? 200);
+    const allowed = new Set([100, 101, 102, 103, 104, 108, 109, 110, 111, 115, 116, 135, 200]);
+    if (!allowed.has(algo)) throw new Error("algoType chưa được xác minh");
+    const integer = (value, fallback, min, max, name) => {
+      const n = Number(value ?? fallback);
+      if (!Number.isInteger(n) || n < min || n > max) throw new Error("Giá trị không hợp lệ: " + name);
+      return n;
+    };
+    const gender = integer(payload.gender, 2, 0, 2, "gender");
+    const category = integer(payload.categoryId, 0, 0, 10000, "categoryId");
+    const offset = integer(payload.offset, 0, 0, 100000, "offset");
+    const period = String(payload.period || "daily");
+    if (!["daily", "weekly", "monthly"].includes(period)) throw new Error("period không hợp lệ");
+    const params = {
+      change_type: "1", offset: String(offset), limit: "12", book_type: "0",
+      algo_type: String(algo), category_id: String(category), list_type: period,
+      gender_list_type: String(gender), client_req_type: offset > 0 ? "2" : "1",
+      genre_type: "0", rank_sub_info_id: String(category), rank_sub_info_type: "0",
+      rank_list_style_type: "1", web_page_key: "common-rank-list",
+      web_page_version_code: "1", support_gender_list: "true"
+    };
+    if (algo === 200) params.rank_list_sub_tab_type_list = "1,2";
+    if (payload.sessionId) params.session_id = String(payload.sessionId).slice(0, 200);
+    if (payload.subTab != null) params.specific_sub_tab_type = String(integer(payload.subTab, 1, 1, 5, "subTab"));
+    const response = await requestApp("/bookapi/bookmall/cell/change/v1/", params, { "X-Xs-From-Web": "1" });
+    let json;
+    try { json = response.json(); }
+    catch (_) { throw new Error("APP rank API không trả JSON: " + String(response.responseText || "").slice(0, 160)); }
+    if (json?.code != null && Number(json.code) !== 0) throw new Error(json.message || "APP rank code " + json.code);
+    const view = json?.data?.cell_view;
+    const sections = [], cells = [];
+    const visit = (cell, path) => {
+      if (!cell || typeof cell !== "object") return;
+      const books = collectSugBooks(cell.book_data), words = collectWords(cell.search_tag_data);
+      const title = String(cell.cell_name || "");
+      cells.push({ path, title, show_type: cell.show_type ?? null, books: books.length, words: words.length, keys: Object.keys(cell) });
+      if (books.length || words.length) pushSection(sections, title, words, books);
+      if (Array.isArray(cell.cell_data)) cell.cell_data.forEach((child, i) => visit(child, path + ".cell_data[" + i + "]"));
+    };
+    visit(view, "data.cell_view");
+    return {
+      params, sections, cells, top_keys: Object.keys(json || {}),
+      data_keys: Object.keys(json?.data || {}), fetched_at: new Date().toISOString(),
+      raw: json
+    };
+  }
+
   async function wdBridgeHandle(action, payload) {
+    if (action === 'app-rank-probe') return await wdProbeAppRank(payload);
     if (action === 'landing-probe') return await wdProbeSearchLanding(payload);
     if (action === 'search-landing') return { sections: await getSearchLanding(), fetched_at: new Date().toISOString() };
     if (action === 'rank-list') return await wdRankingList(payload);
     if (action === "ping") return {
       ok: true,
-      version: "4.2.2",
-      capabilities: ['search-landing', 'rank-list', 'landing-probe'],
+      version: "4.2.3",
+      capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe'],
       item_id: wdBridgeReaderItemId(),
       path: unsafeWindow.location.pathname
     };
