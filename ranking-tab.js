@@ -1,6 +1,6 @@
 'use strict';
 let fqRankingReadSet = new Set();
-const fqRankingState = { initialized: false, worker: null, pending: new Map(), books: [], sections: [], section: 0, next: 0, more: false, version: '', generation: 0, busy: false };
+const fqRankingState = { initialized: false, worker: null, pending: new Map(), books: [], sections: [], section: 0, next: 0, more: false, version: '', session: '', generation: 0, busy: false };
 const FQ_RANK_ORIGIN = 'https://fanqienovel.com';
 const FQ_RANK_CHANNEL = 'wd-fq-bridge-v2';
 let fqRankingCategories = { male: [], female: [] };
@@ -24,7 +24,7 @@ function fqRankRequest(action, payload = {}, timeout = 90000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       fqRankingState.pending.delete(id);
-      reject(new Error('Fanqie không phản hồi. Kiểm tra bridge v4.2.1 đang bật và tab Fanqie đã tải xong; dữ liệu cũ được giữ lại.'));
+      reject(new Error('Fanqie không phản hồi. Kiểm tra bridge v4.2.5 đang bật và tab Fanqie đã tải xong; dữ liệu cũ được giữ lại.'));
     }, timeout);
     fqRankingState.pending.set(id, { resolve, reject, timer });
     worker.postMessage({ __wdFqBridge: FQ_RANK_CHANNEL, kind: 'request', id, action, payload }, FQ_RANK_ORIGIN);
@@ -38,7 +38,7 @@ async function fqConnectRankings() {
   for (let attempt = 0; attempt < 12; attempt++) {
     try {
       const result = await fqRankRequest('ping', {}, 2500);
-      if (!result.capabilities?.includes('rank-list')) throw new Error('Cần cập nhật bridge v4.2.1.');
+      if (!result.capabilities?.includes('app-rank-list')) throw new Error('Cần cập nhật bridge v4.2.5.');
       fqRankEl('fq-ranking-info').textContent = `Đã kết nối bridge ${result.version}. Bấm “Lấy danh sách mới”.`;
       return;
     } catch (error) {
@@ -71,7 +71,8 @@ function fqRankingChanged(resetCategory = false) {
     category.replaceChildren(...rows.map(row => new Option(`${row.id} – ${CATEGORY_NAMES[row.id] || row.name}`, row.id)));
   }
   category.disabled = fqRankEl('fq-ranking-gender').disabled = !['reading', 'new'].includes(type);
-  fqRankingState.books = []; fqRankingState.sections = []; fqRankingState.more = false; fqRankingState.next = 0; fqRankingState.version = '';
+  fqRankEl('fq-ranking-subtab').style.display = type === 'app-200' ? '' : 'none';
+  fqRankingState.books = []; fqRankingState.sections = []; fqRankingState.more = false; fqRankingState.next = 0; fqRankingState.version = ''; fqRankingState.session = '';
   fqRankEl('fq-ranking-sections').replaceChildren(); fqRankEl('fq-ranking-words').replaceChildren();
   booksPage.rankings = 1;
   if (fqRankingSnapshot?.[type]) {
@@ -91,7 +92,12 @@ async function fqFetchRankings(append) {
   fqRankingState.busy = true;
   fqRankEl('fq-ranking-info').textContent = 'Đang lấy dữ liệu trực tiếp từ Fanqie…';
   try {
-    const result = await fqRankRequest(type === 'landing' ? 'search-landing' : 'rank-list', {
+    const isApp = type.startsWith('app-');
+    const result = await fqRankRequest(isApp ? 'app-rank-list' : type === 'landing' ? 'search-landing' : 'rank-list', isApp ? {
+      algoType: Number(type.slice(4)), offset, categoryId: 0, gender: 2,
+      ...(type === 'app-200' ? { subTab: Number(fqRankEl('fq-ranking-subtab').value || 1) } : {}),
+      sessionId: append ? fqRankingState.session : ''
+    } : {
       type, offset, categoryId: fqRankEl('fq-ranking-category').value,
       gender: fqRankEl('fq-ranking-gender').value, rankVersion: append ? fqRankingState.version : ''
     });
@@ -114,6 +120,7 @@ async function fqFetchRankings(append) {
       fqRankingState.more = Boolean(result.has_more) && Number(result.next_offset) > offset && incoming.length > 0 && (!append || fqRankingState.books.length > previousCount);
       fqRankingState.next = Number(result.next_offset) || offset + result.books.length;
       fqRankingState.version = result.rank_version || '';
+      fqRankingState.session = result.session_id || '';
       if (!append) booksPage.rankings = 1;
       fqRankEl('fq-ranking-info').textContent = `${result.title || type} · ${result.fetched_at} · đã tải ${fqRankingState.books.length}${result.total != null ? '/' + result.total : ''} truyện${result.unresolved ? ` · ${result.unresolved} truyện chưa lấy được tên gốc (□)` : ''}`;
       renderRankings();

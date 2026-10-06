@@ -1082,18 +1082,22 @@
       <option value="reading">阅读榜 — Đang đọc</option>
       <option value="new">新书榜 — Truyện mới</option>
       <option value="landing">Trang tìm kiếm — 热搜 / bảng đề cử</option>
-      <option disabled>推荐榜 (APP) — Chưa xác minh API</option>
-      <option disabled>完本榜 — Chưa xác minh API</option>
-      <option disabled>追更榜 — Chưa xác minh API</option>
-      <option disabled>黑马榜 — Chưa xác minh API</option>
+      <option value="app-200">巅峰榜 (APP) — Đỉnh cao / tháng</option>
+      <option value="app-101">推荐榜 (APP) — Đề cử · thử trực tiếp</option>
+      <option value="app-100">完本榜 (APP) — Hoàn thành · thử trực tiếp</option>
+      <option value="app-109">追更榜 (APP) — Theo chương · thử trực tiếp</option>
+      <option value="app-102">黑马榜 (APP) — Ngựa ô · thử trực tiếp</option>
+      <option value="app-111">阅读榜 (APP) — Đang đọc · thử trực tiếp</option>
+      <option value="app-108">新书榜 (APP) — Truyện mới · thử trực tiếp</option>
     </select>
+    <select id="fq-ranking-subtab" style="display:none" onchange="fqRankingChanged()"><option value="1">月榜 — Bảng tháng</option><option value="5">男生榜 — Nam tần</option><option value="4">女生榜 — Nữ tần</option></select>
     <select id="fq-ranking-gender" onchange="fqRankingChanged(true)"><option value="1">Nam tần</option><option value="0">Nữ tần</option></select>
     <select id="fq-ranking-category" onchange="fqRankingChanged()"></select>
     <button class="btn btn-outline btn-sm" onclick="fqConnectRankings()">🔗 Kết nối tab Fanqie</button>
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
-  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.1</a> để lấy dữ liệu trực tiếp. Đề cử trên web và nội dung trang tìm kiếm có thể khác 推荐榜 trong APP. Các bảng chưa xác minh sẽ được bật khi có API và dữ liệu đúng loại.</p>
+  <p style="color:var(--muted);margin-bottom:12px">Cài <a href="userscripts/fanqie-wiki-bridge.user.js" target="_blank" rel="noopener">bridge v4.2.5</a> để lấy dữ liệu trực tiếp. 巅峰榜 APP đã xác nhận bảng tháng 30 truyện. Các mục “thử trực tiếp” được gọi khi bạn chọn; chưa xác nhận dữ liệu của từng bảng. API lỗi hoặc trả sai bảng sẽ giữ danh sách cũ.</p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
   <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>

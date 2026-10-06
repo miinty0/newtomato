@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番茄小说助手
 // @namespace    https://github.com/naiyQAQ/fanqie-assistant
-// @version      0.0.7-wiki-4.2.4
+// @version      0.0.7-wiki-4.2.5
 // @author       naiyQAQ
 // @description  番茄小说助手，去广告、去推广、解锁章节、优化体验；附加 WikiCV API bridge（Fanqie search + APP catalog/chapter + bookshelf multidetail realChapterOrder preflight + stable volume_name grouping + content_md5/version chapter audit + multi-detail metadata/status audit + batch_full raw (30 chapters/request) + missing-only retry + single-chapter fallback + full-text selected_items passthrough）。
 // @license      GPLv3
@@ -2492,15 +2492,50 @@
     };
   }
 
+  async function wdAppRankingList(payload = {}) {
+    const names = { 200: "巅峰榜", 101: "推荐榜", 100: "完本榜", 109: "追更榜", 102: "黑马榜", 111: "阅读榜", 108: "新书榜" };
+    const algo = Number(payload.algoType);
+    if (!names[algo]) throw new Error("Bảng APP chưa hỗ trợ");
+    const result = await wdProbeAppRank(payload);
+    if (!result.ok) throw new Error(names[algo] + ": " + result.error + " (code " + result.code + ")");
+    const data = result.raw?.data || {}, view = data.cell_view;
+    if (Number(view?.algo) !== algo) throw new Error("API trả bảng khác yêu cầu; giữ dữ liệu cũ");
+    const groups = Array.isArray(view.cell_data) ? view.cell_data.filter(cell => cell.rank_list_sub_tab_type != null) : [];
+    const group = payload.subTab == null ? groups.find(cell => wdAppRankBooks(cell).length) :
+      groups.find(cell => Number(cell.rank_list_sub_tab_type) === Number(payload.subTab));
+    const books = wdAppRankBooks(group || (groups.length ? null : view)).map((book, i) => ({ ...book, currentPos: Number(payload.offset || 0) + i + 1 }));
+    if (!books.length && Number(payload.offset || 0) === 0) throw new Error(names[algo] + ": mục này chưa trả truyện; giữ dữ liệu cũ");
+    return {
+      title: names[algo] + (group?.cell_name ? " · " + group.cell_name : ""),
+      books, next_offset: Number(data.next_offset) || 0, has_more: Boolean(data.has_more),
+      session_id: String(data.session_id || ""), rank_version: String(data.rank_version || ""),
+      fetched_at: result.fetched_at, algo_type: algo,
+      tabs: groups.map(cell => ({ name: cell.cell_name, id: cell.rank_list_sub_tab_type }))
+    };
+  }
+  function wdAppRankBooks(cell) {
+    const books = [], seen = new Set();
+    const visit = value => {
+      if (!value || typeof value !== "object") return;
+      for (const book of value.book_data || []) {
+        // APP supplies exact IDs as strings; never use rounded numeric IDs.
+        if (typeof book.book_id !== "string" || !/^\d+$/.test(book.book_id) || seen.has(book.book_id)) continue;
+        seen.add(book.book_id); books.push({ ...book, currentPos: books.length + 1 });
+      }
+      for (const child of value.cell_data || []) visit(child);
+    };
+    visit(cell); return books;
+  }
   async function wdBridgeHandle(action, payload) {
+    if (action === "app-rank-list") return await wdAppRankingList(payload);
     if (action === 'app-rank-probe') return await wdProbeAppRank(payload);
     if (action === 'landing-probe') return await wdProbeSearchLanding(payload);
     if (action === 'search-landing') return { sections: await getSearchLanding(), fetched_at: new Date().toISOString() };
     if (action === 'rank-list') return await wdRankingList(payload);
     if (action === "ping") return {
       ok: true,
-      version: "4.2.4",
-      capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe'],
+      version: "4.2.5",
+      capabilities: ['search-landing', 'rank-list', 'landing-probe', 'app-rank-probe', 'app-rank-list'],
       item_id: wdBridgeReaderItemId(),
       path: unsafeWindow.location.pathname
     };
