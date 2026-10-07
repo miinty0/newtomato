@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-10-07 00:29:34",
-  "update_date": "2026-10-07",
+  "update_time": "2026-10-08 01:13:30",
+  "update_date": "2026-10-08",
   "category_id": 745,
-  "total_count": 763,
-  "new_count": 2,
+  "total_count": 764,
+  "new_count": 1,
   "books": [
     {
       "book_id": "7590727777817480254",
@@ -16653,6 +16653,28 @@
       "currentPos": 134,
       "rankPosDiff": 0,
       "read_count": "1100",
+      "rankMold": 1
+    },
+    {
+      "book_id": "7679756004476603454",
+      "book_name": "穿成学霸后，我靠恶女杀回内娱",
+      "author": "有财喵喵",
+      "tags": [
+        "星光璀璨",
+        "现代言情",
+        "穿越",
+        "娱乐圈",
+        "学霸",
+        "搞笑轻松"
+      ],
+      "abstract": "【爽文+穿越+娱乐圈+打脸+综艺+双强+搞笑】\n夏时溪，十八线恶女专业户。\n演了十年反派，好不容易翻身当小白花。\n发布会上，一跤摔穿成孤儿女学霸。\n专业第一毕业，所有人都等着她保研进大厂。\n她转身扎进影视城跑龙套。\n同学笑她疯了：学霸去演尸体？\n上一世演了十年恶女。\n这一世从尸体到宫女，从丫鬟到特约，一步步往上爬。\n直到一个三秒的恶女回眸被截上热搜。\n全网炸了：这龙套的眼神，比女主还带感！\n导演们闻着味就来了，剧本堆满桌子。\n夏时溪随手一翻，轻笑：给顶流作配？\n这一局，恶女归来，只做顶流。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o1b3ea6b94ab16964298d6b7d7da44c9b",
+      "last_chapter_time": 1791365090,
+      "first_chapter_time": 1788094324,
+      "currentPos": 113,
+      "rankPosDiff": 0,
+      "read_count": "1584",
       "rankMold": 1
     }
   ]
