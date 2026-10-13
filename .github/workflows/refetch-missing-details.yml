@@ -3,6 +3,7 @@ name: refetch-missing-details
 on:
   schedule:
     - cron: '17 20 * * *' # 20:17 UTC = 03:17 giờ Việt Nam ngày hôm sau
+    - cron: '0 8 * * *'   # 08:00 UTC = 15:00 giờ Việt Nam
   workflow_dispatch:
     inputs:
       file_filter:
