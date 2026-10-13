@@ -2,7 +2,7 @@ name: scrape-rankcat
 
 on:
   schedule:
-    - cron: '0 10 * * *'   # 10:00 UTC = 17:00 UTC+7
+    - cron: '0 4 * * *'    # 04:00 UTC = 11:00 giờ Việt Nam
   workflow_dispatch:
     inputs:
       rank_cat_id:
