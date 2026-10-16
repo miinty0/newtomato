@@ -2,7 +2,7 @@ name: scrape-daily
 
 on:
   schedule:
-    - cron: '0 22 * * *'   # 22:00 UTC = 05:00 UTC+7
+    - cron: '21 18 * * *'  # 18:21 UTC = 01:21 giờ Việt Nam ngày hôm sau
   workflow_dispatch:
     inputs:
       category_id:
