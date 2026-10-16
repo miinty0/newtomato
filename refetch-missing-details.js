@@ -71,6 +71,8 @@ function httpGet(url, extraHeaders = {}) {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return httpGet(res.headers.location, extraHeaders).then(resolve).catch(reject);
       }
+      // setEncoding giữ nguyên ký tự UTF-8 nhiều byte bị cắt giữa 2 chunk (tránh sinh ra U+FFFD)
+      res.setEncoding('utf8');
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => resolve({ status: res.statusCode, data }));

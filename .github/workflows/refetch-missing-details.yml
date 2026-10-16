@@ -14,6 +14,11 @@ on:
         description: 'Giới hạn số book_id xử lý trong lần chạy này (bỏ trống = không giới hạn)'
         required: false
         default: ''
+      run_cleanup:
+        description: 'Chạy cleanup-books (combined) sau khi refetch'
+        required: false
+        type: boolean
+        default: true
 
 concurrency:
   group: newtomato-data-writes
@@ -52,7 +57,7 @@ jobs:
           node refetch-missing-details.js "${args[@]}"
 
       - name: cleanup newly fetched and existing books
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ github.event_name == 'schedule' || inputs.run_cleanup }}
         run: node cleanup-books.js --mode combined --last-year 2025 --first-year 2023 --data-dir ./data
 
       - name: save to data branch
