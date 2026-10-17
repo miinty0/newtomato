@@ -105,7 +105,7 @@ function loadReadSet() {
 }
 
 // ========== Step 2: Ranking list ==========
-async function fetchHotRankList(categoryId = -1) {
+async function fetchHotRankList(categoryId = -1, { gender = GENDER, creationStatus = -1 } = {}) {
   const allBooks = [];
   const MAX_PAGES = 150;
   const MAX_RETRY = 3;
@@ -114,8 +114,8 @@ async function fetchHotRankList(categoryId = -1) {
     if (allBooks.length >= POOL_SIZE) break;
     const params = new URLSearchParams({
       page_count: PAGE_SIZE, page_index: page,
-      gender: GENDER, category_id: categoryId,
-      creation_status: -1, word_count: -1,
+      gender, category_id: categoryId,
+      creation_status: creationStatus, word_count: -1,
       book_type: -1, sort: 0,
     });
     let ok = false;
@@ -212,10 +212,21 @@ function saveCache(cache) {
 async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   const isCategoryRun = categoryId !== -1;
 
-  const [hotRankList, topBookMap] = await Promise.all([
-    fetchHotRankList(categoryId),
+  const [rankGroups, topBookMap] = await Promise.all([
+    (async () => {
+      if (isCategoryRun) {
+        return [{ list: await fetchHotRankList(categoryId), limit: RECOMMEND_COUNT }];
+      }
+      const groups = [];
+      for (const [creationStatus, limit] of [[1, 20], [0, 10]]) {
+        const list = await fetchHotRankList(categoryId, { gender: -1, creationStatus });
+        groups.push({ list, limit });
+      }
+      return groups;
+    })(),
     fetchTopBookList(),
   ]);
+  const hotRankList = rankGroups.flatMap(group => group.list);
 
   // Build prev rank map for rank_change (daily run only)
   const prevMap = {};
@@ -223,14 +234,21 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     for (const b of prevData.books) prevMap[b.book_id] = b.hot_rank;
   }
 
-  // Filter out already-read AND already-seen books (for category), keep ranking order
-  const candidates = hotRankList.filter(b => {
-    const id = String(b.book_id);
-    return !readSet.has(id) && !seenBookIds.has(id);
-  });
-  console.log(`  pool: ${hotRankList.length} | unread+unseen candidates: ${candidates.length}`);
-
-  const top = candidates.slice(0, RECOMMEND_COUNT);
+  // Apply each group's quota after excluding read, seen, and duplicate IDs.
+  const selectedIds = new Set();
+  const top = [];
+  for (const { list, limit } of rankGroups) {
+    let added = 0;
+    for (const book of list) {
+      if (added >= limit) break;
+      const id = String(book.book_id);
+      if (readSet.has(id) || seenBookIds.has(id) || selectedIds.has(id)) continue;
+      selectedIds.add(id);
+      top.push(book);
+      added++;
+    }
+    console.log(`  pool: ${list.length} | selected: ${added}/${limit}`);
+  }
   const cache = loadCache();
   const books = [];
   let cacheUpdated = false;
@@ -241,7 +259,9 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     const hotRank = hotRankList.findIndex(b => String(b.book_id) === bookId) + 1;
     const topInfo = topBookMap[bookId] || {};
 
-    const creationStatus = topInfo.creation_status ?? rawBook.creation_status;
+    const creationStatus = Number(isCategoryRun
+      ? (topInfo.creation_status ?? rawBook.creation_status ?? -1)
+      : (rawBook.creation_status ?? topInfo.creation_status ?? -1));
     const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
     const isCompleted    = statusLabel === 'Completed';
 
