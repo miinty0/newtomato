@@ -1156,7 +1156,7 @@
   <div id="tab-idscore" class="tab-panel">
     <div class="section-header"><div>
       <div class="section-title">Score theo ID</div>
-      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Tự bỏ ID trùng, vẫn chạy các ID đã có trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
+      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Lấy score, bìa và thông tin truyện trong cùng một lần gọi API. Tự bỏ ID trùng, vẫn chạy các ID trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
     </div></div>
     <label for="idscore-input">Danh sách ID / link Fanqie</label>
     <textarea id="idscore-input" rows="8" spellcheck="false" placeholder="7569431547728645182 | 7676513996333124632" style="display:block;width:100%;padding:12px;margin:8px 0 12px;border:1px solid var(--border2);border-radius:var(--radius);font:13px monospace;background:var(--surface);color:var(--text);resize:vertical"></textarea>
@@ -1171,7 +1171,7 @@
     <p id="idscore-info" class="section-meta" role="status" style="margin:12px 0">Chưa chạy. Kết quả tự xếp score từ cao xuống thấp; N/A và lỗi ở cuối.</p>
     <div id="idscore-pages" class="pagination"></div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left">
-      <thead><tr><th>STT</th><th>Fanqie ID</th><th>Score</th><th>Trạng thái</th></tr></thead>
+      <thead><tr><th>STT</th><th>Truyện / thông tin API</th><th>Score</th><th>Kết quả</th></tr></thead>
       <tbody id="idscore-results" class="notranslate"></tbody>
     </table></div>
   </div>
@@ -4725,6 +4725,6 @@ loadConfig();
 </script>
 <script src="ranking-utils.js"></script>
 <script src="ranking-tab.js"></script>
-<script src="id-score-tab.js"></script>
+<script src="id-score-tab.js?v=2"></script>
 </body>
 </html>
