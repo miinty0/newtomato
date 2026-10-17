@@ -218,9 +218,9 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
         return [{ list: await fetchHotRankList(categoryId), limit: RECOMMEND_COUNT }];
       }
       const groups = [];
-      for (const [creationStatus, limit] of [[1, 20], [0, 10]]) {
-        const list = await fetchHotRankList(categoryId, { gender: -1, creationStatus });
-        groups.push({ list, limit });
+      for (const [gender, creationStatus, limit] of [[0, 1, 15], [0, 0, 7], [1, 1, 5], [1, 0, 3]]) {
+        const list = await fetchHotRankList(categoryId, { gender, creationStatus });
+        groups.push({ list, limit, gender, creationStatus });
       }
       return groups;
     })(),
@@ -237,7 +237,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   // Apply each group's quota after excluding read, seen, and duplicate IDs.
   const selectedIds = new Set();
   const top = [];
-  for (const { list, limit } of rankGroups) {
+  for (const { list, limit, gender, creationStatus } of rankGroups) {
     let added = 0;
     for (const book of list) {
       if (added >= limit) break;
@@ -247,7 +247,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       top.push(book);
       added++;
     }
-    console.log(`  pool: ${list.length} | selected: ${added}/${limit}`);
+    console.log(`  ${isCategoryRun ? 'category' : `gender=${gender} creation_status=${creationStatus}`} | pool: ${list.length} | selected: ${added}/${limit}`);
   }
   const cache = loadCache();
   const books = [];
