@@ -839,6 +839,7 @@
   <button class="tab-btn" data-tab="category" onclick="switchTab('category', this)">🗂 Theo danh mục</button>
   <button class="tab-btn" data-tab="rankings" onclick="switchTab('rankings', this)">🏆 Bảng Fanqie</button>
   <button class="tab-btn" data-tab="rankcat" onclick="switchTab('rankcat', this)">📈 Rank đọc theo danh mục</button>
+  <button class="tab-btn" data-tab="idscore" onclick="switchTab('idscore', this)">⭐ Score theo ID</button>
   <div style="flex:1"></div>
   <div class="status-filter" id="status-filter" title="Lọc truyện theo trạng thái; Ẩn gồm Hidden và thiếu rank">
     <button class="status-filter-btn" data-value="all" onclick="setStatusFilter('all')">Tất cả</button>
@@ -1152,6 +1153,28 @@
     <div id="special-pagination-bottom" class="pagination"></div>
   </div>
 
+  <div id="tab-idscore" class="tab-panel">
+    <div class="section-header"><div>
+      <div class="section-title">Score theo ID</div>
+      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Tự bỏ ID trùng, vẫn chạy các ID đã có trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
+    </div></div>
+    <label for="idscore-input">Danh sách ID / link Fanqie</label>
+    <textarea id="idscore-input" rows="8" spellcheck="false" placeholder="7569431547728645182 | 7676513996333124632" style="display:block;width:100%;padding:12px;margin:8px 0 12px;border:1px solid var(--border2);border-radius:var(--radius);font:13px monospace;background:var(--surface);color:var(--text);resize:vertical"></textarea>
+    <div class="action-row">
+      <button id="idscore-start" class="btn btn-danger" onclick="fqIdScoreStart()">▶ Lấy score</button>
+      <button id="idscore-stop" class="btn btn-outline" onclick="fqIdScoreStop()" disabled>Dừng</button>
+      <button id="idscore-retry" class="btn btn-outline" onclick="fqIdScoreStart(true)" disabled>↻ Thử lại ID lỗi / chưa chạy</button>
+      <button id="idscore-copy" class="btn btn-outline" onclick="fqIdScoreCopy(false)" disabled>📋 Copy ID theo score</button>
+      <button id="idscore-copy-table" class="btn btn-outline" onclick="fqIdScoreCopy(true)" disabled>📋 Copy ID + score</button>
+      <button id="idscore-clear" class="btn btn-outline" onclick="fqIdScoreClear()">Xóa kết quả</button>
+    </div>
+    <p id="idscore-info" class="section-meta" role="status" style="margin:12px 0">Chưa chạy. Kết quả tự xếp score từ cao xuống thấp; N/A và lỗi ở cuối.</p>
+    <div id="idscore-pages" class="pagination"></div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left">
+      <thead><tr><th>STT</th><th>Fanqie ID</th><th>Score</th><th>Trạng thái</th></tr></thead>
+      <tbody id="idscore-results" class="notranslate"></tbody>
+    </table></div>
+  </div>
 </main>
 
 <!-- ── Abstract modal ── -->
@@ -4702,5 +4725,6 @@ loadConfig();
 </script>
 <script src="ranking-utils.js"></script>
 <script src="ranking-tab.js"></script>
+<script src="id-score-tab.js"></script>
 </body>
 </html>
