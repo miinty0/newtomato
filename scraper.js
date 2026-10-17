@@ -266,7 +266,12 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       if (!bestRanks.has(id) || rank < bestRanks.get(id)) bestRanks.set(id, rank);
     });
   }
-  if (!isCategoryRun) updateDailyHistoryRanks(prevData, bestRanks, readSet);
+  if (isCategoryRun) {
+    improveDailyRanks(prevData, bestRanks, readSet);
+  } else {
+    updateDailyHistoryRanks(prevData, bestRanks, readSet);
+  }
+  const existingBookIds = new Set((prevData?.books || []).map(book => String(book.book_id)));
 
   // Build prev rank map for rank_change (daily run only)
   const prevMap = {};
@@ -282,7 +287,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     for (const book of list) {
       if (added >= limit) break;
       const id = String(book.book_id);
-      if (readSet.has(id) || seenBookIds.has(id) || selectedIds.has(id)) continue;
+      if (readSet.has(id) || seenBookIds.has(id) || existingBookIds.has(id) || selectedIds.has(id)) continue;
       selectedIds.add(id);
       top.push(book);
       added++;
@@ -494,8 +499,28 @@ async function scrapeRankCat(catId) {
 
   // ── Helper: fetch detail pages for up to `quota` new candidates ──
   async function fetchDetails(rawList, rankMold, quota) {
-    const alreadyNewIds = new Set(newDetailedBooks.map(b => b.book_id));
-    const candidates = rawList.filter(b =>
+    // Compare positions within the same mold; keep all other saved fields.
+    const bestById = new Map();
+    for (const raw of rawList) {
+      const previous = bestById.get(raw.book_id);
+      const rank = Number(raw.currentPos);
+      const previousRank = Number(previous?.currentPos);
+      if (!previous || (Number.isFinite(rank) && rank > 0 &&
+          (!Number.isFinite(previousRank) || previousRank <= 0 || rank < previousRank))) {
+        bestById.set(raw.book_id, raw);
+      }
+    }
+    for (const book of [...existingBooks, ...newDetailedBooks]) {
+      if (Number(book.rankMold) !== rankMold) continue;
+      const rank = Number(bestById.get(String(book.book_id))?.currentPos);
+      const previous = Number(book.currentPos);
+      if (Number.isFinite(rank) && rank > 0 &&
+          (!Number.isFinite(previous) || previous <= 0 || rank < previous)) {
+        book.currentPos = rank;
+      }
+    }
+    const alreadyNewIds = new Set(newDetailedBooks.map(b => String(b.book_id)));
+    const candidates = [...bestById.values()].filter(b =>
       !excludeSet.has(b.book_id) && !existingIds.has(b.book_id) && !alreadyNewIds.has(b.book_id)
     );
     console.log(`  [mold=${rankMold}] new candidates: ${candidates.length} (quota=${quota})`);
