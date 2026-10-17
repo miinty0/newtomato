@@ -131,7 +131,7 @@ async function fetchHotRankList(categoryId = -1, { gender = GENDER, creationStat
         const json = JSON.parse(res.data);
         if (json.code === 0 && json.data?.book_list) {
           const batch = json.data.book_list;
-          allBooks.push(...batch);
+          allBooks.push(...batch.map((book, index) => ({ ...book, _sortRank: page * PAGE_SIZE + index + 1 })));
           console.log(`  page ${page+1}: +${batch.length} (total ${allBooks.length})`);
           if (batch.length === 0) return allBooks.slice(0, POOL_SIZE);
           ok = true; break;
@@ -208,6 +208,38 @@ function saveCache(cache) {
   fs.writeFileSync(p, JSON.stringify(cache, null, 2), 'utf-8');
 }
 
+// Update only ranks in saved daily records; keep metadata and cache untouched.
+function improveDailyRanks(data, ranks, readSet) {
+  let changed = false;
+  for (const book of data?.books || []) {
+    const id = String(book.book_id);
+    const rank = ranks.get(id);
+    const previous = Number(book.hot_rank);
+    if (readSet.has(id) || !rank) continue;
+    if (!Number.isFinite(previous) || previous <= 0 || rank < previous) {
+      book.hot_rank = rank;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function updateDailyHistoryRanks(prevData, ranks, readSet) {
+  improveDailyRanks(prevData, ranks, readSet);
+  const histDir = path.join(DATA_DIR, 'history');
+  if (!fs.existsSync(histDir)) return;
+  for (const file of fs.readdirSync(histDir)) {
+    if (!file.endsWith('.json')) continue;
+    const filePath = path.join(histDir, file);
+    let data;
+    try { data = JSON.parse(fs.readFileSync(filePath, 'utf-8')); }
+    catch (e) { console.log(`  cannot read history ${file}: ${e.message}`); continue; }
+    if (improveDailyRanks(data, ranks, readSet)) {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    }
+  }
+}
+
 // ========== scrapeOnce ==========
 async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   const isCategoryRun = categoryId !== -1;
@@ -226,7 +258,15 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     })(),
     fetchTopBookList(),
   ]);
-  const hotRankList = rankGroups.flatMap(group => group.list);
+  const bestRanks = new Map();
+  for (const { list } of rankGroups) {
+    list.forEach((book, index) => {
+      const id = String(book.book_id);
+      const rank = book._sortRank ?? index + 1;
+      if (!bestRanks.has(id) || rank < bestRanks.get(id)) bestRanks.set(id, rank);
+    });
+  }
+  if (!isCategoryRun) updateDailyHistoryRanks(prevData, bestRanks, readSet);
 
   // Build prev rank map for rank_change (daily run only)
   const prevMap = {};
@@ -256,7 +296,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   for (let i = 0; i < top.length; i++) {
     const rawBook = top[i];
     const bookId  = String(rawBook.book_id);
-    const hotRank = hotRankList.findIndex(b => String(b.book_id) === bookId) + 1;
+    const hotRank = bestRanks.get(bookId);
     const topInfo = topBookMap[bookId] || {};
 
     const creationStatus = Number(isCategoryRun
@@ -619,6 +659,9 @@ async function main() {
   }
 
   console.log('\nRunning...');
+  if (!isCategoryRun) {
+    for (const book of prevData?.books || []) seenBookIds.add(String(book.book_id));
+  }
   const result = await scrapeOnce(prevData, readSet, seenBookIds, categoryId);
   console.log(`✓ ${result.newCount} new entries — saving`);
 
@@ -642,7 +685,26 @@ async function main() {
     saveSeenSet(categoryId, seenToSave);
     console.log(`  seen file updated (${seenToSave.size} total)`);
   } else {
-    finalBooks = newBooks;
+    // A second run today must retain earlier discoveries and their improved ranks.
+    const today = fmtDate(saveNow);
+    const todayPath = path.join(DATA_DIR, 'history', `${today}.json`);
+    let todayBooks = [];
+    if (fs.existsSync(todayPath)) {
+      todayBooks = JSON.parse(fs.readFileSync(todayPath, 'utf-8')).books || [];
+    }
+    if (prevData?.update_date === today) todayBooks = [...todayBooks, ...(prevData.books || [])];
+    const merged = new Map();
+    for (const book of [...todayBooks, ...newBooks]) {
+      const id = String(book.book_id);
+      if (readSet.has(id)) continue;
+      const existing = merged.get(id);
+      if (existing) {
+        improveDailyRanks({ books: [existing] }, new Map([[id, Number(book.hot_rank)]]), readSet);
+      } else {
+        merged.set(id, book);
+      }
+    }
+    finalBooks = [...merged.values()];
   }
 
   const data = {
