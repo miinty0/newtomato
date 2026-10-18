@@ -45,7 +45,7 @@ function fqIdScoreBookHTML(row) {
       <div style="font:11px monospace;color:var(--muted);margin:3px 0 8px">${row.id}</div>
       <div style="font-size:12px;color:var(--muted)">${stats.map(([label, value]) => `${label}: ${escapeHTML(fieldText(value))}`).join(' · ')}</div>
       ${abstract ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0">${escapeHTML(abstract)}</p>` : ''}
-      ${metadataMissing ? '<p style="color:var(--muted);font-size:12px">Chưa nhận được thông tin truyện. Cập nhật Fanqie score lên 1.5.0 và bấm Lấy score để lấy lại; nếu API lỗi thì chỉ có điểm từ nguồn dự phòng.</p>' : ''}
+      ${metadataMissing ? '<p style="color:var(--muted);font-size:12px">Share API không trả thông tin truyện cho ID này.</p>' : ''}
       ${fields ? `<details><summary style="cursor:pointer;color:var(--accent)">Toàn bộ field book_info (${Object.keys(book).length})</summary><dl style="font-size:12px;margin:8px 0">${fields}</dl></details>` : ''}
       ${row.shareInfo ? `<details><summary style="cursor:pointer;color:var(--muted);font-size:12px">Toàn bộ dữ liệu Share API</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;margin:8px 0">${escapeHTML(JSON.stringify(row.shareInfo, null, 2))}</pre></details>` : ''}
     </div>
@@ -97,8 +97,8 @@ function fqIdScoreClear() {
 async function fqIdScoreStart(retry = false) {
   const state = fqIdScoreState;
   if (state.running) return;
-  const fetchScore = window.fqShareApiFetchBookMeta;
-  if (typeof fetchScore !== 'function') { toast('Kết nối lấy score chưa sẵn sàng. Thử lại khi kết nối đã tải xong.', 'err'); return; }
+  const fetchScore = window.fqShareApiFetchShareInfo;
+  if (typeof fetchScore !== 'function') { toast('Cập nhật công cụ Fanqie score lên 1.5.1 rồi tải lại trang để lấy trực tiếp Share API.', 'err'); return; }
   if (!retry) {
     const parsed = fqIdScoreParse(fqIdScoreEl('input').value);
     if (!parsed.ids.length) { toast('Không tìm thấy ID Fanqie hợp lệ.', 'err'); return; }
