@@ -10,14 +10,15 @@ const ctx = vm.createContext({ console, Map, Set, Number, String, CFG: { user: '
   _catSelectValue: '1', rcSelectValue: '1', catData: {}, rcData: {}, dailyRawBooks: [], booksPage: {daily: 2},
   automaticReadHidden: hidden, scoreCache: scores,
   filterByStatus: books => books.filter(b => b.status !== 'skip'),
-  normalizedBookId: b => String(b.book_id), bookMatchesQuery: (b, q) => b.book_name.includes(q),
+  normalizedBookId: b => String(b.book_id),
   toast() {}, renderDaily: () => renders++, renderCatPanels() {}, renderRcPanels() {},
 });
-vm.runInContext(html.slice(html.indexOf('function categoryScoreMinimum('), html.indexOf('function scoreFilteredBookCardHTML(')), ctx);
+vm.runInContext(html.slice(html.indexOf('function sharedScoreMinimum('), html.indexOf('function scoreFilteredBookCardHTML(')), ctx);
 vm.runInContext(html.slice(html.indexOf('function scoreCandidatesForTab('), html.indexOf('const qualifiedScoreScans =')), ctx);
 vm.runInContext(html.slice(html.indexOf('function compareBooksByRank('), html.indexOf('const difference = rank(a) - rank(b);')) + `const difference = rank(a) - rank(b); return Number.isNaN(difference) ? 0 : difference; }`, ctx);
 assert.equal(ctx.scorePassesMinimum('8.4', 8.4), true);
 assert.equal(ctx.scorePassesMinimum('8.3', 8.4), false);
+vm.runInContext(html.slice(html.indexOf('function bookMatchesQuery('), html.indexOf('// ── Render: no query')), ctx);
 const books = Array.from({ length: 120 }, (_, i) => ({book_id: String(i + 1), hot_rank: i + 1, currentPos: 121 - i, book_name: 'novel'}));
 books.push({book_id:'missing'}, {book_id:'zero', hot_rank:0, currentPos:0});
 ctx.dailyRawBooks = books;
@@ -25,7 +26,7 @@ ctx.catData = {'1': {data: {books: [...books].reverse()}, readSet: new Set()}};
 ctx.rcData = {'1': {data: {books}, readSet: new Set(['120'])}};
 for (const b of books) scores.set(b.book_id, Number(b.book_id) % 2 === 0 ? '8.5' : '8.4');
 for (const tab of ['daily', 'category', 'rankcat']) {
-  storage.set('fq_score_min:test/test:' + (tab === 'daily' ? '__daily' : '1'), '8.4');
+  storage.set('fq_score_min:test/test', '8.4');
   ctx.setScoreListLimit(tab, 'rank', {value:'100'});
   ctx.setScoreListLimit(tab, 'copy', {value:'30'});
   const rows = ctx.scoreCandidatesForTab(tab);
@@ -55,3 +56,28 @@ assert.equal(nodes.get('daily-rank-max').value, 100);
 assert.equal(nodes.get('daily-copy-max').value, 30);
 assert.equal(ctx.booksPage.daily, 1); assert(renders > 0);
 console.log('PASS: rank fields/boundaries, inclusive score, first 30 IDs, Read exclusion, missing scores, persistence, validation, clearing');
+
+// The same threshold applies to all sources, ignoring old per-category settings.
+storage.set('fq_score_min:test/test:1', '9.9');
+storage.set('fq_score_min:test/test:2', '0');
+ctx.setScoreMinimum('daily', {value:'8.4'});
+for (const prefix of ['daily', 'cat', 'rc']) assert.equal(nodes.get(prefix + '-score-min').value, 8.4);
+ctx.catData = {
+  '1': {data: {books: [{book_id:'tag1', book_name:'Name', abstract:'text', tags:['万人迷'], hot_rank:1}]}, readSet:new Set()},
+  '2': {data: {books: [{book_id:'tag2', book_name:'Other', tags:['万人迷'], hot_rank:2}, {book_id:'low', tags:['万人迷'], hot_rank:3}]}, readSet:new Set()},
+};
+scores.set('tag1', '8.4'); scores.set('tag2', '8.5'); scores.set('low', '8.3');
+nodes.get('cat-search').value = '万人迷';
+assert.equal(ctx.scoreCandidatesForTab('category').length, 3);
+assert.equal(ctx.qualifiedBookIdsForTab('category').ids.join('|'), 'tag1|tag2');
+ctx.setScoreMinimum('rankcat', {value:'8.5'});
+assert.equal(ctx.qualifiedBookIdsForTab('category').ids.join('|'), 'tag2');
+assert.equal(nodes.get('daily-score-min').value, 8.5);
+ctx.setScoreMinimum('category', {value:''});
+assert.equal(ctx.sharedScoreMinimum(), null);
+assert.equal(ctx.qualifiedBookIdsForTab('category').ids.length, 3);
+ctx._catSelectValue = ''; ctx.rcSelectValue = '';
+ctx.setScoreMinimum('category', {value:'8.4'});
+assert.equal(ctx.sharedScoreMinimum(), 8.4);
+assert.equal(nodes.get('cat-score-min').disabled, false);
+console.log('PASS: category tag search across sources, shared inclusive threshold, clear/sync/no selection, legacy settings ignored');
