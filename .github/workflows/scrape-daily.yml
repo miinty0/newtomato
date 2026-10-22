@@ -44,6 +44,7 @@ jobs:
             node scraper.js --category 77
             node scraper.js --category 79
             node scraper.js --category 267
+            node scraper.js --category 748
             node scraper.js --category 832
             node scraper.js --category 1169
           fi
