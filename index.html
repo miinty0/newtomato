@@ -923,7 +923,7 @@
         <span class="search-icon">🔍</span>
         <input id="daily-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterDailyBooks()" />
       </div>
-      <label class="score-filter-control" title="Ngưỡng riêng của tab hằng ngày. Để trống để hiện tất cả.">Score &gt; <input id="daily-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('daily', this)" /></label>
+      <label class="score-filter-control" title="Ngưỡng riêng của tab hằng ngày. Để trống để hiện tất cả.">Score ≥ <input id="daily-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('daily', this)" /></label>
       <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="daily-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('daily', 'rank', this)" /></label>
       <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="daily-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('daily', 'copy', this)" /></label>
       <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('daily')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
@@ -973,7 +973,7 @@
         <input id="cat-search" type="text" placeholder="Tìm tên truyện hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
       </div>
       <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
-      <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với rank-cat. Để trống để hiện tất cả.">Score &gt; <input id="cat-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('category', this)" disabled /></label>
+      <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với rank-cat. Để trống để hiện tất cả.">Score ≥ <input id="cat-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('category', this)" disabled /></label>
       <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="cat-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('category', 'rank', this)" disabled /></label>
       <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="cat-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('category', 'copy', this)" disabled /></label>
       <span id="cat-score-filter-info" class="section-meta"></span>
@@ -1043,7 +1043,7 @@
       </div>
 
       <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
-      <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với tab danh mục. Để trống để hiện tất cả.">Score &gt; <input id="rc-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('rankcat', this)" disabled /></label>
+      <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với tab danh mục. Để trống để hiện tất cả.">Score ≥ <input id="rc-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('rankcat', this)" disabled /></label>
       <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="rc-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('rankcat', 'rank', this)" disabled /></label>
       <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="rc-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('rankcat', 'copy', this)" disabled /></label>
       <span id="rc-score-filter-info" class="section-meta"></span>
@@ -2795,7 +2795,7 @@ function scorePassesMinimum(score, minimum) {
   if (minimum === null || score === undefined) return true; // Still waiting.
   if (score === null || String(score).trim() === '') return false;
   const value = Number(score);
-  return Number.isFinite(value) && value >= 0 && value <= 10 && value > minimum;
+  return Number.isFinite(value) && value >= 0 && value <= 10 && value >= minimum;
 }
 
 function scoreListScope(tab) {

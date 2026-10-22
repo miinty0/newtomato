@@ -20,14 +20,14 @@ function harness(total, passes, options = {}) {
     } },
     scoreCandidatesForTab: () => options.rankMax ? rows.slice(0, options.rankMax) : rows,
     scoreListLimit: () => options.rankMax ?? null,
-    scorePassesMinimum: (score, min) => Number(score) > min,
+    scorePassesMinimum: (score, min) => Number(score) >= min,
     paginationPrefix: tab => tab === 'category' ? 'cat' : tab,
     unobserveScoresIn() {}, loadScoresForCards() {}, toast() {}, requestStatusFlush() {},
     scoreFilteredBookCardHTML: book => '<card id="' + book.book_id + '">',
     requestScore: async id => {
       calls.push(id);
       if (fail === id) { fail = null; throw Error('temporary failure'); }
-      scores.set(id, Number(id) < passes ? '8.5' : '8.4');
+      scores.set(id, Number(id) < passes ? '8.4' : '8.3');
       if (options.pause && calls.length === 8) active = false;
       return scores.get(id);
     },
