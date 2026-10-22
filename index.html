@@ -924,6 +924,8 @@
         <input id="daily-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterDailyBooks()" />
       </div>
       <label class="score-filter-control" title="Ngưỡng riêng của tab hằng ngày. Để trống để hiện tất cả.">Score &gt; <input id="daily-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('daily', this)" /></label>
+      <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="daily-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('daily', 'rank', this)" /></label>
+      <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="daily-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('daily', 'copy', this)" /></label>
       <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('daily')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
       <span id="daily-score-filter-info" class="section-meta"></span>
     </div>
@@ -972,6 +974,8 @@
       </div>
       <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
       <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với rank-cat. Để trống để hiện tất cả.">Score &gt; <input id="cat-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('category', this)" disabled /></label>
+      <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="cat-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('category', 'rank', this)" disabled /></label>
+      <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="cat-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('category', 'copy', this)" disabled /></label>
       <span id="cat-score-filter-info" class="section-meta"></span>
       <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('category')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
       <button class="btn btn-danger btn-sm" id="cat-scrape-btn" onclick="triggerCatScrape()" disabled>▶ Scrape danh mục</button>
@@ -1040,6 +1044,8 @@
 
       <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
       <label class="score-filter-control" title="Ngưỡng riêng cho danh mục đang chọn, dùng chung với tab danh mục. Để trống để hiện tất cả.">Score &gt; <input id="rc-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setCategoryScoreMinimum('rankcat', this)" disabled /></label>
+      <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="rc-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('rankcat', 'rank', this)" disabled /></label>
+      <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="rc-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('rankcat', 'copy', this)" disabled /></label>
       <span id="rc-score-filter-info" class="section-meta"></span>
       <button class="btn btn-outline btn-sm" onclick="copyQualifiedBookIds('rankcat')" title="Copy ID trong danh sách đang lọc, kể cả trang khác đã có score. Chưa có score sẽ bỏ qua khi bật ngưỡng.">📋 Copy ID đạt ngưỡng</button>
       <button class="btn btn-danger btn-sm" id="rc-scrape-btn" onclick="triggerRankCatScrape()" disabled>▶ Scrape danh mục</button>
@@ -2792,6 +2798,46 @@ function scorePassesMinimum(score, minimum) {
   return Number.isFinite(value) && value >= 0 && value <= 10 && value > minimum;
 }
 
+function scoreListScope(tab) {
+  return tab === 'daily' ? '__daily' : tab === 'category' ? _catSelectValue : rcSelectValue;
+}
+
+function scoreListLimitKey(tab, kind) {
+  return 'fq_score_' + kind + '_max:' + CFG.user + '/' + CFG.repo + ':' + tab + ':' + scoreListScope(tab);
+}
+
+function scoreListLimit(tab, kind) {
+  const raw = localStorage.getItem(scoreListLimitKey(tab, kind));
+  if (raw == null || raw.trim() === '') return null;
+  const value = Number(raw);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function setScoreListLimit(tab, kind, input) {
+  if (!scoreListScope(tab)) return;
+  const raw = input.value.trim();
+  const value = raw === '' ? null : Number(raw);
+  if (value !== null && (!Number.isSafeInteger(value) || value < 1)) {
+    toast('Giới hạn phải là số nguyên từ 1 trở lên, hoặc để trống.', 'err');
+    syncCategoryScoreControl(tab);
+    return;
+  }
+  try {
+    const key = scoreListLimitKey(tab, kind);
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, String(value));
+  } catch (error) {
+    toast('Không lưu được giới hạn: ' + error.message, 'err');
+    syncCategoryScoreControl(tab);
+    return;
+  }
+  if (kind === 'copy') return;
+  booksPage[tab] = 1;
+  if (tab === 'daily') renderDaily();
+  else if (tab === 'category') renderCatPanels();
+  else renderRcPanels();
+}
+
 function syncCategoryScoreControl(tab) {
   const isCategory = tab === 'category';
   const catId = tab === 'daily' ? '__daily' : isCategory ? _catSelectValue : rcSelectValue;
@@ -2799,6 +2845,11 @@ function syncCategoryScoreControl(tab) {
   const input = document.getElementById(prefix + '-score-min');
   input.disabled = !catId;
   input.value = categoryScoreMinimum(catId) ?? '';
+  for (const kind of ['rank', 'copy']) {
+    const limitInput = document.getElementById(prefix + '-' + kind + '-max');
+    limitInput.disabled = !catId;
+    limitInput.value = scoreListLimit(tab, kind) ?? '';
+  }
   document.getElementById(prefix + '-score-filter-info').textContent = '';
 }
 
@@ -2872,11 +2923,17 @@ function scoreCandidatesForTab(tab) {
     const selectedId = tab === 'category' ? _catSelectValue : rcSelectValue;
     groups = Object.entries(data).filter(([id]) => query || String(id) === String(selectedId));
   }
+  const rankMax = scoreListLimit(tab, 'rank');
+  const rankField = tab === 'rankcat' ? 'currentPos' : 'hot_rank';
   const seen = new Set();
   const candidates = [];
   for (const [catId, { data, readSet }] of groups) {
     const minimum = categoryScoreMinimum(catId);
     let books = filterByStatus(data.books || []);
+    if (rankMax !== null) books = books.filter(book => {
+      const rank = Number(book[rankField]);
+      return Number.isFinite(rank) && rank >= 1 && rank <= rankMax;
+    });
     if (tab === 'rankcat') books = books.filter(book => !readSet.has(book.book_id));
     if (query) books = books.filter(book => tab === 'category'
       ? (book.book_name || '').toLowerCase().includes(query) || (book.abstract || '').toLowerCase().includes(query)
@@ -2897,10 +2954,12 @@ function qualifiedBookIdsForTab(tab) {
   const ids = [];
   let waiting = 0;
   for (const row of scoreCandidatesForTab(tab)) {
+    if (automaticReadHidden.has(row.id)) continue;
     if (row.minimum !== null && !scoreCache.has(row.id)) { waiting++; continue; }
     if (scorePassesMinimum(scoreCache.get(row.id), row.minimum)) ids.push(row.id);
   }
-  return { ids, waiting };
+  const copyMax = scoreListLimit(tab, 'copy');
+  return { ids: copyMax === null ? ids : ids.slice(0, copyMax), waiting };
 }
 
 const qualifiedScoreScans = new Map();
@@ -2972,7 +3031,7 @@ function scheduleQualifiedDraw(state) {
 
 async function scanQualifiedScorePage(state) {
   if (state.running || state.errors || !qualifiedScanIsCurrent(state)) return;
-  const target = (booksPage[state.tab] || 1) * BOOKS_PER_PAGE;
+  const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * BOOKS_PER_PAGE;
   refreshQualifiedMatches(state);
   if (state.matches.length >= target || state.cursor >= state.candidates.length) {
     drawQualifiedScorePage(state);
@@ -3026,15 +3085,16 @@ function retryQualifiedScoreScan(tab) {
 function renderQualifiedScorePage(tab) {
   const root = qualifiedScanRoot(tab);
   const candidates = scoreCandidatesForTab(tab);
-  if (!candidates.some(row => row.minimum !== null)) {
+  const rankMax = scoreListLimit(tab, 'rank');
+  if (rankMax === null && !candidates.some(row => row.minimum !== null)) {
     root.dataset.qualifiedPaging = '';
     qualifiedScoreScans.delete(tab);
     return false;
   }
-  const key = JSON.stringify(candidates.map(row => [row.id, row.catId, row.minimum]));
+  const key = JSON.stringify([rankMax, candidates.map(row => [row.id, row.catId, row.minimum])]);
   let state = qualifiedScoreScans.get(tab);
   if (!state || state.key !== key) {
-    state = { tab, key, candidates, cursor: 0, matches: [], running: false, errors: 0, drawTimer: null };
+    state = { tab, key, rankMax, candidates, cursor: 0, matches: [], running: false, errors: 0, drawTimer: null };
     qualifiedScoreScans.set(tab, state);
     booksPage[tab] = 1;
   } else {

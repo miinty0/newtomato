@@ -18,7 +18,8 @@ function harness(total, passes, options = {}) {
       if (!nodes.has(id)) nodes.set(id, {});
       return nodes.get(id);
     } },
-    scoreCandidatesForTab: () => rows,
+    scoreCandidatesForTab: () => options.rankMax ? rows.slice(0, options.rankMax) : rows,
+    scoreListLimit: () => options.rankMax ?? null,
     scorePassesMinimum: (score, min) => Number(score) > min,
     paginationPrefix: tab => tab === 'category' ? 'cat' : tab,
     unobserveScoresIn() {}, loadScoresForCards() {}, toast() {}, requestStatusFlush() {},
@@ -47,6 +48,13 @@ async function run(h, tab = 'daily') {
     assert.equal(s.matches.length, 400); assert.equal(s.cursor, 1754); assert.equal(h.calls.length, 1754);
     assert.equal((h.root.innerHTML.match(/<card/g) || []).length, 400);
     h.ctx.renderQualifiedScorePage(tab); assert.equal(h.calls.length, 1754);
+  }
+  for (const tab of ['daily', 'category', 'rankcat']) {
+    const bounded = harness(1200, 700, { rankMax: 700 });
+    const state = await run(bounded, tab);
+    assert.equal(bounded.calls.length, 700);
+    assert.equal(state.matches.length, 700);
+    assert.equal(state.cursor, 700);
   }
   const h = harness(1754, 502);
   let s = await run(h);
