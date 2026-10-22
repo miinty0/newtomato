@@ -10,7 +10,6 @@ const HEADERS     = {
   'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 };
 const POOL_SIZE       = 3000;
-const RECOMMEND_COUNT = 30;
 const PAGE_SIZE       = 18;
 const GENDER          = 0;
 const REQUEST_DELAY   = 600;
@@ -246,11 +245,11 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
 
   const [rankGroups, topBookMap] = await Promise.all([
     (async () => {
-      if (isCategoryRun) {
-        return [{ list: await fetchHotRankList(categoryId), limit: RECOMMEND_COUNT }];
-      }
+      const quotas = isCategoryRun
+        ? [[0, 1, 20], [0, 0, 10]]
+        : [[0, 1, 15], [0, 0, 7], [1, 1, 5], [1, 0, 3]];
       const groups = [];
-      for (const [gender, creationStatus, limit] of [[0, 1, 15], [0, 0, 7], [1, 1, 5], [1, 0, 3]]) {
+      for (const [gender, creationStatus, limit] of quotas) {
         const list = await fetchHotRankList(categoryId, { gender, creationStatus });
         groups.push({ list, limit, gender, creationStatus });
       }
@@ -292,7 +291,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       top.push(book);
       added++;
     }
-    console.log(`  ${isCategoryRun ? 'category' : `gender=${gender} creation_status=${creationStatus}`} | pool: ${list.length} | selected: ${added}/${limit}`);
+    console.log(`  ${isCategoryRun ? 'category ' : ''}gender=${gender} creation_status=${creationStatus} | pool: ${list.length} | selected: ${added}/${limit}`);
   }
   const cache = loadCache();
   const books = [];
@@ -304,9 +303,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     const hotRank = bestRanks.get(bookId);
     const topInfo = topBookMap[bookId] || {};
 
-    const creationStatus = Number(isCategoryRun
-      ? (topInfo.creation_status ?? rawBook.creation_status ?? -1)
-      : (rawBook.creation_status ?? topInfo.creation_status ?? -1));
+    const creationStatus = Number(rawBook.creation_status ?? topInfo.creation_status ?? -1);
     const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
     const isCompleted    = statusLabel === 'Completed';
 
