@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       missing_only:
-        description: 'Chỉ kiểm tra category chưa có trong valid_rank_cats.json'
+        description: 'Chỉ ID chưa có (bỏ tích = kiểm lại toàn bộ, sửa gender cũ)'
         type: boolean
-        default: true
+        default: false
       start:
         description: 'Category ID bắt đầu'
         default: '1'
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Probe categories not already valid for Rankcat
+      - name: Probe or revalidate categories and correct Rankcat genders
         env:
           RANKCAT_DATA_DIR: ${{ github.workspace }}/snapshot/data
           PROBE_START: ${{ inputs.start }}
