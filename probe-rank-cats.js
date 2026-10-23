@@ -96,10 +96,9 @@ async function probeRankCats(categories, existing, {
     const old = maps[key].get(id);
     const positives = [...results.entries()].filter(([, result]) => result?.hasBooks).map(([gender]) => gender);
     if (positives.length) {
-      // If both genders work, retain the previous working gender; otherwise use
-      // a gender that was actually confirmed to have rank books in this run.
+      // Prefer gender 0 whenever it has rank books, even if the old entry used 1.
       const oldGender = Number(old?.gender ?? 0);
-      const gender = positives.includes(oldGender) ? oldGender : positives[0];
+      const gender = positives.includes(0) ? 0 : 1;
       const entry = { ...old, cat_id: id };
       if (gender === 1) entry.gender = 1;
       else delete entry.gender;
@@ -122,6 +121,9 @@ async function probeRankCats(categories, existing, {
     for (const mold of [2, 1]) {
       const results = new Map();
       for (const gender of [0, 1]) {
+        // Gender 1 is a fallback only for a confirmed total_num=0 at gender 0.
+        // Errors, empty bodies and unknown totals are never treated as zero.
+        if (gender === 1 && results.get(0)?.totalNum !== 0) break;
         const url = 'https://fanqienovel.com/api/rank/category/list?app_id=2503&rank_list_type=3&offset=0&limit=1&category_id=' + id + '&rank_version=&gender=' + gender + '&rankMold=' + mold;
         try {
           report.api_requests++;
