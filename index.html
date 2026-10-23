@@ -3954,39 +3954,54 @@ function toggleRcHistory(e) {
 }
 function jumpToRcCat(catId) {
   document.getElementById('rc-fh-dropdown').classList.remove('open');
-  const cat = CATEGORIES.find(c => c.id == catId);
+  const cat = RC_VALID_CATEGORIES.find(c => c.id == catId);
   if (cat) selectRcOption(cat.id, cat.name);
 }
 
 
 // ── Dropdown — populated after valid_rank_cats.json is fetched ──
 let RC_VALID_CAT_IDS = new Set();
+let RC_VALID_CATEGORIES = [];
 
 async function initRcSelect() {
-  let validConfig = { rankMold2: [], rankMold1: [] };
-  try {
-    validConfig = await ghRaw('data/valid_rank_cats.json');
-  } catch(e) {
-    console.warn('valid_rank_cats.json not found — showing all categories');
-  }
-  RC_VALID_CAT_IDS = new Set([
-    ...validConfig.rankMold2.map(e => e.cat_id),
-    ...validConfig.rankMold1.map(e => e.cat_id),
-  ]);
   const list = document.getElementById('rc-select-list');
+  const label = document.getElementById('rc-select-label');
+  const button = document.getElementById('rc-scrape-btn');
   list.innerHTML = '';
-  const filtered = RC_VALID_CAT_IDS.size > 0
-    ? CATEGORIES.filter(c => RC_VALID_CAT_IDS.has(c.id))
-    : CATEGORIES;
-  filtered.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'cat-select-option';
-    el.dataset.value = c.id;
-    el.dataset.slug = slugify(`${c.id} - ${c.name}`);
-    el.textContent = `${c.id} - ${c.name}`;
-    el.onclick = () => selectRcOption(c.id, c.name);
-    list.appendChild(el);
-  });
+  label.textContent = 'Đang tải Rankcat hợp lệ…';
+  button.disabled = true;
+  RC_VALID_CAT_IDS = new Set();
+  RC_VALID_CATEGORIES = [];
+  try {
+    const config = await ghRaw('data/valid_rank_cats.json');
+    if (!Array.isArray(config?.rankMold2) || !Array.isArray(config?.rankMold1)) throw new Error('Danh sách Rankcat không hợp lệ');
+    // The valid configuration is authoritative. Do not intersect it with the
+    // category catalogue: new Rankcat IDs may not have a translated name yet.
+    RC_VALID_CAT_IDS = new Set([...config.rankMold2, ...config.rankMold1]
+      .map(entry => Number(entry.cat_id))
+      .filter(id => Number.isSafeInteger(id) && id > 0));
+    RC_VALID_CATEGORIES = [...RC_VALID_CAT_IDS].sort((a, b) => a - b)
+      .map(id => ({ id, name: CATEGORY_NAMES[id] || 'Danh mục ' + id }));
+    RC_VALID_CATEGORIES.forEach(category => {
+      const el = document.createElement('div');
+      el.className = 'cat-select-option';
+      el.dataset.value = category.id;
+      el.dataset.slug = slugify(category.id + ' - ' + category.name);
+      el.textContent = category.id + ' - ' + category.name;
+      el.onclick = () => selectRcOption(category.id, category.name);
+      list.appendChild(el);
+    });
+    const selected = RC_VALID_CATEGORIES.find(category => category.id == rcSelectValue);
+    label.textContent = selected ? selected.id + ' - ' + selected.name
+      : RC_VALID_CATEGORIES.length ? '-- Chọn danh mục --' : 'Chưa có Rankcat hợp lệ';
+    if (!selected) rcSelectValue = '';
+    button.disabled = !selected;
+  } catch (error) {
+    rcSelectValue = '';
+    label.textContent = 'Lỗi tải Rankcat — tải lại trang để thử lại';
+    console.error('Could not load valid Rankcat configuration:', error);
+    toast('Không tải được danh sách Rankcat hợp lệ: ' + error.message, 'err');
+  }
 }
 function toggleRcSelect(e) {
   e.stopPropagation();
@@ -4219,11 +4234,15 @@ async function filterRcBooks() {
 async function triggerRankCatScrape() {
   const catId = rcSelectValue;
   if (!catId) return;
+  if (!RC_VALID_CAT_IDS.has(Number(catId))) {
+    toast('Danh mục này chưa được xác nhận Rankcat hợp lệ.', 'err');
+    return;
+  }
   const btn = document.getElementById('rc-scrape-btn');
   btn.disabled = true;
   btn.innerHTML = `<span class="spinner"></span> Đang gửi…`;
   try {
-    await ghDispatchWorkflow('scrap-rankcat.yml', { rank_cat_id: String(catId) });
+    await ghDispatchWorkflow('scrape-rankcat.yml', { rank_cat_id: String(catId) });
     toast(`Đã kích hoạt scrape rank đọc danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
   } catch(e) {
     toast(`Lỗi: ${e.message} — Thử chạy: node scraper.js --rank-cat ${catId}`, 'err');
@@ -4410,12 +4429,12 @@ async function initApp() {
     await loadCategoryCatalog();
     initCatSelect();
     categoryLabel.textContent = '-- Chọn danh mục --';
-    initRcSelect();
   } catch (e) {
     console.error('Could not load category catalogue:', e);
     categoryLabel.textContent = 'Lỗi tải danh mục — tải lại trang để thử lại';
     toast('Không tải được danh sách category: ' + e.message, 'err');
   }
+  await initRcSelect();
   renderFetchHistory();
   renderRcHistory();
   await synchronizeCategoryFileLists();
