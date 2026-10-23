@@ -17,9 +17,14 @@ const HEADERS = {
 const DELAY_MS       = 500;
 const MAX_4XX_ERRORS = 3;
 
-// ── CLI args: node scan-categories.js [start] [end] ──
+// ── CLI args: node scan-categories.js [start] [end] [--missing-only] ──
 const CAT_START = parseInt(process.argv[2], 10) || 1;
 const CAT_END   = parseInt(process.argv[3], 10) || 1000;
+const MISSING_ONLY = process.argv.includes('--missing-only');
+
+if (!Number.isSafeInteger(CAT_START) || !Number.isSafeInteger(CAT_END) || CAT_START < 1 || CAT_END < CAT_START) {
+  throw new Error('Category range must contain positive integers with start <= end');
+}
 
 // ── Helpers ──
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -154,9 +159,14 @@ async function main() {
   let consecutive4xx = 0;
   const total = CAT_END - CAT_START + 1;
 
-  console.log(`Scanning category_id ${CAT_START} → ${CAT_END} (${total} categories)...\n`);
+  const missingCount = Array.from({ length: total }, (_, i) => CAT_START + i)
+    .filter(id => !catMap[id]).length;
+  console.log(`Scanning category_id ${CAT_START} → ${CAT_END} (${total} categories, mode: ${MISSING_ONLY ? 'missing only' : 'all'})...\n`);
+  if (MISSING_ONLY) console.log(`${missingCount} missing IDs; ${total - missingCount} known IDs will be skipped without API requests.\n`);
 
   for (let catId = CAT_START; catId <= CAT_END; catId++) {
+    // Also skip IDs discovered from another book earlier in this run.
+    if (MISSING_ONLY && catMap[catId]) continue;
 
     // Step A: get first book_id for this category
     let bookId = null;
@@ -207,7 +217,7 @@ async function main() {
       for (const c of cats) {
         if (!catMap[c.ObjectId]) {
           catMap[c.ObjectId] = { Name: c.Name, ExternalDesc: c.ExternalDesc };
-          newIds.add(c.ObjectId);
+          newIds.add(Number(c.ObjectId));
           newCount++;
         }
       }
@@ -231,11 +241,14 @@ async function main() {
   console.log(`Found ${newEntries.length} new categories this run (${entries.length} total across all runs)\n`);
 
   const jsonContent = JSON.stringify(entries, null, 2);
-  fs.writeFileSync(`categories${suffix}.json`, jsonContent, 'utf-8');
-  console.log(`Saved → categories${suffix}.json (all ${entries.length} entries)`);
+  // Missing-only scans update the file consumed by the category tools,
+  // even when the requested range is smaller than 1–2000.
+  const jsonPath = MISSING_ONLY ? 'categories_1-2000.json' : `categories${suffix}.json`;
+  fs.writeFileSync(jsonPath, jsonContent, 'utf-8');
+  console.log(`Saved → ${jsonPath} (all ${entries.length} entries)`);
   try {
-    await ghPushFile(`categories${suffix}.json`, jsonContent);
-    console.log(`Pushed → categories${suffix}.json to repo`);
+    await ghPushFile(jsonPath, jsonContent);
+    console.log(`Pushed → ${jsonPath} to repo`);
   } catch(e) { console.log(`Push failed: ${e.message}`); }
 
   const idW   = Math.max(4,  ...newEntries.map(e => String(e.id).length));
