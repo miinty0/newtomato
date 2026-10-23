@@ -115,7 +115,11 @@ async function fetchFirstBookId(categoryId, request = httpGet) {
   });
   const res = await request(API + '/author/library/book_list/v0/?' + params, { Accept: 'application/json' });
   if (res.status !== 200) throw new Error('HTTP ' + res.status);
-  if (!res.data || !res.data.trim()) throw new Error('HTTP 200 but response body is empty');
+  if (!res.data || !res.data.trim()) {
+    const error = new Error('HTTP 200 but response body is empty');
+    error.code = 'EMPTY_RESPONSE_BODY';
+    throw error;
+  }
   let json;
   try { json = JSON.parse(res.data); }
   catch (error) {
@@ -159,6 +163,8 @@ async function main() {
     console.log(`Loaded ${Object.keys(catMap).length} existing ObjectIds from: ${existing.join(', ')}\n`);
 
   let consecutive4xx = 0;
+  let emptyBodyStreak = 0, emptyBodyStreakStart = null;
+  let stopReason = null, resumeStart = null, lastAttempted = null;
   const unresolved = [];
   let emptyCount = 0, foundCount = 0;
   function markUnresolved(catId, reason) {
@@ -178,14 +184,30 @@ async function main() {
 
     // Step A: distinguish confirmed empty categories from unavailable responses.
     let result;
+    lastAttempted = catId;
     try {
       result = await fetchFirstBookId(catId);
     } catch(e) {
       markUnresolved(catId, 'API: ' + e.message);
+      if (e.code === 'EMPTY_RESPONSE_BODY') {
+        if (emptyBodyStreak === 0) emptyBodyStreakStart = catId;
+        emptyBodyStreak++;
+        if (emptyBodyStreak >= 3) {
+          stopReason = 'empty_body_streak';
+          resumeStart = emptyBodyStreakStart;
+          console.log('Stopping after 3 consecutive empty API bodies. Saving results; resume from category ' + resumeStart + '.');
+          break;
+        }
+      } else {
+        emptyBodyStreak = 0;
+        emptyBodyStreakStart = null;
+      }
       await sleep(DELAY_MS);
       continue;
     }
 
+    emptyBodyStreak = 0;
+    emptyBodyStreakStart = null;
     if (result.status === 'empty') {
       emptyCount++;
       process.stdout.write('  cat ' + catId + '/' + CAT_END + ': no books — skip (has_more=false, total_count=0)\n');
@@ -213,6 +235,8 @@ async function main() {
       consecutive4xx++;
       markUnresolved(catId, `detail HTTP ${res.status} (4xx count: ${consecutive4xx}/${MAX_4XX_ERRORS})`);
       if (consecutive4xx >= MAX_4XX_ERRORS) {
+        stopReason = 'detail_4xx_streak';
+        resumeStart = catId;
         console.log(`\nHit ${MAX_4XX_ERRORS} consecutive 4xx errors — stopping.`);
         break;
       }
@@ -256,7 +280,7 @@ async function main() {
   }
 
   console.log(`\nAPI results: ${emptyCount} confirmed empty; ${foundCount} have book_id; ${unresolved.length} unresolved.`);
-  fs.writeFileSync('scan-categories-report.json', JSON.stringify({ start: CAT_START, end: CAT_END, missing_only: MISSING_ONLY, confirmed_empty: emptyCount, have_books: foundCount, unresolved }, null, 2), 'utf-8');
+  fs.writeFileSync('scan-categories-report.json', JSON.stringify({ start: CAT_START, end: CAT_END, missing_only: MISSING_ONLY, stop_reason: stopReason, resume_start: resumeStart, last_attempted: lastAttempted, confirmed_empty: emptyCount, have_books: foundCount, unresolved }, null, 2), 'utf-8');
   if (unresolved.length) {
     console.log('Unresolved category IDs (not confirmed empty): ' + unresolved.map(e => e.id).join(', '));
     console.log('::warning::Some categories could not be checked. See scan-categories-report.json; do not treat these IDs as empty.');
@@ -284,7 +308,7 @@ async function main() {
   try {
     await ghPushFile(jsonPath, jsonContent);
     console.log(`Pushed → ${jsonPath} to repo`);
-  } catch(e) { console.log(`Push failed: ${e.message}`); }
+  } catch(e) { console.log(`Push failed: ${e.message}`); throw e; }
 
   const idW   = Math.max(4,  ...newEntries.map(e => String(e.id).length));
   const nameW = Math.max(8,  ...newEntries.map(e => e.name.length));
@@ -302,6 +326,13 @@ async function main() {
   console.log(`Saved → categories${suffix}.txt (this run only)\n`);
 
   console.log(lines.slice(0, newEntries.length + 2).join('\n'));
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+      '\n### Category scan\n' +
+      '- Range: ' + CAT_START + '–' + CAT_END + '\n' +
+      '- Confirmed empty: ' + emptyCount + '; have books: ' + foundCount + '; unresolved: ' + unresolved.length + '\n' +
+      (stopReason ? '- Paused: ' + stopReason + '; resume from **' + resumeStart + '**\n' : '- Finished requested range.\n'));
+  }
 }
 
 if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
