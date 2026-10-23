@@ -20,7 +20,7 @@
       currentPos: raw.currentPos ?? position,
       rankPosDiff: raw.rankPosDiff ?? null,
       read_count: raw.read_count ?? raw.readCount ?? null,
-      last_chapter_time: raw.last_chapter_time ?? raw.lastChapterUpdateTime ?? raw.last_publish_time ?? null,
+      last_chapter_time: raw.last_chapter_time ?? raw.lastChapterUpdateTime ?? raw.last_publish_time ?? raw.lastChapterTime ?? raw.last_update_time ?? null,
       first_chapter_time: raw.first_chapter_time ?? null,
       tags: Array.isArray(raw.tags) ? raw.tags : (raw.category ? [raw.category] : []),
       score: raw.score ?? null
@@ -33,7 +33,21 @@
       seen.add(book.book_id); return true;
     });
   }
-  const api = { normalize, unique };
+  function updateYear(value) {
+    if (value == null || value === '') return null;
+    const timestamp = Number(value);
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
+    const date = new Date(timestamp >= 1e12 ? timestamp : timestamp * 1000);
+    if (!Number.isFinite(date.getTime())) return null;
+    return Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric' }).format(date));
+  }
+  function cleanupReason(book, keywords = [], maxLastYear = 2024) {
+    const abstract = String(book.abstract ?? '');
+    if (keywords.some(keyword => keyword && abstract.includes(keyword))) return 'abstract_keyword';
+    const year = updateYear(book.last_chapter_time ?? book.lastChapterUpdateTime ?? book.last_publish_time ?? book.lastChapterTime ?? book.last_update_time);
+    return year !== null && year <= maxLastYear ? 'old_last_update' : '';
+  }
+  const api = { normalize, unique, updateYear, cleanupReason };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.FqRankings = api;
 })(typeof globalThis === 'object' ? globalThis : this);

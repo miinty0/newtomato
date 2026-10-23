@@ -1,6 +1,8 @@
 'use strict';
 let fqRankingReadSet = new Set();
 let fqRankingKeywords = [];
+const fqRankingPendingOrigins = new Map();
+const FQ_RANK_LAST_UPDATE_CUTOFF = 2024;
 const FQ_RANK_PAGE_SIZE = 30;
 const fqRankingState = { initialized: false, worker: null, pending: new Map(), books: [], entries: [], sections: [], section: 0, next: 0, more: false, version: '', session: '', generation: 0, busy: false, loaded: false, paused: false, signatures: new Set(), title: '', fetchedAt: '' };
 const FQ_RANK_ORIGIN = 'https://fanqienovel.com';
@@ -81,8 +83,8 @@ async function initRankings() {
   fqRankEl('fq-ranking-info').textContent = 'Đang tải snapshot bảng Fanqie…';
   try {
     const [categories, snapshot] = await Promise.all([
-      fetch('data/ranking-categories.json').then(r => { if (!r.ok) throw new Error('Không tải được danh mục'); return r.json(); }),
-      fetch('data/ranking-snapshot.json').then(r => { if (!r.ok) throw new Error('Không tải được snapshot'); return r.json(); }),
+      ghRaw('data/ranking-categories.json'),
+      ghRaw('data/ranking-snapshot.json'),
       fqLoadRankingFilters()
     ]);
     fqRankingCategories = categories; fqRankingSnapshot = snapshot;
@@ -215,9 +217,37 @@ function fqSelectRankingSection(index) {
   renderRankings();
 }
 
+function fqRankingBoardKey() {
+  const value = id => fqRankEl('fq-ranking-' + id)?.value || '';
+  const type = value('type');
+  if (type === 'landing') return JSON.stringify([type, fqRankingState.section]);
+  if (['reading', 'new'].includes(type)) return JSON.stringify([type, value('gender'), value('category')]);
+  if (type.startsWith('app-')) return JSON.stringify([type, value('gender'), type === 'app-200' ? value('subtab') : value('period')]);
+  return JSON.stringify([type]);
+}
+function fqSetPendingReadOrigin(bookId, tab, marked) {
+  if (tab !== 'rankings') return;
+  const id = String(bookId);
+  if (marked) fqRankingPendingOrigins.set(id, fqRankingBoardKey());
+  else fqRankingPendingOrigins.delete(id);
+}
+function fqRankPendingReadHidden(bookId) {
+  if (typeof pendingRead === 'undefined') return false;
+  const id = String(bookId);
+  for (const [tab, ids] of Object.entries(pendingRead)) {
+    if (!ids.has(id)) continue;
+    if (tab !== 'rankings' || fqRankingPendingOrigins.get(id) !== fqRankingBoardKey()) return true;
+  }
+  return false;
+}
+function fqRankingBookAllowed(book) {
+  const id = String(book.book_id);
+  return !fqRankingReadSet.has(id) && !automaticReadHidden.has(id) && !fqRankPendingReadHidden(id) &&
+    !FqRankings.cleanupReason(book, fqRankingKeywords, FQ_RANK_LAST_UPDATE_CUTOFF) &&
+    (!fqRankingKeywords.length || book.abstract_verified);
+}
 function fqFilteredRankingBooks() {
-  return filterByStatus(fqRankingState.books.filter(book => !fqRankingReadSet.has(book.book_id) && !automaticReadHidden.has(book.book_id) &&
-    (!fqRankingKeywords.length || book.abstract_verified && !fqRankingKeywords.some(keyword => book.abstract.includes(keyword)))));
+  return filterByStatus(fqRankingState.books.filter(fqRankingBookAllowed));
 }
 function renderRankings() {
   const root = fqRankEl('rankings-books');
@@ -248,6 +278,6 @@ function renderRankings() {
 }
 async function fqCopyRankings() {
   if (fqRankingState.entries.length) { toast('Bảng này không có ID truyện để copy.', 'err'); return; }
-  try { await navigator.clipboard.writeText(fqFilteredRankingBooks().map(book => book.book_id).join('\n')); toast('Đã copy ID trong danh sách đang hiển thị.', 'ok'); }
+  try { await navigator.clipboard.writeText(fqFilteredRankingBooks().filter(book => typeof pendingRead === 'undefined' || !Object.values(pendingRead).some(ids => ids.has(String(book.book_id)))).map(book => book.book_id).join('\n')); toast('Đã copy ID trong danh sách đang hiển thị.', 'ok'); }
   catch (error) { toast(error.message, 'err'); }
 }

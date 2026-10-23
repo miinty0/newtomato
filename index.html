@@ -981,6 +981,8 @@
         <input id="cat-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
       </div>
       <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
+      <button class="btn btn-primary btn-sm" id="cat-show-all" onclick="showAllSavedCategories('category')" title="Chỉ tải và gộp các file dữ liệu đã có khi bấm nút này; dùng chung tìm kiếm, Score và Hạng.">▶ Hiển thị tất cả</button>
+      <span id="cat-all-info" class="section-meta" role="status"></span>
       <label class="score-filter-control" title="Ngưỡng Score dùng chung cho Hằng ngày, Category và Rankcat. Để trống để hiện tất cả.">Score ≥ <input id="cat-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setScoreMinimum('category', this)" /></label>
       <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="cat-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('category', 'rank', this)" disabled /></label>
       <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="cat-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('category', 'copy', this)" disabled /></label>
@@ -1048,6 +1050,8 @@
       </div>
 
       <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
+      <button class="btn btn-primary btn-sm" id="rc-show-all" onclick="showAllSavedCategories('rankcat')" title="Chỉ tải và gộp các file dữ liệu đã có khi bấm nút này; dùng chung tìm kiếm, Score và Hạng.">▶ Hiển thị tất cả</button>
+      <span id="rc-all-info" class="section-meta" role="status"></span>
       <label class="score-filter-control" title="Ngưỡng Score dùng chung cho Hằng ngày, Category và Rankcat. Để trống để hiện tất cả.">Score ≥ <input id="rc-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setScoreMinimum('rankcat', this)" /></label>
       <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="rc-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('rankcat', 'rank', this)" disabled /></label>
       <label class="score-filter-control" title="Số ID đầu tiên đạt bộ lọc được copy hoặc thêm vào hàng đợi Read. Để trống để lấy tất cả.">Số ID tối đa <input id="rc-copy-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('rankcat', 'copy', this)" disabled /></label>
@@ -1123,7 +1127,7 @@
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
-  <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc và từ khóa dọn dẹp. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
+  <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc, từ khóa dọn dẹp và năm cập nhật cuối (ẩn từ 2024 trở về trước). Đánh dấu đọc chưa lưu cũng được ẩn ở bảng khác. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
   <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
@@ -1961,6 +1965,7 @@ function toggleRead(bookId, btn, tab) {
     card.classList.add('pending-read');
   }
   updateReadBar(tab);
+  if (typeof fqSetPendingReadOrigin === 'function') fqSetPendingReadOrigin(bookId, tab, pendingRead[tab].has(bookId));
 }
 // ── Score loading ──
 // Scores are only fetched for badges that actually scroll into view, not for
@@ -2409,7 +2414,87 @@ function scorePassesMinimum(score, minimum) {
   return Number.isFinite(value) && value >= 0 && value <= 10 && value >= minimum;
 }
 
+// Aggregate views are opt-in and are never started by page/tab initialization.
+const categoryViewMode = { category: 'single', rankcat: 'single' };
+const categoryBulkLoad = {
+  category: { busy: false, generation: 0 },
+  rankcat: { busy: false, generation: 0 },
+};
+function leaveAllSavedCategories(tab) {
+  categoryViewMode[tab] = 'single';
+  categoryBulkLoad[tab].generation++;
+  const info = document.getElementById((tab === 'category' ? 'cat' : 'rc') + '-all-info');
+  if (info) info.textContent = '';
+}
+async function showAllSavedCategories(tab) {
+  if (!['category', 'rankcat'].includes(tab)) return;
+  const state = categoryBulkLoad[tab];
+  if (state.busy) return;
+  state.busy = true;
+  const generation = ++state.generation;
+  const prefix = tab === 'category' ? 'cat' : 'rc';
+  const button = document.getElementById(prefix + '-show-all');
+  const info = document.getElementById(prefix + '-all-info');
+  const cache = tab === 'category' ? catData : rcData;
+  button.disabled = true;
+  info.textContent = 'Đang dò danh sách danh mục đã có dữ liệu…';
+  try {
+    await synchronizeCategoryFileLists();
+    await ensureStatusOverrides();
+    const read = await ghRaw('data/read.json');
+    if (!Array.isArray(read)) throw new Error('read.json không hợp lệ');
+    const history = tab === 'category' ? loadFetchHistory() : loadRcHistory();
+    const ids = Object.keys(history).sort((a, b) => Number(a) - Number(b));
+    const readSet = new Set([...read.map(String), ...dailyReadSet, ...rcReadSet]);
+    let cursor = 0, finished = 0;
+    const failures = [];
+    async function load() {
+      while (cursor < ids.length) {
+        const id = ids[cursor++];
+        try {
+          const data = cache[id]?.data || await ghRawLarge('data/' + (tab === 'category' ? 'category_' : 'rank_cat_') + id + '.json');
+          if (!Array.isArray(data?.books)) throw new Error('File thiếu danh sách books');
+          cache[id] = { data, readSet: new Set([...readSet, ...(cache[id]?.readSet || [])]) };
+          registerBooks(data.books);
+        } catch (error) {
+          failures.push(id);
+          console.warn('Không tải được danh mục ' + id + ':', error);
+        }
+        finished++;
+        if (generation === state.generation) info.textContent = 'Đang tải ' + finished + '/' + ids.length + ' danh mục' + (failures.length ? ' · ' + failures.length + ' lỗi' : '');
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(3, ids.length) }, load));
+    if (generation !== state.generation) return;
+    // Carry the visible rank/copy settings into the aggregate scope.
+    const limits = Object.fromEntries(['rank', 'copy'].map(kind => [kind, document.getElementById(prefix + '-' + kind + '-max').value.trim()]));
+    categoryViewMode[tab] = 'all';
+    for (const [kind, value] of Object.entries(limits)) {
+      try {
+        const key = scoreListLimitKey(tab, kind);
+        if (value === '') localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      } catch (error) { console.warn('Không lưu được giới hạn tất cả danh mục:', error); }
+    }
+    booksPage[tab] = 1;
+    document.getElementById(prefix + '-select-label').textContent = 'Tất cả danh mục đã có dữ liệu';
+    document.querySelectorAll('#' + prefix + '-select-list .cat-select-option').forEach(option => option.classList.remove('selected'));
+    document.getElementById(prefix + '-scrape-btn').disabled = true;
+    document.getElementById(prefix + '-reload-btn').disabled = true;
+    info.textContent = 'Đã tải ' + (ids.length - failures.length) + '/' + ids.length + ' danh mục · gộp ID trùng' +
+      (failures.length ? ' · lỗi ID: ' + failures.join(', ') + ' — bấm Hiển thị tất cả để thử lại' : '');
+    if (tab === 'category') renderCatPanels();
+    else renderRcPanels();
+  } catch (error) {
+    info.textContent = 'Không tải được tất cả danh mục: ' + error.message;
+  } finally {
+    state.busy = false;
+    button.disabled = false;
+  }
+}
+
 function scoreListScope(tab) {
+  if (categoryViewMode[tab] === 'all') return '__all';
   return tab === 'daily' ? '__daily' : tab === 'category' ? _catSelectValue : rcSelectValue;
 }
 
@@ -2451,7 +2536,7 @@ function setScoreListLimit(tab, kind, input) {
 
 function syncCategoryScoreControl(tab) {
   const isCategory = tab === 'category';
-  const catId = tab === 'daily' ? '__daily' : isCategory ? _catSelectValue : rcSelectValue;
+  const catId = scoreListScope(tab);
   const prefix = tab === 'daily' ? 'daily' : isCategory ? 'cat' : 'rc';
   const input = document.getElementById(prefix + '-score-min');
   input.disabled = false;
@@ -2530,7 +2615,7 @@ function scoreCandidatesForTab(tab) {
   } else {
     const data = tab === 'category' ? catData : rcData;
     const selectedId = tab === 'category' ? _catSelectValue : rcSelectValue;
-    groups = Object.entries(data).filter(([id]) => query || String(id) === String(selectedId));
+    groups = Object.entries(data).filter(([id]) => categoryViewMode[tab] === 'all' || String(id) === String(selectedId));
   }
   const rankMax = scoreListLimit(tab, 'rank');
   const rankField = tab === 'rankcat' ? 'currentPos' : 'hot_rank';
@@ -2549,12 +2634,12 @@ function scoreCandidatesForTab(tab) {
       compareBooksByRank(a, b, tab === 'category' ? 'hot_rank' : 'currentPos'));
     for (const book of books) {
       const id = normalizedBookId(book);
-      if (!id || seen.has(id)) continue;
-      seen.add(id);
+      if (!id) continue;
       candidates.push({ id, book, catId, minimum, readSet });
     }
   }
-  return candidates;
+  if (categoryViewMode[tab] === 'all') candidates.sort((a, b) => compareBooksByRank(a.book, b.book, rankField));
+  return candidates.filter(row => !seen.has(row.id) && seen.add(row.id));
 }
 
 function qualifiedBookIdsForTab(tab) {
@@ -2693,7 +2778,7 @@ function renderQualifiedScorePage(tab) {
   const root = qualifiedScanRoot(tab);
   const candidates = scoreCandidatesForTab(tab);
   const rankMax = scoreListLimit(tab, 'rank');
-  if (rankMax === null && !candidates.some(row => row.minimum !== null)) {
+  if (categoryViewMode[tab] !== 'all' && rankMax === null && !candidates.some(row => row.minimum !== null)) {
     root.dataset.qualifiedPaging = '';
     qualifiedScoreScans.delete(tab);
     return false;
@@ -3349,6 +3434,7 @@ function filterCatOptions() {
 }
 
 function selectCatOption(id, name) {
+  leaveAllSavedCategories('category');
   _catSelectValue = id;
   syncCategoryScoreControl('category');
   booksPage.category = 1;
@@ -3418,9 +3504,7 @@ function renderCatPanels() {
     return;
   }
   const selectedId = _catSelectValue;
-  const entriesToShow = query
-    ? Object.entries(catData)
-    : (selectedId ? Object.entries(catData).filter(([id]) => id == selectedId) : []);
+  const entriesToShow = selectedId ? Object.entries(catData).filter(([id]) => id == selectedId) : [];
 
   if (!query && !selectedId) {
     clearPagination('category');
@@ -3513,28 +3597,6 @@ async function filterCatBooks() {
   flushStatusesAtViewBoundary();
   booksPage.category = 1;
   await ensureStatusOverrides();
-  const query = document.getElementById('cat-search').value.toLowerCase().trim();
-  if (!query) {
-    renderCatPanels();
-    return;
-  }
-  // Load all fetched categories that aren't in catData yet
-  const history = loadFetchHistory();
-  const unloaded = Object.keys(history).filter(id => !catData[id]);
-  if (unloaded.length > 0) {
-    const panelsEl = document.getElementById('cat-panels');
-    panelsEl.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải ${unloaded.length} danh mục chưa cache…</div>`;
-    for (const id of unloaded) {
-      try {
-        const [data, readArr] = await Promise.all([
-          ghRaw(`data/category_${id}.json`),
-          ghRaw('data/read.json').catch(() => []),
-        ]);
-        catData[id] = { data, readSet: new Set(readArr.map(String)) };
-        registerBooks(data.books || []);
-      } catch(e) { /* skip failed */ }
-    }
-  }
   renderCatPanels();
 }
 
@@ -4026,6 +4088,7 @@ function filterRcOptions() {
   document.getElementById('rc-select-empty').style.display = visible === 0 ? 'block' : 'none';
 }
 function selectRcOption(id, name) {
+  leaveAllSavedCategories('rankcat');
   rcSelectValue = id;
   syncCategoryScoreControl('rankcat');
   booksPage.rankcat = 1;
@@ -4132,7 +4195,7 @@ function renderRcPanels() {
   // Search mode: go through every loaded rank category, filter by name/tags/abstract
   const groups = [];
   let totalMatches = 0;
-  for (const [catId, { data, readSet }] of Object.entries(rcData)) {
+  for (const [catId, { data, readSet }] of Object.entries(rcData).filter(([id]) => id == selectedId)) {
     const catName = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
     const books = filterByStatus((data.books || [])
       .filter(b => !readSet.has(b.book_id))
@@ -4206,27 +4269,6 @@ async function filterRcBooks() {
   flushStatusesAtViewBoundary();
   booksPage.rankcat = 1;
   await ensureStatusOverrides();
-  const query = document.getElementById('rc-search').value.toLowerCase().trim();
-  if (!query) {
-    renderRcPanels();
-    return;
-  }
-  const history  = loadRcHistory();
-  const unloaded = Object.keys(history).filter(id => !rcData[id]);
-  if (unloaded.length > 0) {
-    const container = document.getElementById('rankcat-books');
-    container.innerHTML = `<div class="state-box"><div class="icon"><span class="spinner dark"></span></div>Đang tải ${unloaded.length} danh mục chưa cache…</div>`;
-    for (const id of unloaded) {
-      try {
-        const [data, readArr] = await Promise.all([
-          ghRawLarge(`data/rank_cat_${id}.json`),
-          ghRaw('data/read.json').catch(() => []),
-        ]);
-        rcData[id] = { data, readSet: new Set(readArr.map(String)) };
-        registerBooks(data.books || []);
-      } catch(e) { /* skip failed */ }
-    }
-  }
   renderRcPanels();
 }
 
@@ -4444,8 +4486,8 @@ async function initApp() {
 
 loadConfig();
 </script>
-<script src="ranking-utils.js"></script>
-<script src="ranking-tab.js"></script>
+<script src="ranking-utils.js?v=20261023-bulk"></script>
+<script src="ranking-tab.js?v=20261023-bulk"></script>
 <script src="id-score-tab.js?v=3"></script>
 </body>
 </html>
