@@ -94,37 +94,32 @@ async function ghPushFile(filename, content) {
   });
 }
 
-// ── Fetch first book_id for a category ──
-async function fetchFirstBookId(categoryId) {
+// ── One API request per category; only an explicit empty result means no books ──
+function classifyCategoryResponse(json) {
+  if (json?.code !== 0) throw new Error('API code=' + String(json?.code) + ': ' + String(json?.message || 'invalid response'));
+  const data = json?.data;
+  const list = data?.book_list;
+  // A real book always wins over contradictory empty counters.
+  const book = Array.isArray(list) && list.find(entry => entry?.book_id != null && /^\d+$/.test(String(entry.book_id)) && String(entry.book_id) !== '0');
+  if (book) return { status: 'found', bookId: String(book.book_id) };
+  if (data?.has_more === false && data?.total_count === 0) return { status: 'empty' };
+  throw new Error('Response does not confirm no books and contains no usable book_id');
+}
+
+async function fetchFirstBookId(categoryId, request = httpGet) {
   const params = new URLSearchParams({
     page_count: 1, page_index: 0,
     gender: -1, category_id: categoryId,
     creation_status: -1, word_count: -1,
     book_type: -1, sort: -1,
   });
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const res = await httpGet(`${API}/author/library/book_list/v0/?${params}`, { Accept: 'application/json' });
-      if (res.status === 429) { await sleep(60000); continue; }
-      if (res.status >= 500)  { await sleep(5000 * attempt); continue; }
-      if (res.status !== 200) return null;
-      let json;
-      try {
-        json = JSON.parse(res.data);
-      } catch(e) {
-        console.log(`  JSON parse error (${e.message}) — status: ${res.status} — body preview: ${res.data.slice(0, 300)}`);
-        if (attempt < 3) { await sleep(2000 * attempt); continue; }
-        return null;
-      }
-      const list = json?.data?.book_list;
-      if (!list || list.length === 0) return null;
-      return String(list[0].book_id);
-    } catch(e) {
-      if (attempt < 3) { await sleep(2000 * attempt); continue; }
-      throw e;
-    }
-  }
-  return null;
+  const res = await request(API + '/author/library/book_list/v0/?' + params, { Accept: 'application/json' });
+  if (res.status !== 200) throw new Error('HTTP ' + res.status);
+  if (!res.data || !res.data.trim()) throw new Error('HTTP 200 but response body is empty');
+  let json;
+  try { json = JSON.parse(res.data); }
+  catch (error) { throw new Error('Invalid JSON: ' + error.message + ' — body preview: ' + res.data.slice(0, 200)); }
+  return classifyCategoryResponse(json);
 }
 
 // ── Parse categoryV2 from detail page ──
@@ -157,6 +152,12 @@ async function main() {
     console.log(`Loaded ${Object.keys(catMap).length} existing ObjectIds from: ${existing.join(', ')}\n`);
 
   let consecutive4xx = 0;
+  const unresolved = [];
+  let emptyCount = 0, foundCount = 0;
+  function markUnresolved(catId, reason) {
+    unresolved.push({ id: catId, reason });
+    console.log(`  cat ${catId}/${CAT_END}: UNRESOLVED — ${reason} (not no books)`);
+  }
   const total = CAT_END - CAT_START + 1;
 
   const missingCount = Array.from({ length: total }, (_, i) => CAT_START + i)
@@ -168,35 +169,39 @@ async function main() {
     // Also skip IDs discovered from another book earlier in this run.
     if (MISSING_ONLY && catMap[catId]) continue;
 
-    // Step A: get first book_id for this category
-    let bookId = null;
+    // Step A: distinguish confirmed empty categories from unavailable responses.
+    let result;
     try {
-      bookId = await fetchFirstBookId(catId);
+      result = await fetchFirstBookId(catId);
     } catch(e) {
-      console.log(`  cat ${catId}: API error — ${e.message}`);
+      markUnresolved(catId, 'API: ' + e.message);
       await sleep(DELAY_MS);
       continue;
     }
 
-    if (!bookId) {
-      process.stdout.write(`  cat ${catId}/${CAT_END}: no books — skip\n`);
+    if (result.status === 'empty') {
+      emptyCount++;
+      process.stdout.write('  cat ' + catId + '/' + CAT_END + ': no books — skip (has_more=false, total_count=0)\n');
       await sleep(200);
       continue;
     }
+    const bookId = result.bookId;
+    foundCount++;
+    console.log('  cat ' + catId + '/' + CAT_END + ': has books — book_id=' + bookId + '; reading category metadata');
 
     // Step B: fetch detail page
     let res;
     try {
       res = await httpGet(`${PAGE}/${bookId}`);
     } catch(e) {
-      console.log(`  cat ${catId}: detail fetch error — ${e.message}`);
+      markUnresolved(catId, 'detail fetch: ' + e.message);
       await sleep(DELAY_MS);
       continue;
     }
 
     if (res.status >= 400 && res.status < 500) {
       consecutive4xx++;
-      console.log(`  cat ${catId}: HTTP ${res.status} (4xx count: ${consecutive4xx}/${MAX_4XX_ERRORS})`);
+      markUnresolved(catId, `detail HTTP ${res.status} (4xx count: ${consecutive4xx}/${MAX_4XX_ERRORS})`);
       if (consecutive4xx >= MAX_4XX_ERRORS) {
         console.log(`\nHit ${MAX_4XX_ERRORS} consecutive 4xx errors — stopping.`);
         break;
@@ -205,13 +210,26 @@ async function main() {
       continue;
     }
     consecutive4xx = 0;
+    if (res.status !== 200) {
+      markUnresolved(catId, 'detail HTTP ' + res.status);
+      await sleep(DELAY_MS);
+      continue;
+    }
 
     // Step C: parse & store only new ObjectIds
     const cats = parseCategoryV2(res.data);
+    if (!cats.length) {
+      markUnresolved(catId, 'book_id=' + bookId + ' exists, but categoryV2 metadata could not be read');
+      await sleep(DELAY_MS);
+      continue;
+    }
+    if (!cats.some(c => Number(c.ObjectId) === catId)) {
+      markUnresolved(catId, 'book_id=' + bookId + ' exists, but its categoryV2 does not identify category ' + catId);
+    }
     const allKnown = cats.length > 0 && cats.every(c => catMap[c.ObjectId]);
 
     if (allKnown) {
-      process.stdout.write(`  cat ${catId}/${CAT_END}: all ${cats.length} ObjectIds already known — skip\n`);
+      process.stdout.write(`  cat ${catId}/${CAT_END}: all ${cats.length} ObjectIds already known — metadata checked\n`);
     } else {
       let newCount = 0;
       for (const c of cats) {
@@ -225,6 +243,13 @@ async function main() {
     }
 
     await sleep(DELAY_MS + Math.floor(Math.random() * 200));
+  }
+
+  console.log(`\nAPI results: ${emptyCount} confirmed empty; ${foundCount} have book_id; ${unresolved.length} unresolved.`);
+  fs.writeFileSync('scan-categories-report.json', JSON.stringify({ start: CAT_START, end: CAT_END, missing_only: MISSING_ONLY, confirmed_empty: emptyCount, have_books: foundCount, unresolved }, null, 2), 'utf-8');
+  if (unresolved.length) {
+    console.log('Unresolved category IDs (not confirmed empty): ' + unresolved.map(e => e.id).join(', '));
+    console.log('::warning::Some categories could not be checked. See scan-categories-report.json; do not treat these IDs as empty.');
   }
 
   // ── Save results ──
@@ -269,4 +294,5 @@ async function main() {
   console.log(lines.slice(0, newEntries.length + 2).join('\n'));
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+if (require.main === module) main().catch(e => { console.error(e); process.exit(1); });
+module.exports = { classifyCategoryResponse, fetchFirstBookId, parseCategoryV2 };
