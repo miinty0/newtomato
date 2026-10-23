@@ -38,9 +38,20 @@ function classifyRankResponse(response) {
   let json;
   try { json = JSON.parse(response.data); }
   catch (error) {
+    // Recover only complete fields. A trailing bare number may be truncated,
+    // so it must have a delimiter; a quoted number must have a closing quote.
+    const code = response.data.match(/(?:^|[,{]\s*)"code"\s*:\s*(-?\d+)(?=\s*[,}\]])/);
+    if (code && Number(code[1]) !== 0) throw new Error('API code=' + code[1]);
+    const total = response.data.match(/(?:^|[,{]\s*)"total_num"\s*:\s*(?:"(0|[1-9]\d*)"|(0|[1-9]\d*)(?=\s*[,}\]]))/);
+    if (total) {
+      const totalNum = Number(total[1] ?? total[2]);
+      if (Number.isSafeInteger(totalNum)) {
+        return { hasBooks: totalNum > 0, totalNum, recoveredFromInvalidJson: true };
+      }
+    }
     const match = response.data.match(/(?:^|[,{]\s*)"(?:book_id|bookId)"\s*:\s*(?:"([1-9]\d*)"|([1-9]\d*)(?=\s*[,}\]]))/);
     if (match) return { hasBooks: true, totalNum: null, recoveredFromInvalidJson: true };
-    throw new Error('Invalid JSON without a complete book_id/bookId');
+    throw new Error('Invalid JSON without a complete total_num or book_id/bookId');
   }
   if (json?.code !== 0) throw new Error('API code=' + String(json?.code));
   const data = json?.data;
@@ -116,7 +127,7 @@ async function probeRankCats(categories, existing, {
           report.api_requests++;
           const result = classifyRankResponse(await request(url));
           results.set(gender, result);
-          report.checks.push({ id, rankMold: mold, gender, total_num: result.totalNum, has_books: result.hasBooks });
+          report.checks.push({ id, rankMold: mold, gender, total_num: result.totalNum, has_books: result.hasBooks, recovered_from_invalid_json: !!result.recoveredFromInvalidJson });
           streak = 0;
           streakStart = null;
           log('cat ' + id + ' mold=' + mold + ' gender=' + gender + ': total_num=' + (result.totalNum ?? 'unknown') + '; ' + (result.hasBooks ? 'has rank books' : 'confirmed zero'));
