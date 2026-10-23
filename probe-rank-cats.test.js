@@ -50,11 +50,11 @@ test('three consecutive empty bodies stop immediately and checkpoint the first a
 });
 test('valid responses reset the empty-body counter; errors are not treated as confirmed zero',async()=>{
   let calls=0;
-  const result=await probeRankCats([{id:1},{id:2}],empty,{
+  const result=await probeRankCats([{id:1},{id:2},{id:3}],empty,{
     request:async()=>{calls++;return calls===3?ok(0):{status:200,data:''}},sleep:async()=>{},log(){},
   });
   assert.equal(calls,6);
-  assert.equal(result.report.resume_start,1);
+  assert.equal(result.report.resume_start,2);
   assert.equal(result.report.no_rank_ids.length,0);
 });
 test('positive discoveries are retained when later requests hit the empty-body stop',async()=>{
@@ -100,7 +100,7 @@ test('old Mold is removed only after both genders successfully return total_num=
     start:261,end:261,request:async url=>ok(new URL(url).searchParams.get('rankMold')==='1'?1:0),sleep:async()=>{},log(){},
   });
   assert.deepEqual(result.config.rankMold2,[{cat_id:999}]);
-  assert.deepEqual(result.config.rankMold1,[{cat_id:261,gender:1}]);
+  assert.deepEqual(result.config.rankMold1,[{cat_id:261}]);
 });
 test('one unresolved gender and one confirmed zero preserve the old Mold instead of deleting it',async()=>{
   const existing={rankMold2:[{cat_id:261,gender:1}],rankMold1:[]};
@@ -111,12 +111,12 @@ test('one unresolved gender and one confirmed zero preserve the old Mold instead
   assert.ok(result.report.unresolved.length>0);
   assert.equal(result.report.no_rank_ids.length,0);
 });
-test('both working genders preserve the existing working choice after actually requesting both',async()=>{
+test('gender 0 with books replaces an old gender 1 without calling gender 1',async()=>{
   const result=await probeRankCats([{id:261}],{rankMold2:[{cat_id:261,gender:1}],rankMold1:[]},{
     request:async()=>ok(10),sleep:async()=>{},log(){},
   });
-  assert.deepEqual(result.config.rankMold2,[{cat_id:261,gender:1}]);
-  assert.equal(result.report.api_requests,4);
+  assert.deepEqual(result.config.rankMold2,[{cat_id:261}]);
+  assert.equal(result.report.api_requests,2);
 });
 test('explicit total_num controls classification; camelCase bookId is recognized when total_num is absent',()=>{
   assert.deepEqual(classifyRankResponse({status:200,data:JSON.stringify({code:0,data:{total_num:0,book_list:[{bookId:'7630067790849788953'}]}})}),{hasBooks:false,totalNum:0});
@@ -164,4 +164,36 @@ test('an old Mold is removed when both genders have a complete recovered total_n
   });
   assert.deepEqual(result.config.rankMold2,[]);
   assert.deepEqual(result.report.no_rank_ids,[261]);
+});
+
+test('gender 0 errors never cause gender 1 requests, and old configuration is preserved',async()=>{
+  const calls=[];
+  const existing={rankMold2:[{cat_id:261,gender:1}],rankMold1:[{cat_id:261,gender:1}]};
+  const result=await probeRankCats([{id:261}],existing,{
+    request:async url=>{const p=new URL(url).searchParams;calls.push([p.get('rankMold'),p.get('gender')]);return {status:200,data:''}},
+    sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(calls,[['2','0'],['1','0']]);
+  assert.deepEqual(result.config.rankMold2,existing.rankMold2);
+  assert.deepEqual(result.config.rankMold1,existing.rankMold1);
+  assert.equal(result.report.unresolved.length,2);
+});
+test('a recovered positive total at gender 0 avoids all gender 1 requests',async()=>{
+  const calls=[];
+  const result=await probeRankCats([{id:261}],empty,{
+    request:async url=>{calls.push(new URL(url).searchParams.get('gender'));return {status:200,data:'{"code":0,"data":{"total_num":100,'}},
+    sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(calls,['0','0']);
+  assert.deepEqual(result.config.rankMold2,[{cat_id:261}]);
+  assert.deepEqual(result.config.rankMold1,[{cat_id:261}]);
+});
+test('bookId with an unknown total does not trigger a gender 1 request',async()=>{
+  const calls=[];
+  const result=await probeRankCats([{id:261}],empty,{
+    request:async url=>{calls.push(new URL(url).searchParams.get('gender'));return {status:200,data:'{"code":0,"data":{"book_list":[{"bookId":"7630067790849788953"}]}}'}},
+    sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(calls,['0','0']);
+  assert.deepEqual(result.config.rankMold2,[{cat_id:261}]);
 });
