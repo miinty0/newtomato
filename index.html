@@ -3580,11 +3580,11 @@ async function loadDaily() {
 
   try {
     await ensureStatusOverrides();
-    // Load latest + read list + history index in parallel
-    const [latestData, readArr, histIndex] = await Promise.all([
+    // Load latest + read list + every history filename in parallel
+    const [latestData, readArr, historyEntries] = await Promise.all([
       ghRaw('data/latest.json'),
       ghRaw('data/read.json').catch(() => []),
-      ghRaw('data/history_index.json').catch(() => []),
+      ghListDirectory('data/history'),
     ]);
     dailyReadSet = new Set(readArr.map(String));
 
@@ -3594,18 +3594,25 @@ async function loadDaily() {
 
     // Load history files (skip today's date since latest.json already has it)
     const todayStr = latestData.update_date || '';
-    // Load 90 latest history entries (history_index is sorted newest-first)
-    const histDates = (histIndex || []).filter(d => d !== todayStr).slice(0, 89); 
+    // Discover all snapshots, including old files missing from history_index.json.
+    const histDates = historyEntries
+      .filter(f => f.type === 'file' && /^\d{4}-\d{2}-\d{2}\.json$/.test(f.name))
+      .map(f => f.name.slice(0, -5))
+      .filter(d => d !== todayStr)
+      .sort().reverse();
 
     if (histDates.length > 0) {
       infoEl.textContent = `Đang tải ${histDates.length} snapshot lịch sử…`;
-      const histResults = await Promise.allSettled(
-        histDates.map(d => ghRaw(`data/history/${d}.json`))
-      );
-      for (const r of histResults) {
-        if (r.status !== 'fulfilled') continue;
-        for (const b of (r.value.books || [])) {
-          if (!bookMap[b.book_id]) bookMap[b.book_id] = b;
+      // Keep requests bounded as the archive grows; merge newest snapshots first.
+      for (let offset = 0; offset < histDates.length; offset += 10) {
+        const histResults = await Promise.allSettled(
+          histDates.slice(offset, offset + 10).map(d => ghRaw(`data/history/${d}.json`))
+        );
+        for (const r of histResults) {
+          if (r.status !== 'fulfilled') continue;
+          for (const b of (r.value.books || [])) {
+            if (!bookMap[b.book_id]) bookMap[b.book_id] = b;
+          }
         }
       }
     }
