@@ -1455,6 +1455,11 @@
     "desc": "Vận mệnh nắm giữ ở chính mình trong tay"
   },
   {
+    "id": 769,
+    "name": "小说漫改",
+    "desc": "根据小说改编成漫画的作品，或者有改编小说的作品"
+  },
+  {
     "id": 772,
     "name": "Tây huyễn",
     "desc": "Tây huyễn"
@@ -1485,9 +1490,19 @@
     "desc": "Tu luyện, tiến giai, thăng cấp, thẳng đến đỉnh núi"
   },
   {
+    "id": 831,
+    "name": "灵魂互换",
+    "desc": "谁说没有真正的感同身受？"
+  },
+  {
     "id": 832,
     "name": "Khoa cử",
     "desc": "Mười năm gian khổ học tập khổ đọc, trợ ta bình bộ thanh vân"
+  },
+  {
+    "id": 833,
+    "name": "海贼王",
+    "desc": "属于少年的海上热血冒险！"
   },
   {
     "id": 834,
@@ -1500,6 +1515,11 @@
     "desc": "Dưỡng thành vui sướng rốt cuộc ai hiểu!"
   },
   {
+    "id": 836,
+    "name": "互宠",
+    "desc": "比你对我更多的爱是我对你"
+  },
+  {
     "id": 837,
     "name": "Tranh bá",
     "desc": "Thiên hạ phong vân, nhậm quân quấy"
@@ -1508,6 +1528,11 @@
     "id": 838,
     "name": "Vô hậu cung",
     "desc": "Vô hậu cung, thâm tình quải, hoặc ta một mình soái khí"
+  },
+  {
+    "id": 839,
+    "name": "久别重逢",
+    "desc": "我会和你说一声好久不见"
   },
   {
     "id": 840,
@@ -1525,9 +1550,19 @@
     "desc": "Truy thê trên đường, đường dài lại gian nan"
   },
   {
+    "id": 843,
+    "name": "迪化",
+    "desc": "我本平平无奇，全凭你们脑补"
+  },
+  {
     "id": 844,
     "name": "Thật giả thiên kim",
     "desc": "Thật giả đại tiểu thư song song giá lâm, rốt cuộc phải làm sao bây giờ"
+  },
+  {
+    "id": 845,
+    "name": "高手下山",
+    "desc": "山上无敌，下山造成降维打击"
   },
   {
     "id": 846,
@@ -1543,6 +1578,11 @@
     "id": 848,
     "name": "Tuổi tác kém",
     "desc": "Tuổi tác là / không là vấn đề?"
+  },
+  {
+    "id": 849,
+    "name": "双学霸",
+    "desc": "学霸恋爱，就是比别人拽一些"
   },
   {
     "id": 850,
@@ -1570,6 +1610,11 @@
     "desc": "Tuổi còn trẻ ta dựa công nghệ đen công lược toàn thế giới"
   },
   {
+    "id": 855,
+    "name": "第四天灾",
+    "desc": "原来这个世界，最强的天灾竟然是...玩家!"
+  },
+  {
     "id": 856,
     "name": "Toàn năng",
     "desc": "Hình lục giác chiến sĩ, chính là một cái sảng tự!"
@@ -1595,6 +1640,11 @@
     "desc": "Chúng ta ôm nhau, chính là lẫn nhau quang"
   },
   {
+    "id": 861,
+    "name": "宠夫",
+    "desc": "我的另一半只能我来宠"
+  },
+  {
     "id": 862,
     "name": "Chuyện nhà",
     "desc": "Ríu rít hạnh phúc hằng ngày"
@@ -1615,6 +1665,11 @@
     "desc": "Ai có thể cự tuyệt đáng thương tiểu cẩu"
   },
   {
+    "id": 866,
+    "name": "双系统",
+    "desc": "这系统太多你千万别错乱"
+  },
+  {
     "id": 867,
     "name": "Bắt quỷ",
     "desc": "Bắt quỷ kỹ xảo ngàn ngàn vạn"
@@ -1630,6 +1685,11 @@
     "desc": "Cát vàng phế thổ, rung chuyển xâm nhập"
   },
   {
+    "id": 870,
+    "name": "双病娇",
+    "desc": "极致拉扯，绝对占有，恋爱疯魔"
+  },
+  {
     "id": 871,
     "name": "Ngôi thứ nhất",
     "desc": "Đắm chìm thức cảm thụ chuyện xưa"
@@ -1640,9 +1700,24 @@
     "desc": "Ngược phu nhất thời sảng, truy phu hỏa táng tràng"
   },
   {
+    "id": 873,
+    "name": "赛博朋克",
+    "desc": "故事发生在高科技但荒凉破败的未来都市....."
+  },
+  {
     "id": 874,
     "name": "Thẻ bài",
     "desc": "Về ta �� dùng thẻ bài trở thành thiên hạ đệ nhất chuyện xưa"
+  },
+  {
+    "id": 875,
+    "name": "山海经",
+    "desc": "上古志怪山海经，今朝破世予人情"
+  },
+  {
+    "id": 876,
+    "name": "胎穿",
+    "desc": "一种更沉浸的穿越方式"
   },
   {
     "id": 877,
