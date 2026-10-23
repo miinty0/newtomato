@@ -9,36 +9,70 @@ on:
       end:
         description: 'Category ID end'
         default: '1000'
-
       missing_only:
         description: 'Chỉ kiểm tra ID còn thiếu (bổ sung vào categories_1-2000.json)'
         type: boolean
         default: false
+      auto_resume:
+        description: 'Sau 3 body rỗng: lưu kết quả, nghỉ 5 phút và chạy tiếp'
+        type: boolean
+        default: true
+      stalled_runs:
+        description: 'Bộ đếm nội bộ: số lượt liên tiếp không tiến thêm'
+        default: '0'
+  push:
+    branches: [main]
+    paths: [category-scan-request.json]
+
+concurrency:
+  group: newtomato-category-scans
+  queue: max
 
 jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - name: Read and validate scan request
+        id: request
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const request = context.eventName === 'push'
+              ? JSON.parse(fs.readFileSync('category-scan-request.json', 'utf8'))
+              : context.payload.inputs;
+            const start = Number(request.start || 1);
+            const end = Number(request.end || 1000);
+            const stalled = Number(request.stalled_runs || 0);
+            if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 1 || end < start) throw new Error('Invalid category range');
+            if (!Number.isSafeInteger(stalled) || stalled < 0) throw new Error('Invalid stalled_runs');
+            core.setOutput('start', start);
+            core.setOutput('end', end);
+            core.setOutput('missing_only', String(request.missing_only) === 'true');
+            core.setOutput('auto_resume', String(request.auto_resume) === 'true');
+            core.setOutput('stalled_runs', stalled);
       - name: Run scan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          CAT_START: ${{ inputs.start }}
-          CAT_END: ${{ inputs.end }}
-          MISSING_ONLY: ${{ inputs.missing_only }}
+          CAT_START: ${{ steps.request.outputs.start }}
+          CAT_END: ${{ steps.request.outputs.end }}
+          MISSING_ONLY: ${{ steps.request.outputs.missing_only }}
         run: |
           args=("$CAT_START" "$CAT_END")
           if [ "$MISSING_ONLY" = "true" ]; then
             args+=(--missing-only)
           fi
           node scan-categories.js "${args[@]}" 2>&1 | tee result.txt
-
       - name: Upload scan results and unresolved IDs
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,3 +83,54 @@ jobs:
             scan-categories-report.json
             categories_*.txt
           if-no-files-found: ignore
+      - name: Decide whether to resume
+        id: resume
+        if: success() && steps.request.outputs.auto_resume == 'true'
+        uses: actions/github-script@v8
+        env:
+          CAT_START: ${{ steps.request.outputs.start }}
+          CAT_END: ${{ steps.request.outputs.end }}
+          STALLED_RUNS: ${{ steps.request.outputs.stalled_runs }}
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('scan-categories-report.json', 'utf8'));
+            if (report.stop_reason !== 'empty_body_streak') return;
+            const start = report.resume_start;
+            if (!Number.isSafeInteger(start) || start < Number(process.env.CAT_START) || start > Number(process.env.CAT_END)) throw new Error('Invalid resume checkpoint');
+            const stalled = start <= Number(process.env.CAT_START) ? Number(process.env.STALLED_RUNS) + 1 : 0;
+            if (stalled >= 3) {
+              core.warning('Stopped after 3 runs without progress. Resume manually from category ' + start + ' after Fanqie recovers.');
+              await core.summary.addRaw('\nStopped after 3 runs without progress. Manual resume: **' + start + '**.\n').write();
+              return;
+            }
+            core.setOutput('start', start);
+            core.setOutput('stalled_runs', stalled);
+            await core.summary.addRaw('\nSaved results. Waiting 5 minutes before dispatching a new run from **' + start + '**.\n').write();
+      - name: Cool down for 5 minutes
+        if: steps.resume.outputs.start != ''
+        run: sleep 300
+      - name: Start next scan from checkpoint
+        if: steps.resume.outputs.start != ''
+        uses: actions/github-script@v8
+        env:
+          RESUME_START: ${{ steps.resume.outputs.start }}
+          CAT_END: ${{ steps.request.outputs.end }}
+          MISSING_ONLY: ${{ steps.request.outputs.missing_only }}
+          STALLED_RUNS: ${{ steps.resume.outputs.stalled_runs }}
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'scan-categories.yml',
+              ref: 'main',
+              inputs: {
+                start: process.env.RESUME_START,
+                end: process.env.CAT_END,
+                missing_only: process.env.MISSING_ONLY,
+                auto_resume: 'true',
+                stalled_runs: process.env.STALLED_RUNS,
+              },
+            });
+            core.info('Dispatched next run from category ' + process.env.RESUME_START);
