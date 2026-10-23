@@ -5,13 +5,14 @@ const empty = { rankMold2: [], rankMold1: [] };
 const ok = total => ({ status:200, data:JSON.stringify({code:0,data:{total_num:total,book_list:[]}}) });
 test('missing-only excludes all valid IDs across both molds, includes new IDs above 2000 and ignores the old cursor',()=>{
   const existing={rankMold2:[{cat_id:1}],rankMold1:[{cat_id:2,gender:1}],last_probed_cat_id:1000};
-  assert.deepEqual(candidateIds([{id:1},{id:2},{id:3},{id:3001},{id:3}],existing),[3,3001]);
+  assert.deepEqual(candidateIds([{id:1},{id:2},{id:3},{id:3001},{id:3}],existing,{missingOnly:true}),[3,3001]);
   assert.deepEqual(candidateIds([{id:1},{id:2},{id:3}],existing,{missingOnly:false}),[1,2,3]);
 });
 test('existing rankcats make no API calls; both genders are checked for other categories',async()=>{
   const calls=[];
   const existing={rankMold2:[{cat_id:1}],rankMold1:[{cat_id:2,gender:1}]};
   const result=await probeRankCats([{id:1},{id:2},{id:3}],existing,{
+    missingOnly:true,
     request:async url=>{calls.push(new URL(url).searchParams);return ok(0)},sleep:async()=>{},log(){},
   });
   assert.equal(calls.length,4);
@@ -25,6 +26,7 @@ test('discoveries record the correct mold and gender without deleting or changin
   const existing={rankMold2:[{cat_id:8,gender:1}],rankMold1:[{cat_id:24}]};
   const checkpoints=[];
   const result=await probeRankCats([{id:953}],existing,{
+    missingOnly:true,
     request:async url=>{
       const p=new URL(url).searchParams;
       return ok(p.get('rankMold')==='2'&&p.get('gender')==='0'?0:10);
@@ -62,11 +64,62 @@ test('positive discoveries are retained when later requests hit the empty-body s
   });
   assert.deepEqual(result.config.rankMold2,[{cat_id:1}]);
   assert.equal(result.report.stop_reason,'empty_body_streak');
-  assert.deepEqual(candidateIds([{id:1},{id:2}],result.config),[2]);
+  assert.deepEqual(candidateIds([{id:1},{id:2}],result.config,{missingOnly:true}),[2]);
 });
 test('positive book IDs survive malformed JSON, whereas empty or structurally invalid responses remain errors',()=>{
   assert.equal(classifyRankResponse({status:200,data:'{"code":0,"data":{"book_list":[{"book_id":"6886382789659200519",'}).hasBooks,true);
   for(const response of [{status:200,data:''},{status:200,data:'{"code":0,"data":{}}'},{status:200,data:'{"code":1,"data":{"total_num":0}}'},{status:403,data:''}]) {
     assert.throws(()=>classifyRankResponse(response));
   }
+});
+
+test('full revalidation corrects category 261 Mold 2 from gender 0 to 1 using the supplied total_num responses',async()=>{
+  const existing={rankMold2:[{cat_id:261}],rankMold1:[{cat_id:261,gender:1}]};
+  const calls=[];
+  const result=await probeRankCats([{id:261}],existing,{
+    request:async url=>{
+      const p=new URL(url).searchParams;
+      calls.push([p.get('rankMold'),p.get('gender')]);
+      return {status:200,data:JSON.stringify({code:0,data:p.get('gender')==='0'
+        ? {book_list:[],total_num:0}
+        : {book_list:[{bookId:'7630067790849788953'}],total_num:100}})};
+    },sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(calls,[['2','0'],['2','1'],['1','0'],['1','1']]);
+  assert.deepEqual(result.config.rankMold2,[{cat_id:261,gender:1}]);
+  assert.deepEqual(result.config.rankMold1,[{cat_id:261,gender:1}]);
+  assert.ok(result.report.changes.some(e=>e.id===261&&e.rankMold===2&&e.previous_gender===0&&e.gender===1));
+  assert.equal(result.report.mode,'revalidate_all');
+});
+test('full mode also rechecks old valid IDs missing from the category catalogue',()=>{
+  assert.deepEqual(candidateIds([{id:1}],{rankMold2:[{cat_id:261}],rankMold1:[]}),[1,261]);
+});
+test('old Mold is removed only after both genders successfully return total_num=0',async()=>{
+  const existing={rankMold2:[{cat_id:261,gender:1},{cat_id:999}],rankMold1:[{cat_id:261,gender:1}]};
+  const result=await probeRankCats([{id:261}],existing,{
+    start:261,end:261,request:async url=>ok(new URL(url).searchParams.get('rankMold')==='1'?1:0),sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(result.config.rankMold2,[{cat_id:999}]);
+  assert.deepEqual(result.config.rankMold1,[{cat_id:261,gender:1}]);
+});
+test('one unresolved gender and one confirmed zero preserve the old Mold instead of deleting it',async()=>{
+  const existing={rankMold2:[{cat_id:261,gender:1}],rankMold1:[]};
+  const result=await probeRankCats([{id:261}],existing,{
+    request:async url=>new URL(url).searchParams.get('gender')==='1'?{status:200,data:'bad json'}:ok(0),sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(result.config.rankMold2,existing.rankMold2);
+  assert.ok(result.report.unresolved.length>0);
+  assert.equal(result.report.no_rank_ids.length,0);
+});
+test('both working genders preserve the existing working choice after actually requesting both',async()=>{
+  const result=await probeRankCats([{id:261}],{rankMold2:[{cat_id:261,gender:1}],rankMold1:[]},{
+    request:async()=>ok(10),sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(result.config.rankMold2,[{cat_id:261,gender:1}]);
+  assert.equal(result.report.api_requests,4);
+});
+test('explicit total_num controls classification; camelCase bookId is recognized when total_num is absent',()=>{
+  assert.deepEqual(classifyRankResponse({status:200,data:JSON.stringify({code:0,data:{total_num:0,book_list:[{bookId:'7630067790849788953'}]}})}),{hasBooks:false,totalNum:0});
+  assert.equal(classifyRankResponse({status:200,data:JSON.stringify({code:0,data:{book_list:[{bookId:'7630067790849788953'}]}})}).hasBooks,true);
+  assert.equal(classifyRankResponse({status:200,data:'{"data":{"book_list":[{"bookId":"7630067790849788953",'}).hasBooks,true);
 });
