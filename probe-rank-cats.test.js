@@ -123,3 +123,45 @@ test('explicit total_num controls classification; camelCase bookId is recognized
   assert.equal(classifyRankResponse({status:200,data:JSON.stringify({code:0,data:{book_list:[{bookId:'7630067790849788953'}]}})}).hasBooks,true);
   assert.equal(classifyRankResponse({status:200,data:'{"data":{"book_list":[{"bookId":"7630067790849788953",'}).hasBooks,true);
 });
+
+test('malformed JSON recovers complete total_num=0 and total_num=100 with identical classification',()=>{
+  for(const [field,count] of [['0,',0],['100,',100],['"0",',0],['"100",',100]]){
+    const result=classifyRankResponse({status:200,data:'{"code":0,"data":{"total_num":'+field});
+    assert.deepEqual(result,{hasBooks:count>0,totalNum:count,recoveredFromInvalidJson:true});
+  }
+});
+test('a complete total_num=0 takes precedence over bookId even in malformed JSON',()=>{
+  const result=classifyRankResponse({status:200,data:'{"code":0,"data":{"bookId":"7630067790849788953","total_num":0,'});
+  assert.equal(result.hasBooks,false);
+  assert.equal(result.totalNum,0);
+});
+test('truncated, unsafe and invalid total_num fields cannot confirm an empty or positive ranking',()=>{
+  for(const raw of [
+    '{"code":0,"data":{"total_num":100',
+    '{"code":0,"data":{"total_num":"100',
+    '{"code":0,"data":{"total_num":-1,',
+    '{"code":0,"data":{"total_num":"abc",',
+    '{"code":0,"data":{"total_num":9007199254740993,',
+    '{"code":1,"data":{"total_num":0,',
+  ]) assert.throws(()=>classifyRankResponse({status:200,data:raw}));
+});
+test('recovered totals correct the gender of an existing rankcat exactly like valid JSON',async()=>{
+  const result=await probeRankCats([{id:261}],{rankMold2:[{cat_id:261}],rankMold1:[]},{
+    request:async url=>{
+      const p=new URL(url).searchParams;
+      const count=p.get('gender')==='1'?100:0;
+      return {status:200,data:'{"code":0,"data":{"total_num":'+count+','};
+    },sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(result.config.rankMold2,[{cat_id:261,gender:1}]);
+  assert.deepEqual(result.config.rankMold1,[{cat_id:261,gender:1}]);
+  assert.equal(result.report.unresolved.length,0);
+  assert.ok(result.report.checks.every(check=>check.recovered_from_invalid_json));
+});
+test('an old Mold is removed when both genders have a complete recovered total_num=0',async()=>{
+  const result=await probeRankCats([{id:261}],{rankMold2:[{cat_id:261,gender:1}],rankMold1:[]},{
+    request:async()=>({status:200,data:'{"code":0,"data":{"total_num":0,'}),sleep:async()=>{},log(){},
+  });
+  assert.deepEqual(result.config.rankMold2,[]);
+  assert.deepEqual(result.report.no_rank_ids,[261]);
+});
