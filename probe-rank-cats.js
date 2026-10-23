@@ -29,7 +29,11 @@ function httpGet(url) {
   });
 }
 function classifyRankResponse(response) {
-  if (response.status !== 200) throw new Error('HTTP ' + response.status);
+  if (response.status !== 200) {
+    const error = new Error('HTTP ' + response.status);
+    if (response.status === 403 || response.status === 429) error.code = 'RATE_LIMITED';
+    throw error;
+  }
   if (!response.data || !response.data.trim()) {
     const error = new Error('HTTP 200 but response body is empty');
     error.code = 'EMPTY_RESPONSE_BODY';
@@ -138,6 +142,13 @@ async function probeRankCats(categories, existing, {
           results.set(gender, null);
           report.unresolved.push({ id, rankMold: mold, gender, reason: error.message });
           log('cat ' + id + ' mold=' + mold + ' gender=' + gender + ': UNRESOLVED — ' + error.message);
+          if (error.code === 'RATE_LIMITED') {
+            report.stop_reason = 'rate_limited';
+            report.resume_start = id;
+            applyMold(id, mold, results);
+            log('Rate limit/block response; saved results; resume from category ' + id + ' after cooldown.');
+            break outer;
+          }
           if (error.code === 'EMPTY_RESPONSE_BODY') {
             if (!streak) streakStart = id;
             streak++;
@@ -198,7 +209,7 @@ async function main() {
       '- Candidates: ' + report.candidate_ids.length + '; checked: ' + report.checked_ids.length + '\n' +
       '- Newly valid: ' + (report.newly_valid_ids.join(', ') || 'none') + '\n' +
       '- Unresolved requests: ' + report.unresolved.length + '\n' +
-      (report.stop_reason ? '- Paused after 3 empty API bodies; resume from **' + report.resume_start + '**.\n' : '- Finished candidate list.\n'));
+      (report.stop_reason ? '- Paused (' + report.stop_reason + '); resume from **' + report.resume_start + '**.\n' : '- Finished candidate list.\n'));
   }
 }
 if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });
