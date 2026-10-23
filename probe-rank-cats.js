@@ -5,9 +5,11 @@ const path = require('path');
 function knownRankIds(config) {
   return new Set([...(config.rankMold2 || []), ...(config.rankMold1 || [])].map(e => Number(e.cat_id)));
 }
-function candidateIds(categories, config, { missingOnly = true, start = 1, end = Infinity } = {}) {
+function candidateIds(categories, config, { missingOnly = false, start = 1, end = Infinity } = {}) {
   const known = knownRankIds(config);
-  return [...new Set(categories.map(e => Number(e.id)))]
+  const ids = categories.map(e => Number(e.id));
+  if (!missingOnly) ids.push(...known);
+  return [...new Set(ids)]
     .filter(id => Number.isSafeInteger(id) && id >= start && id <= end && (!missingOnly || !known.has(id)))
     .sort((a, b) => a - b);
 }
@@ -36,75 +38,91 @@ function classifyRankResponse(response) {
   let json;
   try { json = JSON.parse(response.data); }
   catch (error) {
-    const match = response.data.match(/(?:^|[,{]\s*)"book_id"\s*:\s*(?:"([1-9]\d*)"|([1-9]\d*)(?=\s*[,}\]]))/);
-    if (match) return { hasBooks: true, recoveredFromInvalidJson: true };
-    throw new Error('Invalid JSON without a complete book_id');
+    const match = response.data.match(/(?:^|[,{]\s*)"(?:book_id|bookId)"\s*:\s*(?:"([1-9]\d*)"|([1-9]\d*)(?=\s*[,}\]]))/);
+    if (match) return { hasBooks: true, totalNum: null, recoveredFromInvalidJson: true };
+    throw new Error('Invalid JSON without a complete book_id/bookId');
   }
   if (json?.code !== 0) throw new Error('API code=' + String(json?.code));
   const data = json?.data;
-  if (Array.isArray(data?.book_list) && data.book_list.some(book => /^[1-9]\d*$/.test(String(book?.book_id)))) return { hasBooks: true };
-  if (data?.total_num != null && data.total_num !== '' && Number.isFinite(Number(data.total_num)) && Number(data.total_num) >= 0) {
-    return { hasBooks: Number(data.total_num) > 0 };
+  // A valid total_num is authoritative, including an explicit zero.
+  if ((typeof data?.total_num === 'number' || typeof data?.total_num === 'string') &&
+      String(data.total_num).trim() !== '' && Number.isSafeInteger(Number(data.total_num)) && Number(data.total_num) >= 0) {
+    return { hasBooks: Number(data.total_num) > 0, totalNum: Number(data.total_num) };
   }
-  throw new Error('Response has no usable book_id or total_num');
+  if (Array.isArray(data?.book_list) && data.book_list.some(book => /^[1-9]\d*$/.test(String(book?.book_id ?? book?.bookId)))) {
+    return { hasBooks: true, totalNum: null };
+  }
+  throw new Error('Response has no usable total_num or book_id/bookId');
 }
-function mergeRankEntries(oldList, newList) {
-  const byId = new Map((oldList || []).map(entry => [Number(entry.cat_id), entry]));
-  for (const entry of newList) if (!byId.has(Number(entry.cat_id))) byId.set(Number(entry.cat_id), entry);
-  return [...byId.values()].sort((a, b) => Number(a.cat_id) - Number(b.cat_id));
-}
+
 async function probeRankCats(categories, existing, {
-  missingOnly = true, start = 1, end = Infinity,
+  missingOnly = false, start = 1, end = Infinity,
   request = httpGet, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)),
   log = console.log, checkpoint = () => {},
 } = {}) {
   const ids = candidateIds(categories, existing, { missingOnly, start, end });
-  const additions = { rankMold2: [], rankMold1: [] };
+  const known = knownRankIds(existing);
+  const maps = Object.fromEntries([2, 1].map(mold => [
+    'rankMold' + mold, new Map((existing['rankMold' + mold] || []).map(entry => [Number(entry.cat_id), { ...entry }])),
+  ]));
   const report = {
+    mode: missingOnly ? 'missing_only' : 'revalidate_all',
     candidate_ids: ids, excluded_known: missingOnly ? candidateIds(categories, existing, { missingOnly: false, start, end }).length - ids.length : 0,
     checked_ids: [], newly_valid_ids: [], no_rank_ids: [], unresolved: [],
-    stop_reason: null, resume_start: null, api_requests: 0,
+    checks: [], changes: [], stop_reason: null, resume_start: null, api_requests: 0,
   };
   let streak = 0, streakStart = null;
-  log('Rankcat: ' + ids.length + ' candidates; ' + report.excluded_known + ' already valid IDs excluded.');
+  log('Rankcat: mode=' + report.mode + '; ' + ids.length + ' candidates; ' + report.excluded_known + ' already valid IDs excluded.');
   function snapshot() {
     return {
-      ...existing,
-      // The old cursor sliced the catalogue and could miss new lower IDs.
-      last_probed_cat_id: undefined,
-      updated_at: new Date().toISOString(),
-      rankMold2: mergeRankEntries(existing.rankMold2, additions.rankMold2),
-      rankMold1: mergeRankEntries(existing.rankMold1, additions.rankMold1),
+      ...existing, last_probed_cat_id: undefined, updated_at: new Date().toISOString(),
+      rankMold2: [...maps.rankMold2.values()].sort((a, b) => Number(a.cat_id) - Number(b.cat_id)),
+      rankMold1: [...maps.rankMold1.values()].sort((a, b) => Number(a.cat_id) - Number(b.cat_id)),
     };
   }
-  outer: for (const id of ids) {
-    let hasAny = false, failed = false;
-    for (const mold of [2, 1]) {
-      const key = 'rankMold' + mold;
-      // Preserve known per-mold settings even in an explicitly requested full scan.
-      if ((existing[key] || []).some(entry => Number(entry.cat_id) === id)) {
-        hasAny = true;
-        continue;
+  function applyMold(id, mold, results) {
+    const key = 'rankMold' + mold;
+    const old = maps[key].get(id);
+    const positives = [...results.entries()].filter(([, result]) => result?.hasBooks).map(([gender]) => gender);
+    if (positives.length) {
+      // If both genders work, retain the previous working gender; otherwise use
+      // a gender that was actually confirmed to have rank books in this run.
+      const oldGender = Number(old?.gender ?? 0);
+      const gender = positives.includes(oldGender) ? oldGender : positives[0];
+      const entry = { ...old, cat_id: id };
+      if (gender === 1) entry.gender = 1;
+      else delete entry.gender;
+      maps[key].set(id, entry);
+      if (!old || oldGender !== gender) {
+        report.changes.push({ id, rankMold: mold, previous_gender: old ? oldGender : null, gender, action: old ? 'correct_gender' : 'add' });
       }
+      if (!known.has(id) && !report.newly_valid_ids.includes(id)) report.newly_valid_ids.push(id);
+    } else if (results.size === 2 && results.get(0) && results.get(1)) {
+      // Remove an old Mold only when BOTH genders were successfully confirmed zero.
+      if (old) {
+        maps[key].delete(id);
+        report.changes.push({ id, rankMold: mold, action: 'remove_confirmed_empty' });
+      }
+    }
+    checkpoint(snapshot(), report);
+  }
+  outer: for (const id of ids) {
+    let failed = false;
+    for (const mold of [2, 1]) {
+      const results = new Map();
       for (const gender of [0, 1]) {
         const url = 'https://fanqienovel.com/api/rank/category/list?app_id=2503&rank_list_type=3&offset=0&limit=1&category_id=' + id + '&rank_version=&gender=' + gender + '&rankMold=' + mold;
         try {
           report.api_requests++;
           const result = classifyRankResponse(await request(url));
+          results.set(gender, result);
+          report.checks.push({ id, rankMold: mold, gender, total_num: result.totalNum, has_books: result.hasBooks });
           streak = 0;
           streakStart = null;
-          log('cat ' + id + ' mold=' + mold + ' gender=' + gender + ': ' + (result.hasBooks ? 'has rank books' : 'total_num=0'));
-          if (result.hasBooks) {
-            additions[key].push(gender === 0 ? { cat_id: id } : { cat_id: id, gender });
-            hasAny = true;
-            if (!report.newly_valid_ids.includes(id) && !knownRankIds(existing).has(id)) report.newly_valid_ids.push(id);
-            // Save successful discoveries immediately, including partial categories.
-            checkpoint(snapshot(), report);
-            await sleep(400);
-            break;
-          }
+          log('cat ' + id + ' mold=' + mold + ' gender=' + gender + ': total_num=' + (result.totalNum ?? 'unknown') + '; ' + (result.hasBooks ? 'has rank books' : 'confirmed zero'));
         } catch (error) {
           failed = true;
+          results.set(gender, null);
           report.unresolved.push({ id, rankMold: mold, gender, reason: error.message });
           log('cat ' + id + ' mold=' + mold + ' gender=' + gender + ': UNRESOLVED — ' + error.message);
           if (error.code === 'EMPTY_RESPONSE_BODY') {
@@ -113,7 +131,7 @@ async function probeRankCats(categories, existing, {
             if (streak >= 3) {
               report.stop_reason = 'empty_body_streak';
               report.resume_start = streakStart;
-              checkpoint(snapshot(), report);
+              applyMold(id, mold, results);
               log('Stopped after 3 consecutive empty API bodies; saved results; resume from category ' + streakStart);
               break outer;
             }
@@ -124,9 +142,10 @@ async function probeRankCats(categories, existing, {
         }
         await sleep(400);
       }
+      applyMold(id, mold, results);
     }
     report.checked_ids.push(id);
-    if (!hasAny && !failed) report.no_rank_ids.push(id);
+    if (!failed && !maps.rankMold2.has(id) && !maps.rankMold1.has(id)) report.no_rank_ids.push(id);
     checkpoint(snapshot(), report);
     await sleep(600);
   }
@@ -134,6 +153,7 @@ async function probeRankCats(categories, existing, {
   checkpoint(config, report);
   return { config, report };
 }
+
 function readConfig(file) {
   const value = JSON.parse(fs.readFileSync(file, 'utf8'));
   if (!Array.isArray(value.rankMold2) || !Array.isArray(value.rankMold1)) throw new Error('Invalid valid_rank_cats.json; refusing to replace it');
@@ -148,7 +168,7 @@ async function main() {
   const start = Number(process.env.PROBE_START || 1);
   const end = process.env.PROBE_END ? Number(process.env.PROBE_END) : Infinity;
   if (!Number.isSafeInteger(start) || start < 1 || !(end === Infinity || Number.isSafeInteger(end)) || end < start) throw new Error('Invalid range');
-  const missingOnly = process.env.PROBE_MISSING_ONLY !== 'false';
+  const missingOnly = process.env.PROBE_MISSING_ONLY === 'true';
   const reportPath = path.join(dataDir, 'rankcat-probe-report.json');
   function checkpoint(config, report) {
     for (const [file, value] of [[configPath, config], [reportPath, report]]) {
@@ -159,6 +179,8 @@ async function main() {
   const { report } = await probeRankCats(categories, existing, { start, end, missingOnly, checkpoint });
   if (process.env.GITHUB_STEP_SUMMARY) {
     fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '\n### Rankcat discovery\n' +
+      '- Mode: ' + report.mode + '\n' +
+      '- Gender/configuration changes: ' + report.changes.length + '\n' +
       '- Already valid IDs excluded: ' + report.excluded_known + '\n' +
       '- Candidates: ' + report.candidate_ids.length + '; checked: ' + report.checked_ids.length + '\n' +
       '- Newly valid: ' + (report.newly_valid_ids.join(', ') || 'none') + '\n' +
