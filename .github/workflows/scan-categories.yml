@@ -38,3 +38,14 @@ jobs:
             args+=(--missing-only)
           fi
           node scan-categories.js "${args[@]}" 2>&1 | tee result.txt
+
+      - name: Upload scan results and unresolved IDs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: category-scan-results
+          path: |
+            result.txt
+            scan-categories-report.json
+            categories_*.txt
+          if-no-files-found: ignore
