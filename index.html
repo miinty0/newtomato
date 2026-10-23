@@ -1128,6 +1128,7 @@
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
   <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc, từ khóa dọn dẹp và năm cập nhật cuối (ẩn từ 2024 trở về trước). Đánh dấu đọc chưa lưu cũng được ẩn ở bảng khác. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
+  <p id="fq-ranking-run-checks" class="section-meta" role="status"></p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
   <div id="fq-ranking-words" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
@@ -4487,7 +4488,7 @@ async function initApp() {
 loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
-<script src="ranking-tab.js?v=20261023-bulk"></script>
+<script src="ranking-tab.js?v=20261023-checks"></script>
 <script src="id-score-tab.js?v=3"></script>
 </body>
 </html>

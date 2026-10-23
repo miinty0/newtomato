@@ -77,6 +77,127 @@ function fqRankRefillCurrentPage() {
     if (!fqRankingState.busy && !fqRankingState.paused && fqRankingState.more && fqRankVisibleCount() < target) fqFetchRankings(true, target);
   });
 }
+// Successful live fetches are tracked per repository and Vietnam calendar day.
+const fqRankingProgressMemory = new Map();
+function fqRankingProgressDay(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+}
+function fqRankingProgressStorageKey() {
+  const repo = typeof CFG === 'undefined' ? '' : CFG.user + '/' + CFG.repo;
+  return 'fq_ranking_runs:' + repo;
+}
+function fqLoadRankingProgress() {
+  const day = fqRankingProgressDay();
+  const key = fqRankingProgressStorageKey();
+  const memoryKey = key + ':' + day;
+  let saved = {};
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    if (value?.day === day && value.runs && typeof value.runs === 'object') saved = value.runs;
+  } catch (_) {}
+  const runs = { ...saved, ...(fqRankingProgressMemory.get(memoryKey) || {}) };
+  fqRankingProgressMemory.set(memoryKey, runs);
+  return { day, runs };
+}
+function fqRankingScopeKey(scope) {
+  return JSON.stringify([scope.type, scope.period || '', String(scope.gender ?? ''), String(scope.categoryId ?? ''), String(scope.subTab ?? '')]);
+}
+function fqRankingRunScope(type = fqRankEl('fq-ranking-type').value, overrides = {}) {
+  const value = id => fqRankEl('fq-ranking-' + id)?.value || '';
+  const gender = String(overrides.gender ?? value('gender'));
+  if (type === 'app-200') {
+    const selected = String(overrides.subTab ?? value('subtab'));
+    const subTab = selected === 'auto' || !selected ? gender === '1' ? '5' : gender === '0' ? '4' : '1' : selected;
+    return { type, period: 'special', gender: subTab === '5' ? '1' : subTab === '4' ? '0' : gender, subTab, categoryId: '0' };
+  }
+  if (type.startsWith('app-')) return { type, period: String((overrides.period ?? value('period')) || 'daily'), gender, categoryId: '0' };
+  if (['reading', 'new'].includes(type)) return { type, period: 'web', gender, categoryId: String(overrides.categoryId ?? value('category')) };
+  return { type };
+}
+function fqRankingScopeDone(scope, runs = fqLoadRankingProgress().runs) {
+  return Boolean(runs[fqRankingScopeKey(scope)]);
+}
+function fqRankingStandardScope(type, period, gender) {
+  if (type === 'app-200') return fqRankingRunScope(type, { gender, subTab: 'auto' });
+  return { type, period, gender: String(gender), categoryId: '0' };
+}
+function fqRankingPeriodDone(type, period, runs = fqLoadRankingProgress().runs) {
+  return ['2', '1', '0'].every(gender => fqRankingScopeDone(fqRankingStandardScope(type, period, gender), runs));
+}
+function fqRankingBoardDone(type, runs = fqLoadRankingProgress().runs) {
+  if (type === 'app-200') return fqRankingPeriodDone(type, 'special', runs);
+  if (type.startsWith('app-')) return ['daily', 'weekly', 'monthly'].every(period => fqRankingPeriodDone(type, period, runs));
+  if (['reading', 'new'].includes(type)) {
+    return ['0', '1'].every(gender => {
+      const categories = fqRankingCategories[gender === '0' ? 'female' : 'male'] || [];
+      return categories.length > 0 && categories.every(row => fqRankingScopeDone({ type, period: 'web', gender, categoryId: String(row.id) }, runs));
+    });
+  }
+  return fqRankingScopeDone({ type }, runs);
+}
+function fqMarkRankingRun(scope, startedDay) {
+  const progress = fqLoadRankingProgress();
+  if (startedDay !== progress.day) return;
+  progress.runs[fqRankingScopeKey(scope)] = new Date().toISOString();
+  fqRankingProgressMemory.set(fqRankingProgressStorageKey() + ':' + progress.day, progress.runs);
+  try { localStorage.setItem(fqRankingProgressStorageKey(), JSON.stringify(progress)); }
+  catch (error) { console.warn('Không lưu được dấu đã chạy Bảng Fanqie:', error); }
+  fqRenderRankingChecks();
+}
+function fqRankingCheckLabel(option, checked) {
+  if (!option.dataset.baseLabel) option.dataset.baseLabel = option.textContent.replace(/^✓\s*/, '');
+  option.textContent = (checked ? '✓ ' : '') + option.dataset.baseLabel;
+}
+function fqRenderRankingChecks() {
+  const typeSelect = fqRankEl('fq-ranking-type');
+  if (!typeSelect?.options) return;
+  const progress = fqLoadRankingProgress();
+  const type = typeSelect.value;
+  const current = fqRankingRunScope(type);
+  for (const option of typeSelect.options) fqRankingCheckLabel(option, fqRankingBoardDone(option.value, progress.runs));
+  const genderSelect = fqRankEl('fq-ranking-gender');
+  for (const option of genderSelect.options || []) {
+    const supported = type.startsWith('app-') || ['reading', 'new'].includes(type) && option.value !== '2';
+    const scope = type === 'app-200'
+      ? fqRankingStandardScope(type, 'special', option.value)
+      : fqRankingRunScope(type, { gender: option.value });
+    fqRankingCheckLabel(option, supported && fqRankingScopeDone(scope, progress.runs));
+    option.disabled = ['reading', 'new'].includes(type) && option.value === '2';
+  }
+  for (const option of fqRankEl('fq-ranking-period')?.options || []) {
+    fqRankingCheckLabel(option, type.startsWith('app-') && type !== 'app-200' && fqRankingPeriodDone(type, option.value, progress.runs));
+  }
+  for (const option of fqRankEl('fq-ranking-subtab')?.options || []) {
+    const gender = ({ '1': '2', '4': '0', '5': '1' })[option.value] ?? current.gender;
+    const scope = fqRankingRunScope('app-200', { subTab: option.value, gender });
+    fqRankingCheckLabel(option, type === 'app-200' && fqRankingScopeDone(scope, progress.runs));
+  }
+  if (['reading', 'new'].includes(type)) for (const option of fqRankEl('fq-ranking-category')?.options || []) {
+    fqRankingCheckLabel(option, fqRankingScopeDone(fqRankingRunScope(type, { categoryId: option.value }), progress.runs));
+  }
+  const info = fqRankEl('fq-ranking-run-checks');
+  if (info) {
+    const total = type === 'app-200' ? 3 : type.startsWith('app-') ? 9 : null;
+    let completed = 0;
+    if (total) for (const period of type === 'app-200' ? ['special'] : ['daily', 'weekly', 'monthly']) {
+      for (const gender of ['2', '1', '0']) if (fqRankingScopeDone(fqRankingStandardScope(type, period, gender), progress.runs)) completed++;
+    }
+    info.textContent = '✓ Lấy dữ liệu thành công hôm nay (' + progress.day + ')' +
+      (total ? ': ' + completed + '/' + total + ' lượt' : fqRankingScopeDone(current, progress.runs) ? ' · mục đang chọn đã chạy' : ' · mục đang chọn chưa chạy') +
+      '. Chọn mục hoặc xem snapshot không tính là đã chạy.';
+  }
+}
+function fqScheduleRankingCheckDayReset() {
+  if (typeof setTimeout !== 'function') return;
+  const now = Date.now(), dayMs = 86400000, offset = 7 * 3600000;
+  const next = (Math.floor((now + offset) / dayMs) + 1) * dayMs - offset;
+  const timer = setTimeout(() => { fqRenderRankingChecks(); fqScheduleRankingCheckDayReset(); }, Math.max(1000, next - now + 100));
+  timer?.unref?.();
+}
+window.addEventListener('focus', () => fqRenderRankingChecks());
+window.addEventListener('storage', event => { if (event.key === fqRankingProgressStorageKey()) fqRenderRankingChecks(); });
+fqScheduleRankingCheckDayReset();
+
 async function initRankings() {
   if (fqRankingState.initialized) { renderRankings(); return; }
   fqRankingState.initialized = true;
@@ -101,7 +222,16 @@ function fqRankingChanged(resetCategory = false) {
     category.replaceChildren(...rows.map(row => new Option(`${row.id} – ${fqRankHasHan(CATEGORY_NAMES[row.id] || row.name) ? "Thể loại " + row.id : CATEGORY_NAMES[row.id] || row.name}`, row.id)));
   }
   const isApp = type.startsWith('app-');
-  category.disabled = !['reading', 'new'].includes(type);
+  if (type === 'app-200') {
+    const subtab = fqRankEl('fq-ranking-subtab');
+    if (resetCategory) subtab.value = 'auto';
+    else if (['1', '4', '5'].includes(subtab.value)) fqRankEl('fq-ranking-gender').value = ({ '1': '2', '4': '0', '5': '1' })[subtab.value];
+  }
+  const usesCategory = ['reading', 'new'].includes(type);
+  category.disabled = !usesCategory;
+  category.hidden = !usesCategory;
+  category.style.display = usesCategory ? '' : 'none';
+  category.title = 'Thể loại chỉ áp dụng cho bảng Đang đọc/Truyện mới trên website';
   fqRankEl('fq-ranking-gender').disabled = !isApp && !['reading', 'new'].includes(type);
   if (!isApp && fqRankEl('fq-ranking-gender').value === '2') fqRankEl('fq-ranking-gender').value = '1';
   fqRankEl('fq-ranking-period').style.display = isApp && type !== 'app-200' ? '' : 'none';
@@ -114,12 +244,15 @@ function fqRankingChanged(resetCategory = false) {
     fqRankingState.books = FqRankings.unique(snapshot.books);
     fqRankEl('fq-ranking-info').textContent = `${FQ_RANK_TITLES[type] || fqRankSectionName(snapshot.title)} · Snapshot ${fqRankingSnapshot.fetched_at} · ${fqRankingState.books.length} truyện. Kết nối Fanqie để làm mới.`;
   } else fqRankEl('fq-ranking-info').textContent = 'Kết nối tab Fanqie rồi bấm “Lấy danh sách mới”.';
+  fqRenderRankingChecks();
   renderRankings();
 }
 
 async function fqFetchRankings(append, targetOverride) {
   if (fqRankingState.busy || append && !fqRankingState.more) return;
   const generation = fqRankingState.generation;
+  const runScope = fqRankingRunScope();
+  const runDay = fqRankingProgressDay();
   const type = fqRankEl('fq-ranking-type').value;
   const beforeCount = fqRankVisibleCount();
   const target = targetOverride || (append ? (Math.floor(beforeCount / FQ_RANK_PAGE_SIZE) + 1) * FQ_RANK_PAGE_SIZE : FQ_RANK_PAGE_SIZE);
@@ -157,7 +290,7 @@ async function fqFetchRankings(append, targetOverride) {
           const button = document.createElement('button'); button.className = 'btn btn-outline btn-sm'; button.textContent = fqRankSectionName(section.title, i);
           button.onclick = () => fqSelectRankingSection(i); return button;
         }));
-        fqRankingState.loaded = true; fqSelectRankingSection(0); return;
+        fqRankingState.loaded = true; fqSelectRankingSection(0); fqMarkRankingRun(runScope, runDay); return;
       }
       if (!Array.isArray(result.books)) throw new Error('Phản hồi thiếu danh sách; giữ dữ liệu cũ.');
       const entries = Array.isArray(result.entries) ? result.entries : [];
@@ -194,6 +327,7 @@ async function fqFetchRankings(append, targetOverride) {
   finally {
     fqRankingState.busy = false;
     if (generation === fqRankingState.generation) {
+      if (pages > 0 && !failure && !fqRankingState.paused) fqMarkRankingRun(runScope, runDay);
       renderRankings();
       const count = fqRankVisibleCount();
       const pending = fqRankingKeywords.length ? fqRankingState.books.filter(book => !book.abstract_verified && !fqRankingReadSet.has(book.book_id)).length : 0;
@@ -250,6 +384,7 @@ function fqFilteredRankingBooks() {
   return filterByStatus(fqRankingState.books.filter(fqRankingBookAllowed));
 }
 function renderRankings() {
+  fqRenderRankingChecks();
   const root = fqRankEl('rankings-books');
   if (!root) return;
   if (fqRankingState.entries.length) {
@@ -281,3 +416,65 @@ async function fqCopyRankings() {
   try { await navigator.clipboard.writeText(fqFilteredRankingBooks().filter(book => typeof pendingRead === 'undefined' || !Object.values(pendingRead).some(ids => ids.has(String(book.book_id)))).map(book => book.book_id).join('\n')); toast('Đã copy ID trong danh sách đang hiển thị.', 'ok'); }
   catch (error) { toast(error.message, 'err'); }
 }
+
+async function fqDiagnoseRankingCategory(categoryId = 24, algoType = 135) {
+  categoryId = Number(categoryId);
+  algoType = Number(algoType);
+  if (!Number.isInteger(categoryId) || categoryId < 1 || categoryId > 10000) throw new Error('Category ID phải từ 1 đến 10000');
+  if (![135, 116].includes(algoType)) throw new Error('Lệnh này dùng cho bảng theo thể loại 135 hoặc 116');
+  const gender = Number(fqRankEl('fq-ranking-gender').value);
+  const period = fqRankEl('fq-ranking-period').value || 'daily';
+  const results = [];
+  for (const category of [0, categoryId]) {
+    try {
+      const result = await fqRankRequest('app-rank-probe', { algoType, categoryId: category, gender, period, offset: 0 });
+      const data = result.raw?.data || {};
+      const view = data.cell_view || {};
+      const books = new Map();
+      function walk(cell) {
+        if (!cell || typeof cell !== 'object') return;
+        for (const book of cell.book_data || []) {
+          const id = String(book.book_id ?? book.bookId ?? '');
+          if (id && !books.has(id)) books.set(id, { id, category: book.category ?? book.category_id ?? null });
+        }
+        for (const child of cell.cell_data || []) walk(child);
+      }
+      walk(view);
+      const hints = [];
+      function scan(value, path = 'data', depth = 0) {
+        if (!value || typeof value !== 'object' || depth > 5 || hints.length >= 50) return;
+        for (const [key, child] of Object.entries(value)) {
+          if (key === 'book_data') continue;
+          if (/category|genre|rank_sub|filter|tab/i.test(key) && child != null && ['string', 'number', 'boolean'].includes(typeof child)) {
+            hints.push({ path: path + '.' + key, value: String(child).slice(0, 200) });
+          }
+          if (child && typeof child === 'object') scan(child, path + '.' + key, depth + 1);
+          if (hints.length >= 50) break;
+        }
+      }
+      scan(data);
+      const params = Object.fromEntries(['algo_type', 'category_id', 'rank_sub_info_id', 'rank_sub_info_type', 'genre_type', 'list_type', 'gender_list_type']
+        .map(key => [key, result.params?.[key] ?? null]));
+      results.push({
+        requestedCategory: category, ok: result.ok, error: result.error || null, params,
+        returnedAlgo: view.algo ?? null, firstPageBookCount: books.size,
+        firstBooks: [...books.values()].slice(0, 15), nextOffset: data.next_offset ?? null,
+        hasMore: data.has_more ?? null, viewKeys: Object.keys(view),
+        cells: (result.cells || []).slice(0, 30).map(cell => ({ path: cell.path, title: cell.title, books: cell.books, keys: cell.keys })),
+        metadataHints: hints,
+      });
+    } catch (error) { results.push({ requestedCategory: category, ok: false, error: error.message }); }
+  }
+  const ids = result => (result.firstBooks || []).map(book => book.id);
+  const first = ids(results[0]), second = ids(results[1]);
+  const report = {
+    algoType, gender, period, comparison: {
+      sameFirstPageIds: first.length > 0 && first.length === second.length && first.every((id, i) => id === second[i]),
+      overlappingSampleIds: first.filter(id => second.includes(id)).length,
+    }, results,
+  };
+  window.fqLastCategoryDiagnostic = report;
+  console.log('FQ_CATEGORY_DIAGNOSTIC\n' + JSON.stringify(report, null, 2));
+  return report;
+}
+window.fqDiagnoseRankingCategory = fqDiagnoseRankingCategory;
