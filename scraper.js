@@ -746,11 +746,10 @@ async function main() {
     fs.writeFileSync(histPath, JSON.stringify(data, null, 2), 'utf-8');
 
     const idxPath = path.join(DATA_DIR, 'history_index.json');
-    let idx = [];
-    if (fs.existsSync(idxPath)) { try { idx = JSON.parse(fs.readFileSync(idxPath, 'utf-8')); } catch(e) {} }
-    const today = fmtDate(saveNow);
-    if (!idx.includes(today)) idx.unshift(today);
-    idx = idx.slice(0, 90);
+    const idx = fs.readdirSync(path.join(DATA_DIR, 'history'))
+      .filter(f => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+      .map(f => f.slice(0, -5))
+      .sort().reverse();
     fs.writeFileSync(idxPath, JSON.stringify(idx, null, 2), 'utf-8');
   }
 
