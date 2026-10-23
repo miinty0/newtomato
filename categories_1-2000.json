@@ -1725,9 +1725,39 @@
     "desc": "Nay nguyệt cũng từng chiếu cổ nhân"
   },
   {
+    "id": 929,
+    "name": "玄学",
+    "desc": "玄学"
+  },
+  {
     "id": 941,
     "name": "Văn học kinh điển",
     "desc": "Đọc sách chi nhạc nơi nào tìm, số điểm hoa mai thiên địa tâm"
+  },
+  {
+    "id": 942,
+    "name": "情商口才",
+    "desc": "学会沟通和表达，事半功倍"
+  },
+  {
+    "id": 943,
+    "name": "职场经验",
+    "desc": "让你的职业生涯获得更好发展"
+  },
+  {
+    "id": 944,
+    "name": "商业",
+    "desc": "商业知识和案例"
+  },
+  {
+    "id": 945,
+    "name": "艺术文化",
+    "desc": "艺术的诞生和发展"
+  },
+  {
+    "id": 946,
+    "name": "音乐舞蹈",
+    "desc": "音乐或舞蹈技法与赏析"
   },
   {
     "id": 947,
@@ -1740,9 +1770,29 @@
     "desc": "Xã hội văn hóa cùng văn minh truyền thừa"
   },
   {
+    "id": 949,
+    "name": "语言学习",
+    "desc": "语言学习和语言应用"
+  },
+  {
+    "id": 950,
+    "name": "工具拓展",
+    "desc": "工具书"
+  },
+  {
     "id": 951,
     "name": "Lịch sử nhân vật",
     "desc": "Trung ngoại lịch sử nhân vật truyện ký"
+  },
+  {
+    "id": 952,
+    "name": "科技人物",
+    "desc": "科技领域人物传记"
+  },
+  {
+    "id": 953,
+    "name": "财经人物",
+    "desc": "财经领域人物传记"
   },
   {
     "id": 954,
@@ -1760,6 +1810,11 @@
     "desc": "Chính trị lý luận thư tịch"
   },
   {
+    "id": 957,
+    "name": "党政图书",
+    "desc": "党建红书"
+  },
+  {
     "id": 958,
     "name": "Gia đình dục nhi",
     "desc": "Gia đình dục nhi thường thức cùng phương pháp"
@@ -1775,9 +1830,59 @@
     "desc": "Sinh hoạt bách khoa cùng cách sống"
   },
   {
+    "id": 961,
+    "name": "摄影",
+    "desc": "摄影技法与赏析"
+  },
+  {
+    "id": 962,
+    "name": "鉴赏理论",
+    "desc": "艺术理论和鉴赏方法"
+  },
+  {
+    "id": 963,
+    "name": "百科常识",
+    "desc": "百科常识和小妙招"
+  },
+  {
+    "id": 964,
+    "name": "生活情感",
+    "desc": "生活即为相处之道"
+  },
+  {
+    "id": 965,
+    "name": "医学",
+    "desc": "医学知识与理论"
+  },
+  {
+    "id": 966,
+    "name": "养生",
+    "desc": "科学保健，合理养生"
+  },
+  {
+    "id": 967,
+    "name": "母婴孕产",
+    "desc": "新手父母的第一课"
+  },
+  {
+    "id": 968,
+    "name": "军事理论",
+    "desc": "军事理论书籍"
+  },
+  {
+    "id": 969,
+    "name": "技术",
+    "desc": "科技专业内容"
+  },
+  {
     "id": 970,
     "name": "Tinh phẩm tiểu thuyết",
     "desc": "Chất lượng tốt chuyện xưa loại ấn phẩm"
+  },
+  {
+    "id": 971,
+    "name": "玄幻小说",
+    "desc": "一起进入玄幻世界"
   },
   {
     "id": 972,
@@ -1785,9 +1890,29 @@
     "desc": "Nhân sinh chính là một hồi tình cảm lịch trình"
   },
   {
+    "id": 973,
+    "name": "战争军旅",
+    "desc": "热血军魂，铁骨担当"
+  },
+  {
+    "id": 974,
+    "name": "社会人文",
+    "desc": "社会风土人情"
+  },
+  {
     "id": 975,
     "name": "Truyền thống văn hóa",
     "desc": "Ngàn năm truyền thừa, văn hóa căn cơ"
+  },
+  {
+    "id": 976,
+    "name": "文化理论",
+    "desc": "文化是如何诞生与发展的"
+  },
+  {
+    "id": 977,
+    "name": "亲子教育",
+    "desc": "让家庭氛围和孩子教育更美好"
   },
   {
     "id": 978,
@@ -1795,9 +1920,79 @@
     "desc": "Trợ người thành tài tri thức thư tịch"
   },
   {
+    "id": 979,
+    "name": "科学",
+    "desc": "科学知识讲解"
+  },
+  {
+    "id": 980,
+    "name": "工业",
+    "desc": "工业技术知识"
+  },
+  {
+    "id": 981,
+    "name": "农林牧渔",
+    "desc": "农业林业畜牧业渔业知识"
+  },
+  {
+    "id": 982,
+    "name": "计算机",
+    "desc": "计算机与互联网知识"
+  },
+  {
+    "id": 983,
+    "name": "建筑园林",
+    "desc": "建筑园林知识"
+  },
+  {
+    "id": 984,
+    "name": "基础教育",
+    "desc": "基础教育阶段的知识"
+  },
+  {
+    "id": 986,
+    "name": "少儿心理",
+    "desc": "陪伴孩子走过成长道路"
+  },
+  {
+    "id": 987,
+    "name": "童书童话",
+    "desc": "丰富童年生活"
+  },
+  {
+    "id": 988,
+    "name": "历史小说",
+    "desc": "古今多少事，都付笑谈中"
+  },
+  {
+    "id": 989,
+    "name": "世界名著",
+    "desc": "书籍是人类文明的宝库"
+  },
+  {
+    "id": 990,
+    "name": "中国文学",
+    "desc": "汇集国内文学作品"
+  },
+  {
     "id": 991,
     "name": "Quốc nội phim ảnh",
     "desc": "Quốc nội phim ảnh tiểu thuyết"
+  },
+  {
+    "id": 992,
+    "name": "国外影视",
+    "desc": "国外影视小说"
+  },
+  {
+    "id": 993,
+    "name": "武侠小说",
+    "desc": "江湖武林，快意恩仇"
+  },
+  {
+    "id": 994,
+    "name": "心理疗愈",
+    "desc": "如何治愈心灵"
   },
   {
     "id": 995,
@@ -1805,9 +2000,29 @@
     "desc": "Trên đời vô việc khó, chỉ cần chịu trèo lên"
   },
   {
+    "id": 996,
+    "name": "经济",
+    "desc": "经济知识与原理"
+  },
+  {
+    "id": 997,
+    "name": "管理",
+    "desc": "管理方法和思路"
+  },
+  {
     "id": 998,
     "name": "Quản lý tài sản",
     "desc": "Quản lý tài sản thường thức cùng thủ đoạn"
+  },
+  {
+    "id": 999,
+    "name": "财政",
+    "desc": "财政原理和知识"
+  },
+  {
+    "id": 1000,
+    "name": "科学技术",
+    "desc": "科学技术知识"
   },
   {
     "id": 1003,
