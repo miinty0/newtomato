@@ -118,3 +118,40 @@ test('invalid JSON with missing or truncated book_id stays unresolved',async()=>
     await assert.rejects(fetchFirstBookId(953,async()=>({status:200,data:body})),/no complete book_id/);
   }
 });
+
+async function runRange(responses) {
+  const source=fs.readFileSync(path.join(__dirname,'scan-categories.js'),'utf8');
+  const files={},logs=[],requests=[];
+  const ctx=vm.createContext({
+    require:name=>name==='fs'?{readdirSync:()=>[],writeFileSync:(name,data)=>files[name]=data}:require(name),
+    module:{exports:{}},process:{argv:['node','scan','563','570','--missing-only'],env:{},stdout:{write:value=>logs.push(value)}},
+    console:{log:value=>logs.push(value)},Buffer,URL,URLSearchParams,setTimeout,
+  });
+  Object.assign(ctx,{responses,requests});
+  vm.runInContext(source,ctx);
+  vm.runInContext("sleep=async()=>{}; httpGet=async url=>{const id=Number(new URL(url).searchParams.get('category_id')); requests.push(id);return {status:200,data:responses[id] ?? ''};};",ctx);
+  await vm.runInContext('main()',ctx);
+  return {requests,logs,report:JSON.parse(files['scan-categories-report.json']),saved:JSON.parse(files['categories_1-2000.json'])};
+}
+test('three consecutive empty HTTP bodies stop scanning and resume at the first failure, 564',async()=>{
+  const r=await runRange({563:JSON.stringify(empty250)});
+  assert.deepEqual(r.requests,[563,564,565,566]);
+  assert.equal(r.report.stop_reason,'empty_body_streak');
+  assert.equal(r.report.resume_start,564);
+  assert.equal(r.report.last_attempted,566);
+  assert.equal(r.report.confirmed_empty,1);
+  assert.deepEqual(r.report.unresolved.map(e=>e.id),[564,565,566]);
+  assert.ok(Array.isArray(r.saved));
+});
+test('a successful API response resets the empty-body streak',async()=>{
+  const r=await runRange({565:JSON.stringify(empty250)});
+  assert.deepEqual(r.requests,[563,564,565,566,567,568]);
+  assert.equal(r.report.resume_start,566);
+  assert.equal(r.report.last_attempted,568);
+});
+test('a nonempty malformed response also breaks the empty-body streak',async()=>{
+  const r=await runRange({565:'{bad-json'});
+  assert.deepEqual(r.requests,[563,564,565,566,567,568]);
+  assert.equal(r.report.resume_start,566);
+  assert.equal(r.report.confirmed_empty,0);
+});
