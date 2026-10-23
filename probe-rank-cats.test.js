@@ -197,3 +197,17 @@ test('bookId with an unknown total does not trigger a gender 1 request',async()=
   assert.deepEqual(calls,['0','0']);
   assert.deepEqual(result.config.rankMold2,[{cat_id:261}]);
 });
+
+test('HTTP 403 or 429 pauses immediately without further requests and preserves configuration',async()=>{
+  for(const status of [403,429]){
+    let calls=0;
+    const existing={rankMold2:[{cat_id:261,gender:1}],rankMold1:[]};
+    const result=await probeRankCats([{id:261},{id:262}],existing,{
+      request:async()=>{calls++;return {status,data:''}},sleep:async()=>{},log(){},
+    });
+    assert.equal(calls,1);
+    assert.equal(result.report.stop_reason,'rate_limited');
+    assert.equal(result.report.resume_start,261);
+    assert.deepEqual(result.config.rankMold2,existing.rankMold2);
+  }
+});
