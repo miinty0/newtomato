@@ -118,7 +118,14 @@ async function fetchFirstBookId(categoryId, request = httpGet) {
   if (!res.data || !res.data.trim()) throw new Error('HTTP 200 but response body is empty');
   let json;
   try { json = JSON.parse(res.data); }
-  catch (error) { throw new Error('Invalid JSON: ' + error.message + ' — body preview: ' + res.data.slice(0, 200)); }
+  catch (error) {
+    // A truncated response can still contain a complete book_id field.
+    // Keep IDs as strings: Fanqie IDs exceed JavaScript's safe integer range.
+    // Numeric IDs need a closing delimiter so a truncated number is not used.
+    const match = res.data.match(/(?:^|[,{]\s*)"book_id"\s*:\s*(?:"([1-9]\d*)"|([1-9]\d*)(?=\s*[,}\]]))/);
+    if (match) return { status: 'found', bookId: match[1] || match[2], recoveredFromInvalidJson: true };
+    throw new Error('Invalid JSON: ' + error.message + ' — no complete book_id found — body preview: ' + res.data.slice(0, 200));
+  }
   return classifyCategoryResponse(json);
 }
 
@@ -186,6 +193,9 @@ async function main() {
       continue;
     }
     const bookId = result.bookId;
+    if (result.recoveredFromInvalidJson) {
+      console.log('  cat ' + catId + '/' + CAT_END + ': invalid JSON, recovered complete book_id=' + bookId + '; verifying via detail page');
+    }
     foundCount++;
     console.log('  cat ' + catId + '/' + CAT_END + ': has books — book_id=' + bookId + '; reading category metadata');
 
