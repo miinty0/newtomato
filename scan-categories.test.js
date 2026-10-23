@@ -87,3 +87,34 @@ test('main: book_id with unreadable detail metadata remains unresolved, never em
   assert.equal(r.report.unresolved[0].id,953);
   assert.ok(!r.logs.some(line=>line.includes('no books — skip')));
 });
+
+test('invalid JSON with a complete quoted or numeric book_id still reads the detail page and saves verified metadata',async()=>{
+  const detail='window.__INITIAL_STATE__='+JSON.stringify({page:{categoryV2:JSON.stringify([{ObjectId:953,Name:'分类953',ExternalDesc:''}])}})+';\n';
+  for(const body of [
+    '{"code":0,"data":{"book_list":[{"book_id":"6886382789659200519","abstract":',
+    '{"code":0,"data":{"book_list":[{"book_id":6886382789659200519,"abstract":',
+  ]){
+    let calls=0;
+    const result=await fetchFirstBookId(953,async()=>{calls++;return {status:200,data:body}});
+    assert.equal(result.bookId,'6886382789659200519');
+    assert.equal(result.recoveredFromInvalidJson,true);
+    assert.equal(calls,1);
+    const run=await runMain(953,body,detail);
+    assert.equal(run.requests.length,2);
+    assert.ok(run.requests[1].endsWith('/page/6886382789659200519'));
+    assert.equal(JSON.parse(run.files['categories_1-2000.json'])[0].id,953);
+    assert.equal(run.report.unresolved.length,0);
+  }
+});
+test('invalid JSON with missing or truncated book_id stays unresolved',async()=>{
+  for(const body of [
+    '{"data":{"book_list":[{"book_id":"688638278965920',
+    '{"data":{"book_list":[{"book_id":688638278965920',
+    '{"data":{"book_list":[{"book_id":null,',
+    '{"data":{"book_list":[{"book_id":"",',
+    '{"data":{"book_list":[{"book_id":"0",',
+    '{"data":{"book_list":[{"book_id":"688abc",',
+  ]){
+    await assert.rejects(fetchFirstBookId(953,async()=>({status:200,data:body})),/no complete book_id/);
+  }
+});
