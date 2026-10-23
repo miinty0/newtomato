@@ -10,6 +10,11 @@ on:
         description: 'Category ID end'
         default: '1000'
 
+      missing_only:
+        description: 'Chỉ kiểm tra ID còn thiếu (bổ sung vào categories_1-2000.json)'
+        type: boolean
+        default: false
+
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -24,4 +29,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node scan-categories.js ${{ github.event.inputs.start }} ${{ github.event.inputs.end }} 2>&1 | tee result.txt
+          CAT_START: ${{ inputs.start }}
+          CAT_END: ${{ inputs.end }}
+          MISSING_ONLY: ${{ inputs.missing_only }}
+        run: |
+          args=("$CAT_START" "$CAT_END")
+          if [ "$MISSING_ONLY" = "true" ]; then
+            args+=(--missing-only)
+          fi
+          node scan-categories.js "${args[@]}" 2>&1 | tee result.txt
