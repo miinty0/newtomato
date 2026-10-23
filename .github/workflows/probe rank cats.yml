@@ -21,6 +21,10 @@ on:
         description: 'Bộ đếm nội bộ: số lượt không tiến thêm'
         default: '0'
 
+  push:
+    branches: [main]
+    paths: [rankcat-probe-request.json]
+
 concurrency:
   group: newtomato-data-writes
   queue: max
@@ -43,12 +47,31 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - name: Read and validate probe request
+        id: request
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const request = context.eventName === 'push'
+              ? JSON.parse(fs.readFileSync('app/rankcat-probe-request.json', 'utf8'))
+              : context.payload.inputs;
+            const start = Number(request.start || 1);
+            const end = request.end === '' || request.end == null ? '' : Number(request.end);
+            const stalled = Number(request.stalled_runs || 0);
+            if (!Number.isSafeInteger(start) || start < 1 || (end !== '' && (!Number.isSafeInteger(end) || end < start))) throw new Error('Invalid probe range');
+            if (!Number.isSafeInteger(stalled) || stalled < 0) throw new Error('Invalid stalled_runs');
+            core.setOutput('start', start);
+            core.setOutput('end', end);
+            core.setOutput('missing_only', String(request.missing_only) === 'true');
+            core.setOutput('auto_resume', String(request.auto_resume) === 'true');
+            core.setOutput('stalled_runs', stalled);
       - name: Probe or revalidate categories and correct Rankcat genders
         env:
           RANKCAT_DATA_DIR: ${{ github.workspace }}/snapshot/data
-          PROBE_START: ${{ inputs.start }}
-          PROBE_END: ${{ inputs.end }}
-          PROBE_MISSING_ONLY: ${{ inputs.missing_only }}
+          PROBE_START: ${{ steps.request.outputs.start }}
+          PROBE_END: ${{ steps.request.outputs.end }}
+          PROBE_MISSING_ONLY: ${{ steps.request.outputs.missing_only }}
         run: node app/probe-rank-cats.js
       - name: Save discovered rank categories and progress
         if: '!cancelled()'
@@ -76,16 +99,16 @@ jobs:
           if-no-files-found: ignore
       - name: Decide whether to resume
         id: resume
-        if: success() && inputs.auto_resume
+        if: success() && steps.request.outputs.auto_resume == 'true'
         uses: actions/github-script@v8
         env:
-          PROBE_START: ${{ inputs.start }}
-          STALLED_RUNS: ${{ inputs.stalled_runs }}
+          PROBE_START: ${{ steps.request.outputs.start }}
+          STALLED_RUNS: ${{ steps.request.outputs.stalled_runs }}
         with:
           script: |
             const fs = require('fs');
             const report = JSON.parse(fs.readFileSync('snapshot/data/rankcat-probe-report.json', 'utf8'));
-            if (report.stop_reason !== 'empty_body_streak') return;
+            if (!['empty_body_streak', 'rate_limited'].includes(report.stop_reason)) return;
             const start = report.resume_start;
             const previousStart = Number(process.env.PROBE_START || 1);
             const previousStalls = Number(process.env.STALLED_RUNS || 0);
@@ -107,8 +130,8 @@ jobs:
         uses: actions/github-script@v8
         env:
           RESUME_START: ${{ steps.resume.outputs.start }}
-          PROBE_END: ${{ inputs.end }}
-          PROBE_MISSING_ONLY: ${{ inputs.missing_only }}
+          PROBE_END: ${{ steps.request.outputs.end }}
+          PROBE_MISSING_ONLY: ${{ steps.request.outputs.missing_only }}
           STALLED_RUNS: ${{ steps.resume.outputs.stalled_runs }}
         with:
           script: |
