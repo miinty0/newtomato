@@ -1,0 +1,52 @@
+name: Update category file index
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, data]
+    paths:
+      - build-category-file-index.js
+      - .github/workflows/category-file-index.yml
+      - data/category_*.json
+      - data/rank_cat_*.json
+  # GITHUB_TOKEN data commits do not trigger push workflows.
+  workflow_run:
+    workflows: [scrape-daily, scrape-rankcat, refetch-missing-details, Manual cleanup books, Fix thumb_url (one-off)]
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: newtomato-data-writes
+  queue: max
+
+jobs:
+  index:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          path: app
+      - uses: actions/checkout@v6
+        with:
+          ref: data
+          path: snapshot
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Build compact category file index
+        run: node app/build-category-file-index.js snapshot/data
+      - name: Save index
+        working-directory: snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/category-file-index.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: update category file index"
+            git push origin HEAD:data
+          fi
