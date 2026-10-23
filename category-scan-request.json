@@ -1,0 +1,8 @@
+{
+  "start": 269,
+  "end": 2500,
+  "missing_only": true,
+  "auto_resume": true,
+  "stalled_runs": 0,
+  "reason": "Resume cancelled scan #14 from its first empty API response; save and cool down after 3 consecutive empty bodies."
+}
