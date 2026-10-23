@@ -798,9 +798,17 @@
     background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8;
     white-space: nowrap; font-family: 'DM Mono', monospace;
   }
+.category-file-sync-status {
+  position: sticky; top: 0; z-index: 2000; padding: 12px 20px;
+  background: #fff4cf; color: #694b00; border-bottom: 1px solid #e8d27b;
+  font-size: 13px; line-height: 1.5; text-align: center;
+}
+.category-file-sync-status.error { background: #fff0ee; color: #9e3026; border-color: #edc2ba; }
+.category-file-sync-status[hidden] { display: none; }
 </style>
 </head>
 <body>
+<div id="category-file-sync-status" class="category-file-sync-status" role="status" aria-live="polite" hidden></div>
 
 <!-- ── Setup overlay ── -->
 <div id="setup-overlay">
@@ -982,14 +990,11 @@
 
       <div class="fetch-history-wrap" id="fh-wrap">
         <button class="fetch-history-toggle" onclick="toggleFetchHistory(event)">
-          📋 Lịch sử fetch <span class="fh-count" id="fh-count">0</span>
+          📋 Danh mục đã có dữ liệu <span class="fh-count" id="fh-count">0</span>
         </button>
         <div class="fetch-history-dropdown" id="fh-dropdown">
-          <div class="fh-header">Danh mục đã fetch gần nhất</div>
+          <div class="fh-header">Danh mục đã có dữ liệu · Cập nhật dữ liệu</div>
           <div class="fh-list" id="fh-list"></div>
-          <div class="fh-footer">
-            <button class="btn-fh-refresh" id="fh-refresh-btn" onclick="refreshLastFetchedCat(event)" title="Fetch lại tất cả JSON của danh mục gần nhất">↻ Refresh lần fetch gần nhất</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1052,14 +1057,11 @@
 
       <div class="fetch-history-wrap" id="rc-fh-wrap">
         <button class="fetch-history-toggle" onclick="toggleRcHistory(event)">
-          📋 Lịch sử fetch <span class="fh-count" id="rc-fh-count">0</span>
+          📋 Danh mục đã có dữ liệu <span class="fh-count" id="rc-fh-count">0</span>
         </button>
         <div class="fetch-history-dropdown" id="rc-fh-dropdown">
-          <div class="fh-header">Danh mục đã fetch gần nhất</div>
+          <div class="fh-header">Danh mục đã có dữ liệu · Cập nhật dữ liệu</div>
           <div class="fh-list" id="rc-fh-list"></div>
-          <div class="fh-footer">
-            <button class="btn-fh-refresh" id="rc-fh-refresh-btn" onclick="refreshLastFetchedRcCat(event)" title="Fetch lại tất cả JSON của danh mục rank gần nhất">↻ Refresh lần fetch gần nhất</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1445,11 +1447,11 @@ function switchTab(id, btn) {
   } else if (id === 'category' && !catInitDone) {
     catInitDone = true;
     document.getElementById('home-card-category')?.classList.add('loaded');
-    detectExistingCategories();
+
   } else if (id === 'rankcat' && !rcInitDone) {
     rcInitDone = true;
     document.getElementById('home-card-rankcat')?.classList.add('loaded');
-    detectExistingRankCats();
+
   }
   if (id === 'rankings') initRankings();
   // Returning to an already loaded tab resumes its lazy score scan.
@@ -3546,7 +3548,6 @@ async function triggerCatScrape() {
 
   try {
     await ghDispatchWorkflow('scrape-daily.yml', { category_id: String(catId) });
-    recordFetch(catId);
     toast(`Đã kích hoạt scrape danh mục ${CATEGORY_NAMES[catId] || catId} ✓`, 'ok');
   } catch(e) {
     toast('Lỗi: ' + e.message + ' — Thử chạy: node scraper.js -c ' + catId, 'err');
@@ -3557,7 +3558,172 @@ async function triggerCatScrape() {
 }
 
 
-// Fetch history (localStorage)
+// Saved-data lists (repo-scoped localStorage)
+
+// Complete snapshot of the two saved-data lists, independent of the open tab.
+let categoryFileSyncPending = false;
+let categoryFileSyncPromise = null;
+let categoryFileSyncRepo = '';
+let categoryFileSyncGeneration = 0;
+const categoryFileMemoryHistory = {};
+
+function savedCategoryHistoryKey(base) {
+  return base + ':' + CFG.user + '/' + CFG.repo;
+}
+
+function readSavedCategoryHistory(base) {
+  const key = savedCategoryHistoryKey(base);
+  if (categoryFileMemoryHistory[key]) return categoryFileMemoryHistory[key];
+  try { return JSON.parse(localStorage.getItem(key)) || {}; }
+  catch (_) { return {}; }
+}
+
+function writeSavedCategoryHistory(base, history) {
+  const key = savedCategoryHistoryKey(base);
+  categoryFileMemoryHistory[key] = history;
+  try { localStorage.setItem(key, JSON.stringify(history)); }
+  catch (error) { console.warn('Không lưu được danh sách danh mục:', error); }
+}
+
+function setCategoryFileSyncStatus(message, failed = false) {
+  const banner = document.getElementById('category-file-sync-status');
+  banner.hidden = !message;
+  banner.classList.toggle('error', failed);
+  banner.textContent = message;
+}
+
+window.addEventListener('beforeunload', event => {
+  if (!categoryFileSyncPending) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+
+async function categoryFileApi(endpoint, token) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(endpoint, {
+      cache: 'no-store', signal: controller.signal,
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github.v3+json' },
+    });
+    if (!response.ok) throw new Error('GitHub HTTP ' + response.status);
+    return await response.json();
+  } finally { clearTimeout(timer); }
+}
+
+async function categoryFileBlob(base, sha, token) {
+  const blob = await categoryFileApi(base + '/git/blobs/' + sha, token);
+  if (blob.encoding !== 'base64' || typeof blob.content !== 'string') throw new Error('Không đọc được nội dung file GitHub');
+  return JSON.parse(b64DecodeUTF8(blob.content));
+}
+
+function categoryFileDate(value) {
+  if (!value) return null;
+  // scraper.js stores timezone-free update_time in Beijing time (UTC+8).
+  const text = String(value).trim().replace(' ', 'T');
+  const zoned = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(text) ? text : text + '+08:00';
+  const date = new Date(zoned);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+}
+
+function categoryFileDateLabel(value) {
+  if (!value || !Number.isFinite(new Date(value).getTime())) return 'Chưa có thời gian cập nhật';
+  return new Date(value).toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function categoryFileEntryTime(entry) {
+  const value = new Date(entry?.date || 0).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+async function synchronizeCategoryFileLists() {
+  const repo = CFG.user + '/' + CFG.repo;
+  if (categoryFileSyncPending && categoryFileSyncPromise && categoryFileSyncRepo === repo) return categoryFileSyncPromise;
+  categoryFileSyncRepo = repo;
+  const generation = ++categoryFileSyncGeneration;
+  const token = CFG.token;
+  const base = 'https://api.github.com/repos/' + repo;
+  categoryFileSyncPending = true;
+  setCategoryFileSyncStatus('⏳ Đang dò danh mục Category và Rankcat… Vui lòng không đóng hoặc tải lại tab trình duyệt.');
+  categoryFileSyncPromise = (async () => {
+    // Pin the whole scan to one data tree, so concurrent scraper writes cannot
+    // mix an old summary with new files or cause false deletions.
+    const root = await categoryFileApi(base + '/git/trees/data', token);
+    if (root.truncated || !Array.isArray(root.tree)) throw new Error('Danh sách thư mục chưa đầy đủ');
+    const dataDir = root.tree.find(entry => entry.path === 'data' && entry.type === 'tree');
+    if (!dataDir) throw new Error('Không tìm thấy thư mục data; giữ nguyên danh sách cũ');
+    const tree = await categoryFileApi(base + '/git/trees/' + dataDir.sha, token);
+    if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Danh sách file chưa đầy đủ');
+    let summary = { version: 1, category: {}, rankcat: {} };
+    const summaryFile = tree.tree.find(entry => entry.path === 'category-file-index.json' && entry.type === 'blob');
+    if (summaryFile) {
+      try {
+        const data = await categoryFileBlob(base, summaryFile.sha, token);
+        if (data.version === 1 && data.category && data.rankcat) summary = data;
+      } catch (error) { console.warn('Sẽ dò trực tiếp các file thay cho file tổng hợp:', error); }
+    }
+    const old = { category: loadFetchHistory(), rankcat: loadRcHistory() };
+    const next = { category: {}, rankcat: {} };
+    const files = tree.tree.filter(entry => entry.type === 'blob' && /^(category|rank_cat)_\d+\.json$/.test(entry.path));
+    let cursor = 0, finished = 0;
+    const failures = [];
+    async function scan() {
+      while (cursor < files.length) {
+        const file = files[cursor++];
+        const match = /^(category|rank_cat)_(\d+)\.json$/.exec(file.path);
+        const tab = match[1] === 'category' ? 'category' : 'rankcat';
+        const id = String(Number(match[2]));
+        try {
+          if (!Number.isSafeInteger(Number(id)) || Number(id) <= 0) throw new Error('ID không hợp lệ');
+          const indexed = summary[tab]?.[id];
+          const cached = old[tab][id];
+          let date;
+          if (indexed?.sha === file.sha) date = categoryFileDate(indexed.update_time);
+          else if (cached?.sha === file.sha) date = cached.date;
+          else {
+            const data = await categoryFileBlob(base, file.sha, token);
+            if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('JSON không hợp lệ');
+            date = categoryFileDate(data.update_time);
+          }
+          next[tab][id] = { name: CATEGORY_NAMES[id] || 'Danh mục ' + id, date, sha: file.sha };
+        } catch (error) {
+          failures.push(file.path);
+          console.warn('Không dò được ' + file.path + ':', error);
+        }
+        finished++;
+        if (generation === categoryFileSyncGeneration) setCategoryFileSyncStatus('⏳ Đang dò danh mục ' + finished + '/' + files.length + '… Vui lòng không đóng hoặc tải lại tab trình duyệt.');
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(4, files.length) }, scan));
+    if (failures.length) throw new Error('Không đọc được ' + failures.length + ' file; giữ nguyên danh sách cũ');
+    if (generation !== categoryFileSyncGeneration) return;
+    // Replace both lists only after the entire snapshot was checked successfully.
+    saveFetchHistory(next.category);
+    saveRcHistory(next.rankcat);
+    for (const [id, entry] of Object.entries(old.category)) {
+      if (!next.category[id] || entry.sha !== next.category[id].sha) delete catData[id];
+    }
+    for (const [id, entry] of Object.entries(old.rankcat)) {
+      if (!next.rankcat[id] || entry.sha !== next.rankcat[id].sha) delete rcData[id];
+    }
+    renderFetchHistory();
+    renderRcHistory();
+    setCategoryFileSyncStatus('');
+  })().catch(error => {
+    if (generation === categoryFileSyncGeneration) {
+      console.error('Category file sync failed:', error);
+      setCategoryFileSyncStatus('⚠️ Chưa dò xong danh mục Category và Rankcat. Danh sách có thể chưa mới nhất. Hãy tải lại trang để thử lại. ' + error.message, true);
+    }
+  }).finally(() => {
+    if (generation === categoryFileSyncGeneration) {
+      categoryFileSyncPending = false;
+      categoryFileSyncPromise = null;
+    }
+  });
+  return categoryFileSyncPromise;
+}
 
 const FH_KEY = 'fq_fetch_history';
 
@@ -3582,42 +3748,36 @@ function categoryVisitedToday(tab, catId) {
 }
 
 function loadFetchHistory() {
-  try { return JSON.parse(localStorage.getItem(FH_KEY)) || {}; }
-  catch(e) { return {}; }
+  return readSavedCategoryHistory(FH_KEY);
 }
 
 function saveFetchHistory(h) {
-  localStorage.setItem(FH_KEY, JSON.stringify(h));
+  writeSavedCategoryHistory(FH_KEY, h);
 }
 
 function recordFetch(catId, updateTime) {
   const h = loadFetchHistory();
   const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-  // Use the data's update_time if provided, otherwise fall back to now
-  const date = updateTime
-    ? new Date(updateTime.replace(' ', 'T')).toISOString()
-    : new Date().toISOString();
-  h[catId] = { name, date };
+  const date = categoryFileDate(updateTime);
+  h[catId] = { ...h[catId], name, date };
   saveFetchHistory(h);
   renderFetchHistory();
 }
 
 function renderFetchHistory() {
   const h = loadFetchHistory();
-  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
+  const entries = Object.entries(h).sort((a, b) => categoryFileEntryTime(b[1]) - categoryFileEntryTime(a[1]));
   document.getElementById('fh-count').textContent = entries.length;
   const list = document.getElementById('fh-list');
   if (entries.length === 0) {
-    list.innerHTML = `<div class="fh-empty">Chưa có danh mục nào được fetch.</div>`;
+    list.innerHTML = `<div class="fh-empty">Chưa có danh mục nào có dữ liệu.</div>`;
     return;
   }
   list.innerHTML = entries.map(([id, info]) => {
-    const d = new Date(info.date);
-    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateLabel = categoryFileDateLabel(info.date);
     return `<div class="fh-item" onclick="jumpToCategory(${htmlJSString(id)})">
-      <span class="fh-item-name">${categoryVisitedToday('category', id) ? '<span class="fh-visited-check" title="Đã truy cập hôm nay" aria-label="Đã truy cập hôm nay">✓</span>' : ''}${escapeHTML(info.name)}</span>
-      <span class="fh-item-date notranslate">${escapeHTML(dateStr)} ${escapeHTML(timeStr)}</span>
+      <span class="fh-item-name">${categoryVisitedToday('category', id) ? '<span class="fh-visited-check" title="Đã truy cập hôm nay" aria-label="Đã truy cập hôm nay">✓</span>' : ''}${escapeHTML(id)} - ${escapeHTML(CATEGORY_NAMES[id] || info.name)}</span>
+      <span class="fh-item-date notranslate">${escapeHTML(dateLabel)}</span>
     </div>`;
   }).join('');
 }
@@ -3634,43 +3794,6 @@ function jumpToCategory(catId) {
   if (cat) selectCatOption(cat.id, cat.name);
 }
 
-async function refreshLastFetchedCat(e) {
-  e.stopPropagation();
-  await ensureStatusOverrides();
-  const h = loadFetchHistory();
-  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
-  if (entries.length === 0) { toast('Chưa có danh mục nào trong lịch sử.', 'err'); return; }
-
-  const btn = document.getElementById('fh-refresh-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Đang fetch…';
-
-  const [readArr] = await Promise.all([ghRaw('data/read.json').catch(() => [])]);
-  const readSet = new Set(readArr.map(String));
-  let ok = 0, fail = 0;
-
-  for (const [catId, info] of entries) {
-    try {
-      const data = await ghRaw(`data/category_${catId}.json`);
-      catData[catId] = { data, readSet };
-      registerBooks(data.books || []);
-      // Update the stored date to the file's update_time
-      const date = data.update_time
-        ? new Date(data.update_time.replace(' ', 'T')).toISOString()
-        : info.date;
-      h[catId] = { name: info.name, date };
-      ok++;
-    } catch(e) { fail++; }
-  }
-
-  saveFetchHistory(h);
-  renderFetchHistory();
-  renderCatPanels();
-  btn.disabled = false;
-  btn.textContent = '↻ Refresh lần fetch gần nhất';
-  document.getElementById('fh-dropdown').classList.remove('open');
-  toast(`✓ Đã refresh ${ok} danh mục${fail > 0 ? ` · ${fail} lỗi` : ''}`, ok > 0 ? 'ok' : 'err');
-}
 
 // Close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
@@ -3799,33 +3922,28 @@ let rcReadSet  = new Set();
 
 // ── localStorage helpers ──
 function loadRcHistory() {
-  try { return JSON.parse(localStorage.getItem(RC_FH_KEY)) || {}; }
-  catch(e) { return {}; }
+  return readSavedCategoryHistory(RC_FH_KEY);
 }
-function saveRcHistory(h) { localStorage.setItem(RC_FH_KEY, JSON.stringify(h)); }
+function saveRcHistory(h) { writeSavedCategoryHistory(RC_FH_KEY, h); }
 function recordRcFetch(catId, updateTime) {
   const h = loadRcHistory();
   const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-  const date = updateTime
-    ? new Date(updateTime.replace(' ', 'T')).toISOString()
-    : new Date().toISOString();
-  h[catId] = { name, date };
+  const date = categoryFileDate(updateTime);
+  h[catId] = { ...h[catId], name, date };
   saveRcHistory(h);
   renderRcHistory();
 }
 function renderRcHistory() {
   const h = loadRcHistory();
-  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
+  const entries = Object.entries(h).sort((a, b) => categoryFileEntryTime(b[1]) - categoryFileEntryTime(a[1]));
   document.getElementById('rc-fh-count').textContent = entries.length;
   const list = document.getElementById('rc-fh-list');
-  if (entries.length === 0) { list.innerHTML = `<div class="fh-empty">Chưa có danh mục nào được fetch.</div>`; return; }
+  if (entries.length === 0) { list.innerHTML = `<div class="fh-empty">Chưa có danh mục nào có dữ liệu.</div>`; return; }
   list.innerHTML = entries.map(([id, info]) => {
-    const d = new Date(info.date);
-    const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateLabel = categoryFileDateLabel(info.date);
     return `<div class="fh-item" onclick="jumpToRcCat(${htmlJSString(id)})">
-      <span class="fh-item-name">${categoryVisitedToday('rankcat', id) ? '<span class="fh-visited-check" title="Đã truy cập hôm nay" aria-label="Đã truy cập hôm nay">✓</span>' : ''}${escapeHTML(info.name)}</span>
-      <span class="fh-item-date notranslate">${escapeHTML(dateStr)} ${escapeHTML(timeStr)}</span>
+      <span class="fh-item-name">${categoryVisitedToday('rankcat', id) ? '<span class="fh-visited-check" title="Đã truy cập hôm nay" aria-label="Đã truy cập hôm nay">✓</span>' : ''}${escapeHTML(id)} - ${escapeHTML(CATEGORY_NAMES[id] || info.name)}</span>
+      <span class="fh-item-date notranslate">${escapeHTML(dateLabel)}</span>
     </div>`;
   }).join('');
 }
@@ -3840,43 +3958,6 @@ function jumpToRcCat(catId) {
   if (cat) selectRcOption(cat.id, cat.name);
 }
 
-async function refreshLastFetchedRcCat(e) {
-  e.stopPropagation();
-  await ensureStatusOverrides();
-  const h = loadRcHistory();
-  const entries = Object.entries(h).sort((a, b) => new Date(b[1].date) - new Date(a[1].date));
-  if (entries.length === 0) { toast('Chưa có danh mục rank nào trong lịch sử.', 'err'); return; }
-
-  const btn = document.getElementById('rc-fh-refresh-btn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Đang fetch…';
-
-  const [readArr] = await Promise.all([ghRaw('data/read.json').catch(() => [])]);
-  const readSet = new Set(readArr.map(String));
-  let ok = 0, fail = 0;
-
-  for (const [catId, info] of entries) {
-    try {
-      const data = await ghRawLarge(`data/rank_cat_${catId}.json`);
-      rcData[catId] = { data, readSet };
-      registerBooks(data.books || []);
-      const date = data.update_time
-        ? new Date(data.update_time.replace(' ', 'T')).toISOString()
-        : info.date;
-      h[catId] = { name: info.name, date };
-      ok++;
-    } catch(e) { fail++; }
-  }
-
-  saveRcHistory(h);
-  renderRcHistory();
-  // Data is already fresh in rcData — just re-render (keeps active search, if any)
-  renderRcPanels();
-  btn.disabled = false;
-  btn.textContent = '↻ Refresh lần fetch gần nhất';
-  document.getElementById('rc-fh-dropdown').classList.remove('open');
-  toast(`✓ Đã refresh ${ok} danh mục rank${fail > 0 ? ` · ${fail} lỗi` : ''}`, ok > 0 ? 'ok' : 'err');
-}
 
 // ── Dropdown — populated after valid_rank_cats.json is fetched ──
 let RC_VALID_CAT_IDS = new Set();
@@ -4157,70 +4238,7 @@ async function triggerRankCatScrape() {
 
 // Init
 
-async function detectExistingCategories() {
-  // List data/ folder via GitHub Contents API to find category_*.json files
-  try {
-    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data?ref=data`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!res.ok) return;
-    const files = await res.json();
-    const h = loadFetchHistory();
-    let changed = false;
-    for (const f of files) {
-      const m = f.name.match(/^category_(\d+)\.json$/);
-      if (!m) continue;
-      const catId = m[1];
-      if (!h[catId]) {
-        // Try to read update_time from the file
-        try {
-          const data = await ghRaw(`data/category_${catId}.json`);
-          const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-          h[catId] = {
-            name,
-            date: data.update_time ? new Date(data.update_time.replace(' ', 'T')).toISOString() : new Date().toISOString()
-          };
-          changed = true;
-        } catch(e) {}
-      }
-    }
-    if (changed) { saveFetchHistory(h); renderFetchHistory(); }
-  } catch(e) {}
-}
 
-async function detectExistingRankCats() {
-  // List data/ folder to find rank_cat_*.json files and pre-populate rc fetch history
-  try {
-    const url = `https://api.github.com/repos/${CFG.user}/${CFG.repo}/contents/data?ref=data`;
-    const res = await fetch(url, {
-      cache: 'no-store',
-      headers: { 'Authorization': `Bearer ${CFG.token}`, 'Accept': 'application/vnd.github.v3+json' }
-    });
-    if (!res.ok) return;
-    const files = await res.json();
-    const h = loadRcHistory();
-    let changed = false;
-    for (const f of files) {
-      const m = f.name.match(/^rank_cat_(\d+)\.json$/);
-      if (!m) continue;
-      const catId = m[1];
-      if (!h[catId]) {
-        try {
-          const data = await ghRawLarge(`data/rank_cat_${catId}.json`);
-          const name = (CATEGORIES.find(c => c.id == catId) || {}).name || `Danh mục ${catId}`;
-          h[catId] = {
-            name,
-            date: data.update_time ? new Date(data.update_time.replace(' ', 'T')).toISOString() : new Date().toISOString()
-          };
-          changed = true;
-        } catch(e) {}
-      }
-    }
-    if (changed) { saveRcHistory(h); renderRcHistory(); }
-  } catch(e) {}
-}
 // HIDDEN / UNRANKED TAB
 // Read only on entry. Scan each saved book source once and keep just the
 // exceptional books, so the other tabs never pay for this full data scan.
@@ -4384,6 +4402,8 @@ function filterSpecialBooks() {
 }
 
 async function initApp() {
+  categoryFileSyncPending = true;
+  setCategoryFileSyncStatus('⏳ Đang tải và dò danh mục Category và Rankcat… Vui lòng không đóng hoặc tải lại tab trình duyệt.');
   const categoryLabel = document.getElementById('cat-select-label');
   categoryLabel.textContent = 'Đang tải danh mục…';
   try {
@@ -4398,6 +4418,7 @@ async function initApp() {
   }
   renderFetchHistory();
   renderRcHistory();
+  await synchronizeCategoryFileLists();
   updateStatusFilterUI();
   if (statusFilter === 'Hidden') setStatusFilter('Hidden');
 }
