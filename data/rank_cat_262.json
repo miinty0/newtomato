@@ -2,7 +2,7 @@
   "update_time": "2026-05-06 14:19:13",
   "update_date": "2026-05-06",
   "category_id": 262,
-  "total_count": 50,
+  "total_count": 49,
   "new_count": 40,
   "books": [
     {
@@ -170,27 +170,6 @@
       "read_count": "248494",
       "rankMold": 2,
       "first_chapter_time": 1772811107
-    },
-    {
-      "book_id": "7588778895722155032",
-      "book_name": "全身瘫痪，系统让我每天五公里",
-      "author": "文字是毒",
-      "tags": [
-        "都市脑洞",
-        "都市",
-        "系统",
-        "穿越",
-        "魂穿"
-      ],
-      "abstract": "好消息，穿越了！\n坏消息，头部以下全身瘫痪！\n系统：宿主请完成每天5km任务！\n叶清河：系统，你要不要先看看我？",
-      "status": "Ongoing",
-      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2off13bc6d5893fa0aae47d0ed7b1d75ce",
-      "last_chapter_time": 1778038982,
-      "currentPos": 21,
-      "rankPosDiff": -1,
-      "read_count": "237280",
-      "rankMold": 2,
-      "first_chapter_time": 1766907873
     },
     {
       "book_id": "7616963661713640472",
