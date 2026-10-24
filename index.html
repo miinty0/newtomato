@@ -2709,6 +2709,7 @@ function drawQualifiedScorePage(state) {
   const label = 'Trang ' + current + ' · hiện ' + rows.length + '/' + BOOKS_PER_PAGE +
     ' · đã xét ' + state.cursor + '/' + state.candidates.length +
     ' · đạt ngưỡng ' + state.matches.length +
+    (state.phase === 'bridge' ? ' · bridge cuối lượt: ' + state.pendingScoreIds.size + ' ID' : '') +
     (done ? ' · đã quét hết' : state.running ? ' · đang quét' : state.errors ? ' · còn lỗi/chờ thử lại' : ' · trang sau tải khi bấm');
   const updateInfo = document.getElementById(tab === 'daily' ? 'daily-update-info' :
     tab === 'rankcat' ? 'rankcat-update-info' : 'cat-qualified-update-info');
@@ -2723,8 +2724,8 @@ function drawQualifiedScorePage(state) {
   for (const position of ['top', 'bottom']) document.getElementById(prefix + '-pagination-' + position).innerHTML = controls;
   const info = document.getElementById((tab === 'category' ? 'cat' : tab === 'rankcat' ? 'rc' : 'daily') + '-score-filter-info');
   info.textContent = done ? 'Đã quét hết: ' + state.matches.length + ' truyện đạt ngưỡng.' :
-    state.errors ? 'Score lỗi được giữ để thử lại, không coi là điểm thấp.' :
-    state.running ? 'Đang gom đủ card đạt ngưỡng cho trang này…' : 'Đã đủ card. Bấm Trang sau để quét tiếp.';
+    state.errors ? 'Còn ' + state.errors + ' ID thiếu score; Thử lại chỉ xử lý các ID này.' :
+    state.running ? (state.phase === 'bridge' ? 'Đang lấy bridge cho các ID thiếu; giữ nguyên tiến độ đã xét.' : 'Đang gom đủ card đạt ngưỡng cho trang này…') : 'Đã đủ card. Bấm Trang sau để quét tiếp.';
 }
 
 function scheduleQualifiedDraw(state) {
@@ -2736,64 +2737,84 @@ function scheduleQualifiedDraw(state) {
   }, 400);
 }
 
+// Cursor tracks the direct pass; unresolved scores have a separate retry set.
+// Neither a metadata redraw nor a bridge failure may rewind already examined IDs.
+function advanceQualifiedCursor(state) {
+  state.examinedIds ||= new Set();
+  while (state.cursor < state.candidates.length) {
+    const row = state.candidates[state.cursor];
+    if (!state.examinedIds.has(row.id) && row.minimum !== null && !scoreCache.has(row.id)) break;
+    state.examinedIds.add(row.id);
+    state.cursor++;
+  }
+}
+
 async function scanQualifiedScorePage(state) {
   if (state.running || state.errors || !qualifiedScanIsCurrent(state)) return;
+  state.pendingScoreIds ||= new Set();
+  state.examinedIds ||= new Set();
   const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * BOOKS_PER_PAGE;
+  advanceQualifiedCursor(state);
   refreshQualifiedMatches(state);
-  if (state.matches.length >= target || state.cursor >= state.candidates.length) {
+  if (!state.retryPending && state.pendingScoreIds.size === 0 && (state.matches.length >= target || state.cursor >= state.candidates.length)) {
     drawQualifiedScorePage(state);
     return;
   }
   state.running = true;
+  state.phase = 'share';
   scoreSharePhaseDepth++;
-  const bridgeTail = new Set();
+  let holdingSharePhase = true;
   drawQualifiedScorePage(state);
+  console.info(`[Score scan:${state.tab}] Share API: đã xét ${state.cursor}/${state.candidates.length}; tiếp tục ID chưa xét hoặc retry ID thiếu.`);
+  const fetchRow = async row => {
+    try {
+      if (row.minimum !== null && !scoreCache.has(row.id)) await requestScoreDirect(row.id);
+    } catch (_) {
+      // Retain the ID for explicit retry without rewinding the source cursor.
+    } finally {
+      state.examinedIds.add(row.id);
+      if (row.minimum !== null && !scoreCache.has(row.id)) state.pendingScoreIds.add(row.id);
+      else state.pendingScoreIds.delete(row.id);
+      scheduleQualifiedDraw(state);
+    }
+  };
   try {
+    if (state.retryPending) {
+      state.retryPending = false;
+      const pending = state.candidates.filter(row => state.pendingScoreIds.has(row.id) && !scoreCache.has(row.id));
+      for (let i = 0; i < pending.length && qualifiedScanIsCurrent(state); i += 8) {
+        await Promise.all(pending.slice(i, i + 8).map(fetchRow));
+      }
+    }
     while (qualifiedScanIsCurrent(state) && state.matches.length < target && state.cursor < state.candidates.length) {
+      advanceQualifiedCursor(state);
+      refreshQualifiedMatches(state);
+      if (state.cursor >= state.candidates.length || state.matches.length >= target) break;
       const from = state.cursor;
       const size = Math.min(8, target - state.matches.length, state.candidates.length - from);
       const batch = state.candidates.slice(from, from + size);
       state.cursor += batch.length;
-      const failed = [];
-      await Promise.all(batch.map(async (row, offset) => {
-        try {
-          if (row.minimum !== null && !scoreCache.has(row.id)) {
-            await requestScoreDirect(row.id);
-            if (!scoreCache.has(row.id)) bridgeTail.add(row.id);
-          }
-        } catch (_) {
-          failed.push(from + offset);
-        } finally {
-          scheduleQualifiedDraw(state);
-        }
-      }));
+      await Promise.all(batch.map(fetchRow));
+      advanceQualifiedCursor(state);
       refreshQualifiedMatches(state);
-      if (failed.length) {
-        // Resume at the first failed item. Later successes use cached scores,
-        // so retrying cannot drop or reorder these books.
-        state.cursor = Math.min(...failed);
-        state.errors = failed.length;
-        refreshQualifiedMatches(state);
-        break;
-      }
     }
-    // Release the direct-pass hold before explicitly draining its bridge tail.
     scoreSharePhaseDepth--;
-    try {
-      if (qualifiedScanIsCurrent(state)) {
-        await runDeferredScoreBridge([...bridgeTail], () => qualifiedScanIsCurrent(state));
-        const failed = state.candidates.slice(0, state.cursor)
-          .map((row, index) => ({row, index}))
-          .filter(({row}) => bridgeTail.has(row.id) && !scoreCache.has(row.id));
-        if (failed.length) {
-          state.cursor = Math.min(state.cursor, ...failed.map(item => item.index));
-          state.errors = failed.length;
-        }
-      }
-    } finally { scoreSharePhaseDepth++; }
+    holdingSharePhase = false;
+    if (qualifiedScanIsCurrent(state)) {
+      const activeIds = new Set(state.candidates.map(row => row.id));
+      const tail = [...state.pendingScoreIds].filter(id => activeIds.has(id) && !scoreCache.has(id));
+      state.phase = 'bridge';
+      drawQualifiedScorePage(state);
+      if (tail.length) console.info(`[Score scan:${state.tab}] Bridge cuối lượt: ${tail.length} ID thiếu score; giữ tiến độ ${state.cursor}/${state.candidates.length}.`);
+      await runDeferredScoreBridge(tail, () => qualifiedScanIsCurrent(state));
+      state.pendingScoreIds = new Set(tail.filter(id => !scoreCache.has(id)));
+      state.errors = state.pendingScoreIds.size;
+      console.info(`[Score scan:${state.tab}] Kết thúc: đã xét ${state.cursor}/${state.candidates.length}; còn ${state.errors} ID thiếu. Retry chỉ xử lý các ID này.`);
+    }
   } finally {
-    scoreSharePhaseDepth--;
+    if (holdingSharePhase) scoreSharePhaseDepth--;
     state.running = false;
+    state.phase = 'idle';
     clearTimeout(state.drawTimer);
     state.drawTimer = null;
     refreshQualifiedMatches(state);
@@ -2806,7 +2827,16 @@ function retryQualifiedScoreScan(tab) {
   const state = qualifiedScoreScans.get(tab);
   if (!state) return;
   state.errors = 0;
+  state.retryPending = true;
   scanQualifiedScorePage(state).catch(error => toast(error.message, 'err'));
+}
+
+function qualifiedScanScopeKey(tab, rankMax) {
+  const prefix = tab === 'daily' ? 'daily' : tab === 'category' ? 'cat' : 'rc';
+  const mode = categoryViewMode[tab] || 'single';
+  const selected = mode === 'all' || tab === 'daily' ? null : String(tab === 'category' ? _catSelectValue : rcSelectValue);
+  return JSON.stringify([rankMax, sharedScoreMinimum(), statusFilter,
+    document.getElementById(prefix + '-search').value.toLowerCase().trim(), mode, selected]);
 }
 
 function renderQualifiedScorePage(tab) {
@@ -2818,15 +2848,31 @@ function renderQualifiedScorePage(tab) {
     qualifiedScoreScans.delete(tab);
     return false;
   }
-  const key = JSON.stringify([rankMax, candidates.map(row => [row.id, row.catId, row.minimum])]);
+  // Scope contains user filters, not a changing snapshot of read/status data.
+  const key = qualifiedScanScopeKey(tab, rankMax);
   let state = qualifiedScoreScans.get(tab);
   if (!state || state.key !== key) {
-    state = { tab, key, rankMax, candidates, cursor: 0, matches: [], running: false, errors: 0, drawTimer: null };
+    state = { tab, key, rankMax, candidates, cursor: 0, matches: [], running: false, errors: 0,
+      drawTimer: null, examinedIds: new Set(), pendingScoreIds: new Set(), retryPending: false, phase: 'idle' };
     qualifiedScoreScans.set(tab, state);
     booksPage[tab] = 1;
   } else {
+    const changed = state.candidates.length !== candidates.length || state.candidates.some((row, i) => row.id !== candidates[i].id);
     state.candidates = candidates;
+    if (changed) {
+      const activeIds = new Set(candidates.map(row => row.id));
+      state.pendingScoreIds = new Set([...state.pendingScoreIds].filter(id => activeIds.has(id) && !scoreCache.has(id)));
+      // Reconcile against examined IDs immediately, so deletion/reordering
+      // cannot visibly restart the counter or force a cached-score batch walk.
+      state.cursor = 0;
+      advanceQualifiedCursor(state);
+    }
+    if (state.errors) {
+      state.pendingScoreIds = new Set([...state.pendingScoreIds].filter(id => !scoreCache.has(id)));
+      state.errors = state.pendingScoreIds.size;
+    }
   }
+  advanceQualifiedCursor(state);
   root.dataset.qualifiedPaging = '1';
   refreshQualifiedMatches(state);
   drawQualifiedScorePage(state);
@@ -2976,6 +3022,12 @@ function requestScore(bookId, options = {}) {
       considerAutomaticRead(bookId, value, metadata);
       scoreErrors.delete(bookId);
       updateScoreBadges(bookId, value);
+      for (const state of qualifiedScoreScans.values()) {
+        if (state.pendingScoreIds?.delete(bookId)) {
+          if (state.errors) state.errors = state.pendingScoreIds.size;
+          scheduleQualifiedDraw(state);
+        }
+      }
       return value;
     })
     .catch(error => {
@@ -4584,4 +4636,5 @@ loadConfig();
 <script src="read-removal.js"></script>
 </body>
 </html>
+
 

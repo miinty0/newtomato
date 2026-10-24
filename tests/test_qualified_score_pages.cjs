@@ -11,11 +11,12 @@ function harness(total, passes, options = {}) {
   const scores = new Map();
   const booksPage = { daily: 1, category: 1, rankcat: 1 };
   const ctx = vm.createContext({ console, JSON, Map, Set, Math, Promise, clearTimeout, setTimeout,
+    categoryViewMode: {category:'single',rankcat:'single'}, _catSelectValue:'24', rcSelectValue:'24', statusFilter:'all', sharedScoreMinimum:()=>8.4, scoreSharePhaseDepth:0,
     BOOKS_PER_PAGE: 500, booksPage, scoreCache: scores, dailyReadSet: new Set(), automaticReadHidden: new Set(),
     document: { getElementById(id) {
       if (id.startsWith('tab-')) return { classList: { contains: () => active } };
       if (['daily-books','cat-panels','rankcat-books'].includes(id)) return root;
-      if (!nodes.has(id)) nodes.set(id, {});
+      if (!nodes.has(id)) nodes.set(id, {value:''});
       return nodes.get(id);
     } },
     scoreCandidatesForTab: () => options.rankMax ? rows.slice(0, options.rankMax) : rows,
@@ -32,6 +33,8 @@ function harness(total, passes, options = {}) {
       return scores.get(id);
     },
   });
+  ctx.requestScoreDirect = ctx.requestScore;
+  ctx.runDeferredScoreBridge = async () => {};
   vm.runInContext(src, ctx);
   return { ctx, rows, calls, root, scores, booksPage, activate: () => { active = true; }, state: tab => vm.runInContext('qualifiedScoreScans.get("'+tab+'")', ctx) };
 }
@@ -64,7 +67,7 @@ async function run(h, tab = 'daily') {
   assert.equal(s.matches.length,502); assert.equal(s.cursor,1754);assert.equal((h.root.innerHTML.match(/<card/g)||[]).length,2);
   const before = h.calls.length; h.booksPage.daily = 1; await run(h); assert.equal(h.calls.length,before);
   const err = harness(20, 20, { fail: '3' });
-  s = await run(err); assert.equal(s.cursor,3); assert.equal(s.errors,1);
+  s = await run(err); assert.equal(s.cursor,20); assert.equal(s.errors,1);
   err.ctx.retryQualifiedScoreScan('daily'); while(s.running) await new Promise(r=>setImmediate(r));
   assert.equal(s.matches.length,20); assert.equal(s.errors,0);assert.equal(err.calls.filter(id=>id==='4').length,1);
   const pause = harness(1754, 900, { pause: true });
@@ -79,3 +82,4 @@ async function run(h, tab = 'daily') {
   assert.equal(hidden.calls.length, 501);
   console.log('PASS: 400/1754 exhaustive fill, 502/1754 lazy next page, all tabs, cached return, failed-score retry, pause/resume');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
