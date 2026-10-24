@@ -132,3 +132,39 @@ test('scraper rankcat maps creationStatus, signed thumbUri and currentPos', asyn
   assert.equal(b.currentPos,1); assert.equal(b.rankPosDiff,0);
   assert.equal(b.last_chapter_time,1792776668); assert.equal(b.thumb_url,info().thumb_url);
 });
+
+async function simulateCooldown(results) {
+  const files = new Map();
+  const books = ['1','2','3','4','5'].map(book_id=>({...info(),book_id,hot_rank:1,abstract:''}));
+  files.set('/fixture/data/latest.json',JSON.stringify({books}));
+  const events = [], calls = [], logs = [];
+  const fakeFs = {existsSync:p=>p==='/fixture/data'||files.has(p),mkdirSync(){},readdirSync:()=>['latest.json'],
+    readFileSync:p=>{if(!files.has(p))throw Error('missing');return files.get(p);},
+    writeFileSync:(p,s)=>{events.push('save');files.set(p,s);}};
+  const src = fs.readFileSync(__dirname+'/refetch-missing-details.js','utf8').replace(/main\(\)\.catch\([\s\S]*$/, 'globalThis.runMain = main;');
+  const ctx = {__dirname:'/fixture',process:{argv:[]},console:{log:s=>logs.push(s)},
+    setTimeout:(cb,ms)=>{events.push(ms);cb();},
+    require:n=>n==='fs'?fakeFs:n==='./book-metadata'?m:require(n),
+    fakeFetch:async id=>{calls.push(id);const next=results.shift();assert.notEqual(next,undefined,'unexpected retry');return next==='blocked'?{kind:'blocked',reason:'empty response'}:{kind:'ok',info:{book_id:id,abstract:'已修复'}};}};
+  vm.createContext(ctx); vm.runInContext(src+'\nfetchDetailWithRetry = fakeFetch;',ctx);
+  await ctx.runMain();
+  return {events,calls,logs,files};
+}
+test('three consecutive empty/error pages checkpoint, wait five minutes and retry from first failed book', async () => {
+  const r = await simulateCooldown(['ok','blocked','blocked','blocked','ok','ok','ok','ok']);
+  assert.deepEqual(r.calls,['1','2','3','4','2','3','4','5']);
+  assert.equal(r.events.filter(e=>e===300000).length,1);
+  assert.equal(r.events[r.events.indexOf(300000)-1],'save');
+  assert.ok(r.logs.some(s=>s.includes('complete=5')&&s.includes('chưa xử lý=0')));
+  assert.ok(JSON.parse(r.files.get('/fixture/data/latest.json')).books.every(b=>b.abstract==='已修复'));
+});
+test('a successful response resets the blocked streak', async () => {
+  const r = await simulateCooldown(['blocked','blocked','ok','blocked','ok']);
+  assert.equal(r.events.filter(e=>e===300000).length,0);
+  assert.deepEqual(r.calls,['1','2','3','4','5']);
+});
+test('if the block continues after resuming, pause again and retry the same first book', async () => {
+  const r = await simulateCooldown(['blocked','blocked','blocked','blocked','blocked','blocked','ok','ok','ok','ok','ok']);
+  assert.equal(r.events.filter(e=>e===300000).length,2);
+  assert.deepEqual(r.calls,['1','2','3','1','2','3','1','2','3','4','5']);
+});

@@ -13,7 +13,8 @@ const HEADERS  = {
 const REQUEST_DELAY = 600;
 const JITTER        = 300;
 const MAX_RETRY      = 3; // số lần thử lại cho lỗi mạng / 429 / 5xx trước khi coi là "blocked"
-const BLOCKED_STREAK_LIMIT = 3; // số book_id LIÊN TIẾP bị "blocked" trước khi dừng cả run (nghi bot bị chặn thật)
+const BLOCKED_STREAK_LIMIT = 3; // Tạm nghỉ sau 3 book_id liên tiếp không đọc được metadata.
+const BLOCKED_COOLDOWN_MS = 5 * 60 * 1000;
 
 const BASE = 'fanqienovel.com';
 const PAGE = `https://${BASE}/page`;
@@ -86,7 +87,7 @@ function isMissingDetail(book) {
   return !!book && typeof book === 'object' && missingFields(book).length > 0;
 }
 
-// Fetch + retry cho lỗi mạng/429/5xx. Sau MAX_RETRY lần vẫn fail → coi là blocked (dừng run).
+// Fetch + retry cho lỗi mạng/429/5xx. Sau MAX_RETRY lần vẫn fail → tính vào chuỗi blocked để tạm nghỉ.
 async function fetchDetailWithRetry(bookId) {
   for (let t = 1; t <= MAX_RETRY; t++) {
     try {
@@ -242,9 +243,18 @@ async function main() {
   let partialCount = 0;
   let hiddenCount  = 0;
   let blockedCount = 0;   // tổng số book_id bị blocked trong suốt run (kể cả những lần "trượt" giữa chừng)
-  let processedCount = 0; // số book_id đã thực sự gọi fetch (để tính "chưa xử lý" cho đúng)
+  const processedIds = new Set(); // Retry không làm tăng số ID đã xử lý.
   let consecutiveBlocked = 0;
-  let stoppedEarly = null; // { bookId, streak } nếu dừng sớm do chuỗi blocked liên tiếp
+  let blockedStartIndex = null;
+  let cooldownCount = 0;
+
+  function saveProgress() {
+    for (const filename of touchedFiles) {
+      fs.writeFileSync(path.join(DATA_DIR, filename), JSON.stringify(fileCache[filename], null, 2), 'utf-8');
+      console.log(`  đã lưu → data/${filename}`);
+    }
+    if (cacheChanged) fs.writeFileSync(cachePath, JSON.stringify(completedCache, null, 2), 'utf8');
+  }
 
   try {
     for (let i = 0; i < uniqueIds.length; i++) {
@@ -252,17 +262,25 @@ async function main() {
       console.log(`[${i + 1}/${uniqueIds.length}] fetching ${bookId}...`);
       const needsPage = idMap.get(bookId).some(({file, index}) => metadata.missingFields(fileCache[file].books[index], false).length > 0);
       const result = needsPage ? await fetchDetailWithRetry(bookId) : { kind: 'ok', info: {book_id: bookId} };
-      processedCount++;
+      processedIds.add(bookId);
 
       if (result.kind === 'blocked') {
         blockedCount++;
+        if (consecutiveBlocked === 0) blockedStartIndex = i;
         consecutiveBlocked++;
         console.log(`  ⚠️ blocked (${result.reason}) — chuỗi liên tiếp: ${consecutiveBlocked}/${BLOCKED_STREAK_LIMIT}`);
 
         if (consecutiveBlocked >= BLOCKED_STREAK_LIMIT) {
-          console.log(`⛔ Dừng: ${BLOCKED_STREAK_LIMIT} book_id liên tiếp bị blocked (nghi bot bị chặn thật). Lưu lại những gì đã lấy được từ đầu tới giờ.`);
-          stoppedEarly = { bookId, streak: consecutiveBlocked };
-          break;
+          const retryIndex = blockedStartIndex;
+          cooldownCount++;
+          saveProgress();
+          console.log(`⏸️ ${BLOCKED_STREAK_LIMIT} truyện liên tiếp không đọc được metadata. Nghỉ 5 phút (lượt ${cooldownCount}), sau đó thử lại từ ${uniqueIds[retryIndex]}.`);
+          await sleep(BLOCKED_COOLDOWN_MS);
+          consecutiveBlocked = 0;
+          blockedStartIndex = null;
+          i = retryIndex - 1; // Vòng for tăng i trước khi chạy lại truyện lỗi đầu tiên.
+          console.log(`▶️ Tiếp tục từ ${uniqueIds[retryIndex]}.`);
+          continue;
         }
 
         // Chưa đủ ngưỡng → không dừng cả run, thử tiếp book_id kế tiếp
@@ -272,6 +290,7 @@ async function main() {
 
       // Bất kỳ kết quả không-blocked nào (ok/hidden) đều xóa chuỗi liên tiếp
       consecutiveBlocked = 0;
+      blockedStartIndex = null;
 
       const occurrences = idMap.get(bookId);
 
@@ -313,23 +332,14 @@ async function main() {
       if (i < uniqueIds.length - 1) await jitteredDelay();
     }
   } finally {
-    // Luôn lưu lại những gì đã lấy được, kể cả khi bị chặn hoặc lỗi bất ngờ giữa chừng
-    for (const filename of touchedFiles) {
-      const fp = path.join(DATA_DIR, filename);
-      fs.writeFileSync(fp, JSON.stringify(fileCache[filename], null, 2), 'utf-8');
-      console.log(`  đã lưu → data/${filename}`);
-    }
-
-    if (cacheChanged) fs.writeFileSync(cachePath, JSON.stringify(completedCache, null, 2), 'utf8');
-    const notProcessed = uniqueIds.length - processedCount;
+    // Lưu cả khi có lỗi bất ngờ; cũng đã checkpoint trước mỗi lần tạm nghỉ.
+    saveProgress();
+    const notProcessed = uniqueIds.length - processedIds.size;
 
     console.log('='.repeat(50));
     console.log(`Kết quả: complete=${updatedCount} partial=${partialCount} hidden=${hiddenCount} blocked=${blockedCount} chưa xử lý=${notProcessed}`);
-    if (stoppedEarly) {
-      console.log(`Dừng sớm sau chuỗi ${stoppedEarly.streak} book_id liên tiếp bị blocked, gần nhất là book_id=${stoppedEarly.bookId} — chạy lại workflow này sau để tiếp tục với các book_id còn lại.`);
-    } else {
-      console.log('Hoàn tất toàn bộ candidate.');
-    }
+    console.log(`Số lượt tạm nghỉ 5 phút: ${cooldownCount}`);
+    if (notProcessed === 0) console.log('Đã duyệt toàn bộ candidate.');
   }
 }
 
