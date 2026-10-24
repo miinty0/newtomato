@@ -13,8 +13,9 @@ const HEADERS  = {
 const REQUEST_DELAY = 600;
 const JITTER        = 300;
 const MAX_RETRY      = 3; // số lần thử lại cho lỗi mạng / 429 / 5xx trước khi coi là "blocked"
-const BLOCKED_STREAK_LIMIT = 3; // Tạm nghỉ sau 3 book_id liên tiếp không đọc được metadata.
-const BLOCKED_COOLDOWN_MS = 5 * 60 * 1000;
+const BLOCKED_STREAK_LIMIT = 5; // Tạm nghỉ sau 5 book_id liên tiếp không đọc được metadata.
+const BLOCKED_COOLDOWN_MS = 15 * 60 * 1000;
+const MAX_BLOCKED_COOLDOWNS = 5; // Tổng số lượt nghỉ tối đa trong một lần chạy.
 
 const BASE = 'fanqienovel.com';
 const PAGE = `https://${BASE}/page`;
@@ -247,6 +248,7 @@ async function main() {
   let consecutiveBlocked = 0;
   let blockedStartIndex = null;
   let cooldownCount = 0;
+  let stoppedAt = null;
 
   function saveProgress() {
     for (const filename of touchedFiles) {
@@ -272,9 +274,14 @@ async function main() {
 
         if (consecutiveBlocked >= BLOCKED_STREAK_LIMIT) {
           const retryIndex = blockedStartIndex;
+          if (cooldownCount >= MAX_BLOCKED_COOLDOWNS) {
+            stoppedAt = uniqueIds[retryIndex];
+            console.log(`⛔ Đã nghỉ đủ ${MAX_BLOCKED_COOLDOWNS} lượt, vẫn gặp ${BLOCKED_STREAK_LIMIT} truyện lỗi liên tiếp. Kết thúc refetch, lưu dữ liệu đã lấy để workflow tiếp tục đẩy lên repo. Chuỗi lỗi bắt đầu từ ${stoppedAt}.`);
+            break;
+          }
           cooldownCount++;
           saveProgress();
-          console.log(`⏸️ ${BLOCKED_STREAK_LIMIT} truyện liên tiếp không đọc được metadata. Nghỉ 5 phút (lượt ${cooldownCount}), sau đó thử lại từ ${uniqueIds[retryIndex]}.`);
+          console.log(`⏸️ ${BLOCKED_STREAK_LIMIT} truyện liên tiếp không đọc được metadata. Nghỉ 15 phút (lượt ${cooldownCount}/${MAX_BLOCKED_COOLDOWNS}), sau đó thử lại từ ${uniqueIds[retryIndex]}.`);
           await sleep(BLOCKED_COOLDOWN_MS);
           consecutiveBlocked = 0;
           blockedStartIndex = null;
@@ -338,8 +345,9 @@ async function main() {
 
     console.log('='.repeat(50));
     console.log(`Kết quả: complete=${updatedCount} partial=${partialCount} hidden=${hiddenCount} blocked=${blockedCount} chưa xử lý=${notProcessed}`);
-    console.log(`Số lượt tạm nghỉ 5 phút: ${cooldownCount}`);
-    if (notProcessed === 0) console.log('Đã duyệt toàn bộ candidate.');
+    console.log(`Số lượt tạm nghỉ 15 phút: ${cooldownCount}/${MAX_BLOCKED_COOLDOWNS}`);
+    if (stoppedAt) console.log(`Dừng do đạt giới hạn nghỉ. Còn chuỗi lỗi từ ${stoppedAt}; các field chưa lấy được sẽ tiếp tục được chọn ở lần chạy sau.`);
+    else if (notProcessed === 0) console.log('Đã duyệt toàn bộ candidate.');
   }
 }
 

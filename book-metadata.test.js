@@ -133,9 +133,9 @@ test('scraper rankcat maps creationStatus, signed thumbUri and currentPos', asyn
   assert.equal(b.last_chapter_time,1792776668); assert.equal(b.thumb_url,info().thumb_url);
 });
 
-async function simulateCooldown(results) {
+async function simulateCooldown(results, count = 6) {
   const files = new Map();
-  const books = ['1','2','3','4','5'].map(book_id=>({...info(),book_id,hot_rank:1,abstract:''}));
+  const books = Array.from({length:count}, (_, i)=>String(i+1)).map(book_id=>({...info(),book_id,hot_rank:1,abstract:''}));
   files.set('/fixture/data/latest.json',JSON.stringify({books}));
   const events = [], calls = [], logs = [];
   const fakeFs = {existsSync:p=>p==='/fixture/data'||files.has(p),mkdirSync(){},readdirSync:()=>['latest.json'],
@@ -150,21 +150,34 @@ async function simulateCooldown(results) {
   await ctx.runMain();
   return {events,calls,logs,files};
 }
-test('three consecutive empty/error pages checkpoint, wait five minutes and retry from first failed book', async () => {
-  const r = await simulateCooldown(['ok','blocked','blocked','blocked','ok','ok','ok','ok']);
-  assert.deepEqual(r.calls,['1','2','3','4','2','3','4','5']);
-  assert.equal(r.events.filter(e=>e===300000).length,1);
-  assert.equal(r.events[r.events.indexOf(300000)-1],'save');
-  assert.ok(r.logs.some(s=>s.includes('complete=5')&&s.includes('chưa xử lý=0')));
+test('five consecutive empty/error pages checkpoint, wait fifteen minutes and retry from first failed book', async () => {
+  const r = await simulateCooldown(['ok',...Array(5).fill('blocked'),...Array(5).fill('ok')]);
+  assert.deepEqual(r.calls,['1','2','3','4','5','6','2','3','4','5','6']);
+  assert.equal(r.events.filter(e=>e===900000).length,1);
+  assert.equal(r.events[r.events.indexOf(900000)-1],'save');
+  assert.ok(r.logs.some(s=>s.includes('complete=6')&&s.includes('chưa xử lý=0')));
   assert.ok(JSON.parse(r.files.get('/fixture/data/latest.json')).books.every(b=>b.abstract==='已修复'));
 });
-test('a successful response resets the blocked streak', async () => {
-  const r = await simulateCooldown(['blocked','blocked','ok','blocked','ok']);
-  assert.equal(r.events.filter(e=>e===300000).length,0);
-  assert.deepEqual(r.calls,['1','2','3','4','5']);
+test('a successful response resets the blocked streak before five consecutive failures', async () => {
+  const r = await simulateCooldown(['blocked','blocked','blocked','blocked','ok','blocked']);
+  assert.equal(r.events.filter(e=>e===900000).length,0);
+  assert.deepEqual(r.calls,['1','2','3','4','5','6']);
 });
 test('if the block continues after resuming, pause again and retry the same first book', async () => {
-  const r = await simulateCooldown(['blocked','blocked','blocked','blocked','blocked','blocked','ok','ok','ok','ok','ok']);
-  assert.equal(r.events.filter(e=>e===300000).length,2);
-  assert.deepEqual(r.calls,['1','2','3','1','2','3','1','2','3','4','5']);
+  const r = await simulateCooldown([...Array(10).fill('blocked'),...Array(6).fill('ok')]);
+  assert.equal(r.events.filter(e=>e===900000).length,2);
+  assert.deepEqual(r.calls,['1','2','3','4','5','1','2','3','4','5','1','2','3','4','5','6']);
+});
+test('after five cooldowns a sixth blocked streak exits normally and saves earlier work', async () => {
+  const r = await simulateCooldown(['ok',...Array(30).fill('blocked')],7);
+  assert.equal(r.events.filter(e=>e===900000).length,5);
+  assert.equal(r.calls.length,31);
+  assert.equal(r.calls.includes('7'),false);
+  assert.equal(r.events.at(-1),'save');
+  assert.ok(r.logs.some(s=>s.includes('Đã nghỉ đủ 5 lượt')));
+  assert.ok(r.logs.some(s=>s.includes('complete=1')&&s.includes('chưa xử lý=1')));
+  assert.ok(!r.logs.some(s=>s.includes('Đã duyệt toàn bộ candidate.')));
+  const books = JSON.parse(r.files.get('/fixture/data/latest.json')).books;
+  assert.equal(books[0].abstract,'已修复');
+  assert.ok(books.slice(1).every(b=>b.abstract===''));
 });
