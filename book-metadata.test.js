@@ -101,7 +101,7 @@ test('scraper daily uses only requested list fields plus detail page', async () 
   assert.equal(result.books.length,1);
   assert.ok(!src.includes('top_book_list'));
 });
-test('refetch missing rank uses the matching category and never fetches an already complete detail page', async () => {
+test('refetch skips books whose only missing field is hot_rank', async () => {
   const files = new Map();
   const dataDir = '/fixture/data';
   files.set(dataDir+'/category_24.json', JSON.stringify({category_id:24,books:[{...info(),hot_rank:null}]}));
@@ -113,8 +113,8 @@ test('refetch missing rank uses the matching category and never fetches an alrea
     require:n=>n==='fs'?fakeFs:n==='./book-metadata'?m:require(n),
     fakeGet:async url=>{urls.push(url);return {status:200,data:JSON.stringify({code:0,data:{book_list:[{book_id:'123'},{book_id:page.bookId}]}})};}};
   vm.createContext(ctx); vm.runInContext(src+'\nhttpGet = fakeGet;',ctx); await ctx.runMain();
-  assert.equal(JSON.parse(files.get(dataDir+'/category_24.json')).books[0].hot_rank,2);
-  assert.ok(urls.every(url=>url.includes('category_id=24')&&!url.includes('/page/')));
+  assert.equal(JSON.parse(files.get(dataDir+'/category_24.json')).books[0].hot_rank,null);
+  assert.deepEqual(urls, []);
 });
 test('scraper rankcat maps creationStatus, signed thumbUri and currentPos', async () => {
   const files = new Map();
@@ -180,4 +180,18 @@ test('after five cooldowns a sixth blocked streak exits normally and saves earli
   const books = JSON.parse(r.files.get('/fixture/data/latest.json')).books;
   assert.equal(books[0].abstract,'已修复');
   assert.ok(books.slice(1).every(b=>b.abstract===''));
+});
+
+test('only missing hot_rank/currentPos is excluded, while missing or corrupt metadata still qualifies', () => {
+  const src = fs.readFileSync(__dirname+'/refetch-missing-details.js','utf8').replace(/main\(\)\.catch\([\s\S]*$/, 'globalThis.checkMissing = isMissingDetail;');
+  const ctx = {__dirname:'/fixture', require:n=>n==='./book-metadata'?m:require(n)};
+  vm.createContext(ctx); vm.runInContext(src,ctx);
+  const daily = {...info(),hot_rank:null};
+  const rankcat = {...info(),rankMold:2,currentPos:null,rankPosDiff:0};
+  assert.equal(ctx.checkMissing(daily),false);
+  assert.equal(ctx.checkMissing(rankcat),false);
+  assert.equal(ctx.checkMissing({...daily,hot_rank:'�'}),false);
+  assert.equal(ctx.checkMissing({...rankcat,currentPos:'�'}),false);
+  assert.equal(ctx.checkMissing({...daily,author:'Unknown'}),true);
+  assert.equal(ctx.checkMissing({...rankcat,abstract:'�'}),true);
 });

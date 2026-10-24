@@ -84,8 +84,12 @@ function httpGet(url, extraHeaders = {}) {
 }
 
 const { normalizeThumbUrl, parseDetailPage, missingFields, fillMissing } = metadata;
+// Missing list positions alone do not require a metadata refetch.
+function missingMetadataFields(book) {
+  return missingFields(book).filter(field => field !== 'hot_rank' && field !== 'currentPos');
+}
 function isMissingDetail(book) {
-  return !!book && typeof book === 'object' && missingFields(book).length > 0;
+  return !!book && typeof book === 'object' && missingMetadataFields(book).length > 0;
 }
 
 // Fetch + retry cho lỗi mạng/429/5xx. Sau MAX_RETRY lần vẫn fail → tính vào chuỗi blocked để tạm nghỉ.
@@ -326,7 +330,7 @@ async function main() {
             cacheChanged = true;
           }
         }
-        const remaining = [...new Set(occurrences.flatMap(({ file, index }) => missingFields(fileCache[file].books[index])))];
+        const remaining = [...new Set(occurrences.flatMap(({ file, index }) => missingMetadataFields(fileCache[file].books[index])))];
         if (remaining.length) {
           partialCount++;
           console.log(`  → metadata một phần; còn thiếu: ${remaining.join(', ')} (${occurrences.length} chỗ)`);
