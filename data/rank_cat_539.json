@@ -2,7 +2,7 @@
   "update_time": "2026-10-24 07:16:09",
   "update_date": "2026-10-24",
   "category_id": 539,
-  "total_count": 532,
+  "total_count": 531,
   "new_count": 4,
   "books": [
     {
@@ -24,7 +24,8 @@
       "currentPos": 34,
       "rankPosDiff": 0,
       "read_count": "30063",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1765771268
     },
     {
       "book_id": "7613722976994724889",
@@ -45,25 +46,8 @@
       "currentPos": 42,
       "rankPosDiff": -1,
       "read_count": "28446",
-      "rankMold": 2
-    },
-    {
-      "book_id": "7229160494932692027",
-      "book_name": "获得厉鬼能力后我摆烂了",
-      "author": "一天一个月",
-      "tags": [
-        "悬疑脑洞",
-        "灵异",
-        "悬疑"
-      ],
-      "abstract": "作为一个平平无奇的普通人，环筱在兼职时意外获得厉鬼能力。\n手机里出现一个叫做【诡】的游戏，竟然是将她传送到厉鬼横行的世界！\n在这里，她见到了许多和她一样的倒霉蛋，但不一样的是，在别人苦苦求生的时候，环筱她摆烂了……\n【无cp】",
-      "status": "Ongoing",
-      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oc66f4f118a8e85feedc06938fdcc9dee",
-      "last_chapter_time": 1777998299,
-      "currentPos": 66,
-      "rankPosDiff": 0,
-      "read_count": "19528",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1772708390
     },
     {
       "book_id": "7597335094226865214",

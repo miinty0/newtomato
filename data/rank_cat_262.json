@@ -2,7 +2,7 @@
   "update_time": "2026-05-06 14:19:13",
   "update_date": "2026-05-06",
   "category_id": 262,
-  "total_count": 51,
+  "total_count": 50,
   "new_count": 40,
   "books": [
     {
@@ -23,7 +23,8 @@
       "currentPos": 7,
       "rankPosDiff": 4,
       "read_count": "394083",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1772786496
     },
     {
       "book_id": "7598772013611633689",
@@ -42,7 +43,8 @@
       "currentPos": 9,
       "rankPosDiff": -3,
       "read_count": "356445",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1769934561
     },
     {
       "book_id": "7566634246559763518",
@@ -63,7 +65,8 @@
       "currentPos": 11,
       "rankPosDiff": 1,
       "read_count": "329381",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1761989301
     },
     {
       "book_id": "7598168865624820760",
@@ -83,7 +86,8 @@
       "currentPos": 12,
       "rankPosDiff": 1,
       "read_count": "315537",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1769086599
     },
     {
       "book_id": "7508781951524817982",
@@ -102,7 +106,8 @@
       "currentPos": 14,
       "rankPosDiff": -10,
       "read_count": "306856",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1748303752
     },
     {
       "book_id": "7493801418462088217",
@@ -121,7 +126,8 @@
       "currentPos": 15,
       "rankPosDiff": 0,
       "read_count": "288116",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1746681996
     },
     {
       "book_id": "7604392557283396633",
@@ -140,7 +146,8 @@
       "currentPos": 18,
       "rankPosDiff": 0,
       "read_count": "259793",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1770536855
     },
     {
       "book_id": "7614158677271923736",
@@ -161,7 +168,8 @@
       "currentPos": 20,
       "rankPosDiff": 1,
       "read_count": "248494",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1772811107
     },
     {
       "book_id": "7588778895722155032",
@@ -181,7 +189,8 @@
       "currentPos": 21,
       "rankPosDiff": -1,
       "read_count": "237280",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1766907873
     },
     {
       "book_id": "7616963661713640472",
@@ -202,7 +211,8 @@
       "currentPos": 23,
       "rankPosDiff": 8,
       "read_count": "226590",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1774020019
     },
     {
       "book_id": "7598445516820597822",
@@ -221,7 +231,8 @@
       "currentPos": 24,
       "rankPosDiff": 10,
       "read_count": "225807",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1769151552
     },
     {
       "book_id": "7564779844639149118",
@@ -242,28 +253,8 @@
       "currentPos": 25,
       "rankPosDiff": -2,
       "read_count": "224684",
-      "rankMold": 2
-    },
-    {
-      "book_id": "7159000548652354573",
-      "book_name": "荒野直播：环球冒险从群演开始",
-      "author": "长安食梦貘",
-      "tags": [
-        "都市脑洞",
-        "都市",
-        "系统",
-        "穿越",
-        "直播",
-        "求生"
-      ],
-      "abstract": "【直播+荒野求生+系统+爽文+赚钱】\n硬核荒野求生文！慢热！\n楚立穿越成一个在象山影视城漂泊的小群演，从做户外健身开始到全球冒险！\n无人荒岛，他让国内一帮综艺明星领略什么叫做硬核求生！\n林海雪原，他曾和狗熊面贴面跳过一曲死神之舞！\n非洲大草原，他曾从平头哥口中夺食，正面单挑尼罗河巨鳄！\n从最开始300块一天的群演小哥，到好莱坞影帝点名求带，楚立只用了一个月。\n“我是楚立，一名户外主播。我要带你们直播去探险亚马逊原始丛林最神秘的史前黄金洞。”\n“去看非洲大草原上神秘的象群迁徙。”\n“去百慕大三角的深海中看看是不是有着传说中的海底金字塔！”\n“这就是我的日常，粉丝们一般都称呼我为世界第一打野！”",
-      "status": "Ongoing",
-      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o97d3d7033df3d4b285362fdc7644c0f4",
-      "last_chapter_time": 1777981155,
-      "currentPos": 26,
-      "rankPosDiff": 2,
-      "read_count": "223717",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1761314265
     },
     {
       "book_id": "7599881869580045336",
@@ -282,7 +273,8 @@
       "currentPos": 32,
       "rankPosDiff": 15,
       "read_count": "203380",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1769501537
     },
     {
       "book_id": "7584364966656887833",
@@ -303,7 +295,8 @@
       "currentPos": 33,
       "rankPosDiff": -3,
       "read_count": "184789",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1765872670
     },
     {
       "book_id": "7591137587272617022",
@@ -321,7 +314,8 @@
       "currentPos": 35,
       "rankPosDiff": 2,
       "read_count": "195485",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1767450264
     },
     {
       "book_id": "7578464891799882814",
@@ -342,7 +336,8 @@
       "currentPos": 36,
       "rankPosDiff": 2,
       "read_count": "194245",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1764517349
     },
     {
       "book_id": "7624007186758257688",
@@ -360,7 +355,8 @@
       "currentPos": 1,
       "rankPosDiff": 0,
       "read_count": "1532712",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775115260
     },
     {
       "book_id": "7623460631303179288",
@@ -381,7 +377,8 @@
       "currentPos": 2,
       "rankPosDiff": 0,
       "read_count": "959098",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775026544
     },
     {
       "book_id": "7623581376586976281",
@@ -402,7 +399,8 @@
       "currentPos": 3,
       "rankPosDiff": 1,
       "read_count": "463181",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775008284
     },
     {
       "book_id": "7623786972430994494",
@@ -422,7 +420,8 @@
       "currentPos": 4,
       "rankPosDiff": -1,
       "read_count": "425752",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775056302
     },
     {
       "book_id": "7614776270546553880",
@@ -443,7 +442,8 @@
       "currentPos": 7,
       "rankPosDiff": -1,
       "read_count": "349728",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1773311443
     },
     {
       "book_id": "7624202089656241177",
@@ -464,7 +464,8 @@
       "currentPos": 8,
       "rankPosDiff": 0,
       "read_count": "291638",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775183801
     },
     {
       "book_id": "7611861458929847358",
@@ -485,7 +486,8 @@
       "currentPos": 9,
       "rankPosDiff": 0,
       "read_count": "271794",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1772639474
     },
     {
       "book_id": "7626403603669863486",
@@ -505,7 +507,8 @@
       "currentPos": 10,
       "rankPosDiff": 0,
       "read_count": "265715",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775660695
     },
     {
       "book_id": "7571989029692918809",
@@ -525,7 +528,8 @@
       "currentPos": 38,
       "rankPosDiff": 3,
       "read_count": "186778",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1763528430
     },
     {
       "book_id": "7616589650248862745",
@@ -545,7 +549,8 @@
       "currentPos": 39,
       "rankPosDiff": 0,
       "read_count": "212454",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1773377333
     },
     {
       "book_id": "7612980952733584446",
@@ -565,7 +570,8 @@
       "currentPos": 41,
       "rankPosDiff": 29,
       "read_count": "224894",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1775108722
     },
     {
       "book_id": "7594428532806126617",
@@ -583,7 +589,8 @@
       "currentPos": 42,
       "rankPosDiff": 1,
       "read_count": "179643",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1768302859
     },
     {
       "book_id": "7589553138307173400",
@@ -603,7 +610,8 @@
       "currentPos": 50,
       "rankPosDiff": 1,
       "read_count": "170273",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1767356235
     },
     {
       "book_id": "7576212779703487512",
@@ -624,7 +632,8 @@
       "currentPos": 51,
       "rankPosDiff": 1,
       "read_count": "165191",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1763974970
     },
     {
       "book_id": "7598808146315856921",
@@ -644,7 +653,8 @@
       "currentPos": 53,
       "rankPosDiff": 1,
       "read_count": "160862",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1769495675
     },
     {
       "book_id": "7601178040952949785",
@@ -684,7 +694,8 @@
       "currentPos": 57,
       "rankPosDiff": 0,
       "read_count": "157696",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1705217575
     },
     {
       "book_id": "7619175864952966168",
@@ -727,7 +738,8 @@
       "currentPos": 60,
       "rankPosDiff": 0,
       "read_count": "158226",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1762937646
     },
     {
       "book_id": "7545697986752285720",
@@ -748,7 +760,8 @@
       "currentPos": 61,
       "rankPosDiff": 0,
       "read_count": "147061",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1756870209
     },
     {
       "book_id": "7590246764288953369",
@@ -770,7 +783,8 @@
       "currentPos": 62,
       "rankPosDiff": 0,
       "read_count": "153697",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1768141222
     },
     {
       "book_id": "7612481669198515224",
@@ -791,7 +805,8 @@
       "currentPos": 63,
       "rankPosDiff": 0,
       "read_count": "153320",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1772421696
     },
     {
       "book_id": "7617409588127616025",
@@ -808,7 +823,8 @@
       "currentPos": 64,
       "rankPosDiff": -14,
       "read_count": "152807",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1773566570
     },
     {
       "book_id": "7611001261671844889",
@@ -828,7 +844,8 @@
       "currentPos": 66,
       "rankPosDiff": 5,
       "read_count": "149789",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1772075321
     },
     {
       "book_id": "7529498520928144409",
@@ -849,7 +866,8 @@
       "currentPos": 67,
       "rankPosDiff": -2,
       "read_count": "149320",
-      "rankMold": 2
+      "rankMold": 2,
+      "first_chapter_time": 1753105171
     },
     {
       "book_id": "7628455577403788350",
@@ -868,7 +886,8 @@
       "currentPos": 11,
       "rankPosDiff": 2,
       "read_count": "333769",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1776138921
     },
     {
       "book_id": "7624041031087950910",
@@ -888,7 +907,8 @@
       "currentPos": 12,
       "rankPosDiff": 0,
       "read_count": "226704",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775118819
     },
     {
       "book_id": "7619220946972314686",
@@ -907,7 +927,8 @@
       "currentPos": 14,
       "rankPosDiff": 1,
       "read_count": "207818",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1773989309
     },
     {
       "book_id": "7626378258417732632",
@@ -928,7 +949,8 @@
       "currentPos": 15,
       "rankPosDiff": 1,
       "read_count": "206258",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775702058
     },
     {
       "book_id": "7625796867556658238",
@@ -949,7 +971,8 @@
       "currentPos": 16,
       "rankPosDiff": -2,
       "read_count": "186259",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775549003
     },
     {
       "book_id": "7619679529249803288",
@@ -970,7 +993,8 @@
       "currentPos": 17,
       "rankPosDiff": 7,
       "read_count": "203552",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1774169698
     },
     {
       "book_id": "7624073529335499800",
@@ -990,7 +1014,8 @@
       "currentPos": 18,
       "rankPosDiff": -1,
       "read_count": "192679",
-      "rankMold": 1
+      "rankMold": 1,
+      "first_chapter_time": 1775119024
     },
     {
       "book_id": "7626726934965128254",
