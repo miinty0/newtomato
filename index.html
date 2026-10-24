@@ -779,16 +779,16 @@
   }
   .home-read-title { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
   .home-read-help { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
-  #home-read-ids {
+  #home-read-ids, #home-unread-ids {
     display: block; width: 100%; min-height: 86px; box-sizing: border-box;
     padding: 11px 12px; resize: vertical; border: 1px solid var(--border2);
     border-radius: 8px; background: var(--surface); color: var(--text);
     font: 12px/1.6 'DM Mono', monospace;
   }
-  #home-read-ids:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  #home-read-ids:focus, #home-unread-ids:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .home-read-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
-  #home-read-preview { font-size: 12px; color: var(--muted); }
-  #home-read-preview.invalid { color: var(--accent); }
+  #home-read-preview, #home-unread-preview { font-size: 12px; color: var(--muted); }
+  #home-read-preview.invalid, #home-unread-preview.invalid { color: var(--accent); }
 
   /* ── Rank-cat read count badge ── */
   .read-count-badge {
@@ -908,6 +908,15 @@
       <div class="home-read-actions">
         <span id="home-read-preview" aria-live="polite">Dán ID để lưu và dọn khỏi dữ liệu.</span>
         <button class="btn btn-success btn-sm" id="home-read-save" onclick="saveHomeReadIds()" disabled>✓ Lưu danh sách đã đọc</button>
+      </div>
+    </section>
+    <section class="home-read-import" aria-labelledby="home-unread-title">
+      <div class="home-read-title" id="home-unread-title">Xoá ID khỏi danh sách đã đọc</div>
+      <div class="home-read-help">Dán fanqie_id, ngăn bằng dấu |, xuống dòng, dấu phẩy hoặc khoảng trắng. Các truyện đã bị dọn khỏi dữ liệu cần được scraper lấy lại để xuất hiện.</div>
+      <textarea id="home-unread-ids" rows="3" spellcheck="false" aria-labelledby="home-unread-title" placeholder="7418563660705975320 | ..." oninput="updateHomeUnreadPreview()"></textarea>
+      <div class="home-read-actions">
+        <span id="home-unread-preview" role="status" aria-live="polite">Dán ID cần xoá khỏi read.json.</span>
+        <button class="btn btn-outline btn-sm" id="home-unread-save" onclick="saveHomeUnreadIds()" disabled>Xoá khỏi read.json</button>
       </div>
     </section>
   </div>
@@ -4490,5 +4499,6 @@ loadConfig();
 <script src="ranking-utils.js?v=20261023-bulk"></script>
 <script src="ranking-tab.js?v=20261023-checks"></script>
 <script src="id-score-tab.js?v=3"></script>
+<script src="read-removal.js"></script>
 </body>
 </html>
