@@ -1,3 +1,4 @@
+const metadata = require('./book-metadata');
 const https = require('https');
 const http  = require('http');
 const fs    = require('fs');
@@ -80,106 +81,9 @@ function httpGet(url, extraHeaders = {}) {
   });
 }
 
-// quy đổi thumb_url về CDN vĩnh viễn
-function normalizeThumbUrl(url) {
-  if (!url || typeof url !== 'string') return url;
-  const match = url.match(/novel-pic\/([^~?]+)/);
-  if (!match) return url;
-  return `https://p6-novel.byteimg.com/thumb/novel-pic/${match[1]}`;
-}
-
-// ========== Detect "missing detail" candidates ==========
-function hasFetchErrorMarker(value) {
-  return typeof value === 'string' && value.includes('\uFFFD');
-}
-
-function isUsableText(value) {
-  return typeof value === 'string' && value.trim() !== '' && !hasFetchErrorMarker(value);
-}
-
+const { normalizeThumbUrl, parseDetailPage, missingFields, fillMissing } = metadata;
 function isMissingDetail(book) {
-  if (!book || typeof book !== 'object') return false;
-  // Hidden books were already checked; retrying their empty fields would loop forever.
-  if (book.status === 'Hidden' || book.author === '[Hidden]') return false;
-
-  const missingAuthor = !isUsableText(book.author) || book.author.trim() === 'Unknown';
-  const missingTags = !Array.isArray(book.tags) || !book.tags.some(isUsableText);
-  const missingAbstract = !isUsableText(book.abstract);
-  const corruptedField = [book.book_name, book.author, book.abstract, book.thumb_url]
-    .some(hasFetchErrorMarker) ||
-    (Array.isArray(book.tags) && book.tags.some(hasFetchErrorMarker));
-
-  return missingAuthor || missingTags || missingAbstract || corruptedField;
-}
-
-// Nuxt đôi khi serialize giá trị chưa set thành literal `undefined`
-function sanitizeInitialStateJson(raw) {
-  return raw.replace(/([:\[,]\s*)undefined\b/g, '$1null');
-}
-
-// ========== Parse detail page — phân biệt 3 kết quả ==========
-// { kind: 'blocked' } → không lấy được gì, có thể do bot bị chặn (trang trắng) → DỪNG cả run
-// { kind: 'hidden'  } → sách bị ẩn/gỡ do vi phạm (page rỗng + status === null) → đánh dấu, không retry nữa
-// { kind: 'ok', info } → lấy được dữ liệu thật
-function parseDetailPage(html) {
-  const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*\r?\n/);
-  if (!stateMatch) return { kind: 'blocked', reason: 'no __INITIAL_STATE__ (trang trắng)' };
-
-  let state;
-  let recoveredAppMount = false;
-  const serialized = sanitizeInitialStateJson(stateMatch[1]);
-  try {
-    state = JSON.parse(serialized);
-  } catch (error) {
-    // Some Fanqie responses inject the literal app mount inside the serialized
-    // abstract: ...¥@#<div id="app"></div>","thumbUri":... . The unescaped
-    // quotes in id="app" make the entire state invalid JSON. Recover only this
-    // exact mount fragment, and only when the repaired state parses cleanly.
-    const repaired = serialized.replace(/<div\s+id=(['"])app\1\s*><\/div>/i, '');
-    if (repaired === serialized) {
-      return { kind: 'blocked', reason: `INITIAL_STATE không parse được: ${error.message}` };
-    }
-    try {
-      state = JSON.parse(repaired);
-      recoveredAppMount = true;
-    } catch (repairError) {
-      return { kind: 'blocked', reason: `INITIAL_STATE không parse được sau khi bỏ app mount: ${repairError.message}` };
-    }
-  }
-
-  const page = state?.page;
-  if (!page) return { kind: 'blocked', reason: 'không có page trong INITIAL_STATE' };
-
-  const info = {};
-  if (isUsableText(page.bookName)) info.book_name = page.bookName;
-  if (isUsableText(page.authorName) && page.authorName.trim() !== 'Unknown') info.author = page.authorName;
-  // The injected mount interrupts the abstract; its tail may be truncated.
-  // Preserve an existing abstract and let later runs retry rather than save it.
-  if (!recoveredAppMount && isUsableText(page.abstract)) info.description = page.abstract;
-  const thumb = page.thumbUri || page.thumbUrl; // 2 tên field từng thấy tùy schema
-  if (isUsableText(thumb)) info.hdImage = thumb;
-  if (page.categoryV2) {
-    try { info.tags = JSON.parse(page.categoryV2).map(c => c.Name).filter(isUsableText); }
-    catch (e) {}
-  }
-
-  const gotRealData = Boolean(
-    info.book_name || info.author || info.description || (info.tags && info.tags.length > 0)
-  );
-
-  if (!gotRealData) {
-    // page load được nhưng rỗng hoàn toàn:
-    // status === null (explicit)  → đánh dấu Hidden theo heuristic hiện có
-    // status khác null (0/1/undefined) nhưng vẫn rỗng → bất thường, coi như blocked để retry sau
-    if (recoveredAppMount) return { kind: 'blocked', reason: 'INITIAL_STATE đã sửa app mount nhưng không có metadata tin cậy' };
-    if (page.status === null) return { kind: 'hidden' };
-    return { kind: 'blocked', reason: `page rỗng nhưng status=${page.status}` };
-  }
-
-  const firstChapterMatch = html.match(/"realChapterOrder":"1","firstPassTime":"(\d+)"/);
-  if (firstChapterMatch) info.first_chapter_time = parseInt(firstChapterMatch[1], 10);
-
-  return { kind: 'ok', info, warning: recoveredAppMount ? 'INITIAL_STATE có app mount chèn vào abstract; đã lấy metadata khác, bỏ qua abstract bị cắt' : '' };
+  return !!book && typeof book === 'object' && missingFields(book).length > 0;
 }
 
 // Fetch + retry cho lỗi mạng/429/5xx. Sau MAX_RETRY lần vẫn fail → coi là blocked (dừng run).
@@ -200,6 +104,9 @@ async function fetchDetailWithRetry(bookId) {
         console.log(`  [${bookId}] HTTP ${res.status} — vẫn thử parse body trước khi kết luận`);
       }
       const parsed = parseDetailPage(res.data);
+      if (parsed.kind === 'ok' && parsed.info.book_id && parsed.info.book_id !== String(bookId)) {
+        return { kind: 'blocked', reason: 'bookId trang chi tiết không khớp ID yêu cầu' };
+      }
       if (parsed.kind === 'blocked' && res.status !== 200) {
         parsed.reason = `${parsed.reason} (HTTP ${res.status})`;
       }
@@ -210,6 +117,67 @@ async function fetchDetailWithRetry(bookId) {
     }
   }
   return { kind: 'blocked', reason: 'lỗi mạng lặp lại sau nhiều lần thử' };
+}
+
+// Rankings are source-specific: a detail page cannot supply hot_rank/currentPos.
+// Fetch each required source only once per run; preserve every existing position.
+const rankSources = new Map();
+async function fillMissingRank(book, filename, json) {
+  const rankcat = filename.startsWith('rank_cat_');
+  const field = rankcat ? 'currentPos' : 'hot_rank';
+  if (metadata.valid(field, book[field]) && (!rankcat || metadata.valid('rankPosDiff', book.rankPosDiff))) return false;
+  const categoryId = json.category_id ?? (filename.match(/^(?:category_|rank_cat_)(-?\d+)/)?.[1]) ?? -1;
+  const mold = Number(book.rankMold);
+  if (rankcat && ![1, 2].includes(mold)) return false;
+  const creation = metadata.status(book.status) === 'Completed' ? 0 : metadata.status(book.status) === 'Ongoing' ? 1 : -1;
+  const key = `${rankcat}:${categoryId}:${mold}:${creation}`;
+  if (!rankSources.has(key)) {
+    const ranks = new Map();
+    let genders = [0];
+    if (rankcat) {
+      try {
+        const config = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'valid_rank_cats.json'), 'utf8'));
+        const entry = config[`rankMold${mold}`]?.find(e => String(e.cat_id) === String(categoryId));
+        genders = entry ? [entry.gender ?? 0] : [0, 1];
+      } catch { genders = [0, 1]; }
+    } else if (Number(categoryId) === -1) genders = [0, 1];
+    for (const gender of genders) {
+      const maxPages = rankcat ? 2 : 150;
+      for (let page = 0; page < maxPages; page++) {
+        const url = rankcat
+          ? `https://fanqienovel.com/api/rank/category/list?app_id=2503&rank_list_type=3&offset=${page * 300}&limit=300&category_id=${categoryId}&rank_version=&gender=${gender}&rankMold=${mold}`
+          : `https://fanqienovel.com/api/author/library/book_list/v0/?page_count=18&page_index=${page}&gender=${gender}&category_id=${categoryId}&creation_status=${creation}&word_count=-1&book_type=-1&sort=0`;
+        let batch = null;
+        for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
+          try {
+            const response = await httpGet(url, { Accept: 'application/json' });
+            const payload = JSON.parse(response.data);
+            if (response.status === 200 && (payload.code == null || payload.code === 0) && Array.isArray(payload.data?.book_list)) {
+              batch = payload.data.book_list; break;
+            }
+          } catch {}
+          if (attempt < MAX_RETRY) await jitteredDelay();
+        }
+        // Never calculate positions across a failed page.
+        if (!batch) break;
+        for (let i = 0; i < batch.length; i++) {
+          const raw = batch[i];
+          const id = String(rankcat ? raw.bookId : raw.book_id);
+          const rank = Number(rankcat ? raw.currentPos : page * 18 + i + 1);
+          if (rank > 0 && (!ranks.has(id) || rank < ranks.get(id).rank)) ranks.set(id, {rank, rankPosDiff: raw.rankPosDiff});
+        }
+        if (batch.length < (rankcat ? 300 : 18)) break;
+        await jitteredDelay();
+      }
+    }
+    rankSources.set(key, ranks);
+  }
+  const found = rankSources.get(key).get(String(book.book_id));
+  if (!found) return false;
+  let changed = false;
+  if (!metadata.valid(field, book[field]) && metadata.valid(field, found.rank)) { book[field] = found.rank; changed = true; }
+  if (rankcat && !metadata.valid('rankPosDiff', book.rankPosDiff) && metadata.valid('rankPosDiff', found.rankPosDiff)) { book.rankPosDiff = found.rankPosDiff; changed = true; }
+  return changed;
 }
 
 function ensureDir(dir) { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); }
@@ -229,6 +197,10 @@ async function main() {
   console.log(`Quét ${targetFiles.length} file: ${targetFiles.join(', ')}`);
 
   // Load toàn bộ file, gom candidate theo book_id (1 book_id có thể xuất hiện ở nhiều file)
+  const cachePath = path.join(DATA_DIR, 'cache.json');
+  let completedCache = {};
+  try { completedCache = JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch {}
+  let cacheChanged = false;
   const fileCache = {}; // filename -> parsed JSON (mutated trực tiếp)
   const idMap = new Map(); // book_id -> [{ file, index }, ...]
 
@@ -242,15 +214,18 @@ async function main() {
     fileCache[filename] = json;
     json.books.forEach((b, idx) => {
       if (!isMissingDetail(b)) return;
-      const id = String(b.book_id ?? '').trim();
-      if (!id) return;
+      const id = String(b.book_id ?? b.bookId ?? '').trim();
+      if (!metadata.valid('book_id', id)) {
+        console.log(`  cần kiểm tra thủ công: ${filename}[${idx}] thiếu/lỗi book_id, không đoán ID từ tên`);
+        return;
+      }
       if (!idMap.has(id)) idMap.set(id, []);
       idMap.get(id).push({ file: filename, index: idx });
     });
   }
 
   let uniqueIds = [...idMap.keys()];
-  console.log(`Tổng số book_id thiếu/lỗi author, tags, abstract hoặc text: ${uniqueIds.length}`);
+  console.log(`Tổng số book_id thiếu/lỗi field bắt buộc: ${uniqueIds.length}`);
 
   if (limit && uniqueIds.length > limit) {
     console.log(`Giới hạn theo --limit=${limit}`);
@@ -264,6 +239,7 @@ async function main() {
 
   const touchedFiles = new Set();
   let updatedCount = 0;
+  let partialCount = 0;
   let hiddenCount  = 0;
   let blockedCount = 0;   // tổng số book_id bị blocked trong suốt run (kể cả những lần "trượt" giữa chừng)
   let processedCount = 0; // số book_id đã thực sự gọi fetch (để tính "chưa xử lý" cho đúng)
@@ -274,7 +250,8 @@ async function main() {
     for (let i = 0; i < uniqueIds.length; i++) {
       const bookId = uniqueIds[i];
       console.log(`[${i + 1}/${uniqueIds.length}] fetching ${bookId}...`);
-      const result = await fetchDetailWithRetry(bookId);
+      const needsPage = idMap.get(bookId).some(({file, index}) => metadata.missingFields(fileCache[file].books[index], false).length > 0);
+      const result = needsPage ? await fetchDetailWithRetry(bookId) : { kind: 'ok', info: {book_id: bookId} };
       processedCount++;
 
       if (result.kind === 'blocked') {
@@ -312,16 +289,25 @@ async function main() {
         if (result.warning) console.log(`  ⚠️ [${bookId}] ${result.warning}`);
         for (const { file, index } of occurrences) {
           const book = fileCache[file].books[index];
-          if (info.book_name)   book.book_name = info.book_name;
-          if (info.author)      book.author    = info.author;
-          if (info.tags && info.tags.length > 0) book.tags = info.tags;
-          if (info.description) book.abstract  = info.description;
-          if (info.hdImage)     book.thumb_url = normalizeThumbUrl(info.hdImage);
-          if (info.first_chapter_time != null) book.first_chapter_time = info.first_chapter_time;
-          touchedFiles.add(file);
+          if (fillMissing(book, info)) touchedFiles.add(file);
+          if (await fillMissingRank(book, file, fileCache[file])) touchedFiles.add(file);
         }
-        updatedCount++;
-        console.log(`  → cập nhật thành công (author=${info.author || 'Unknown'}) (${occurrences.length} chỗ)`);
+        // Keep completed-book cache in sync, filling missing/corrupt values only.
+        if (completedCache[bookId] || occurrences.some(({file, index}) => fileCache[file].books[index].status === 'Completed')) {
+          const cached = metadata.legacyDetail(completedCache[bookId] || {});
+          if (fillMissing(cached, { ...info, book_id: bookId })) {
+            completedCache[bookId] = cached;
+            cacheChanged = true;
+          }
+        }
+        const remaining = [...new Set(occurrences.flatMap(({ file, index }) => missingFields(fileCache[file].books[index])))];
+        if (remaining.length) {
+          partialCount++;
+          console.log(`  → metadata một phần; còn thiếu: ${remaining.join(', ')} (${occurrences.length} chỗ)`);
+        } else {
+          updatedCount++;
+          console.log(`  → đã đủ field (${occurrences.length} chỗ)`);
+        }
       }
 
       if (i < uniqueIds.length - 1) await jitteredDelay();
@@ -334,10 +320,11 @@ async function main() {
       console.log(`  đã lưu → data/${filename}`);
     }
 
+    if (cacheChanged) fs.writeFileSync(cachePath, JSON.stringify(completedCache, null, 2), 'utf8');
     const notProcessed = uniqueIds.length - processedCount;
 
     console.log('='.repeat(50));
-    console.log(`Kết quả: updated=${updatedCount} hidden=${hiddenCount} blocked=${blockedCount} chưa xử lý=${notProcessed}`);
+    console.log(`Kết quả: complete=${updatedCount} partial=${partialCount} hidden=${hiddenCount} blocked=${blockedCount} chưa xử lý=${notProcessed}`);
     if (stoppedEarly) {
       console.log(`Dừng sớm sau chuỗi ${stoppedEarly.streak} book_id liên tiếp bị blocked, gần nhất là book_id=${stoppedEarly.bookId} — chạy lại workflow này sau để tiếp tục với các book_id còn lại.`);
     } else {

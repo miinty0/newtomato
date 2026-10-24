@@ -1,3 +1,4 @@
+const metadata = require('./book-metadata');
 const https = require('https');
 const http = require('http');
 const fs = require('fs');
@@ -77,12 +78,7 @@ function ensureDir(dir) { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive
 //   https://p3-novel-sign.byteimg.com/novel-pic/{id}~tplv-resize:225:300.image?lk3s=...&x-expires=...&x-signature=...
 // After ~7 days that signed URL 403s. Rewriting it to the permanent CDN path avoids that:
 //   https://p6-novel.byteimg.com/thumb/novel-pic/{id}
-function normalizeThumbUrl(url) {
-  if (!url || typeof url !== 'string') return url;
-  const match = url.match(/novel-pic\/([^~?]+)/);
-  if (!match) return url;
-  return `https://p6-novel.byteimg.com/thumb/novel-pic/${match[1]}`;
-}
+const { normalizeThumbUrl } = metadata;
 
 function getNowBJT() {
   const now = new Date();
@@ -144,54 +140,30 @@ async function fetchHotRankList(categoryId = -1, { gender = GENDER, creationStat
   return allBooks.slice(0, POOL_SIZE);
 }
 
-// ========== Step 3: Top book list ==========
-async function fetchTopBookList() {
-  try {
-    const res  = await httpGet(`${API}/author/misc/top_book_list/v1/`, { Accept: 'application/json' });
-    const json = JSON.parse(res.data);
-    if (json.book_list) {
-      const map = {};
-      for (const b of json.book_list) {
-        map[String(b.book_id)] = {
-          book_name: b.book_name, author: b.author,
-          category: b.category, creation_status: b.creation_status,
-          thumb_url: b.thumb_url,
-        };
-      }
-      return map;
-    }
-  } catch(e) {}
-  return {};
-}
-
-// ========== Step 4: Parse detail page ==========
-function parseDetailPage(html) {
-  const info = {};
-  const stateMatch = html.match(/window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\});\s*\r?\n/);
-  if (stateMatch) {
-    try {
-      const page = JSON.parse(stateMatch[1])?.page;
-      if (page) {
-        if (page.bookName)   info.book_name   = page.bookName;
-        if (page.authorName) info.author      = page.authorName;
-        if (page.abstract)   info.description = page.abstract;
-        if (page.thumbUrl)   info.hdImage     = page.thumbUrl;
-        if (page.categoryV2) {
-          try {
-            info.tags = JSON.parse(page.categoryV2).map(c => c.Name).filter(Boolean);
-          } catch(e) {}
+// Read any usable fields, even when another field in the page is malformed.
+async function loadDetail(bookId, isCompleted, cache) {
+  const detail = metadata.legacyDetail(isCompleted ? (cache[bookId] || {}) : {});
+  detail.book_id = bookId;
+  if (metadata.missingFields(detail, false).length) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await httpGet(`${PAGE}/${bookId}`);
+        const parsed = metadata.parseDetailPage(res.data);
+        if (parsed.kind === 'ok' && (!parsed.info.book_id || parsed.info.book_id === bookId)) {
+          metadata.fillMissing(detail, parsed.info);
+          break;
         }
+        console.log(`  detail ${bookId}: ${parsed.reason || parsed.kind} (${attempt}/3)`);
+        if (res.status !== 429 && res.status < 500) break;
+      } catch (error) {
+        console.log(`  detail ${bookId}: ${error.message} (${attempt}/3)`);
       }
-    } catch(e) {}
+      if (attempt < 3) await sleep(REQUEST_DELAY * attempt);
+    }
+    await sleep(REQUEST_DELAY);
   }
-
-  // Extract creation time
-  const firstChapterMatch = html.match(/"realChapterOrder":"1","firstPassTime":"(\d+)"/);
-  if (firstChapterMatch) {
-    info.first_chapter_time = parseInt(firstChapterMatch[1], 10);
-  }
-
-  return info;
+  if (isCompleted) cache[bookId] = detail;
+  return detail;
 }
 
 // ========== Step 4b: Cache for completed books ==========
@@ -243,20 +215,14 @@ function updateDailyHistoryRanks(prevData, ranks, readSet) {
 async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
   const isCategoryRun = categoryId !== -1;
 
-  const [rankGroups, topBookMap] = await Promise.all([
-    (async () => {
-      const quotas = isCategoryRun
-        ? [[0, 1, 20], [0, 0, 10]]
-        : [[0, 1, 15], [0, 0, 7], [1, 1, 5], [1, 0, 3]];
-      const groups = [];
-      for (const [gender, creationStatus, limit] of quotas) {
-        const list = await fetchHotRankList(categoryId, { gender, creationStatus });
-        groups.push({ list, limit, gender, creationStatus });
-      }
-      return groups;
-    })(),
-    fetchTopBookList(),
-  ]);
+  const quotas = isCategoryRun
+    ? [[0, 1, 20], [0, 0, 10]]
+    : [[0, 1, 15], [0, 0, 7], [1, 1, 5], [1, 0, 3]];
+  const rankGroups = [];
+  for (const [gender, creationStatus, limit] of quotas) {
+    const list = await fetchHotRankList(categoryId, { gender, creationStatus });
+    rankGroups.push({ list, limit, gender, creationStatus });
+  }
   const bestRanks = new Map();
   for (const { list } of rankGroups) {
     list.forEach((book, index) => {
@@ -301,9 +267,8 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
     const rawBook = top[i];
     const bookId  = String(rawBook.book_id);
     const hotRank = bestRanks.get(bookId);
-    const topInfo = topBookMap[bookId] || {};
 
-    const creationStatus = Number(rawBook.creation_status ?? topInfo.creation_status ?? -1);
+    const creationStatus = Number(rawBook.creation_status ?? -1);
     const statusLabel    = creationStatus === 0 ? 'Completed' : (creationStatus === 1 ? 'Ongoing' : 'Unknown');
     const isCompleted    = statusLabel === 'Completed';
 
@@ -329,31 +294,15 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       }
     }
 
-    let detailInfo = {};
-
-    if (isCompleted && cache[bookId]) {
-      detailInfo = cache[bookId];
-      console.log(`  [${i+1}/${top.length}] cache hit: ${bookId}`);
-    } else {
-      try {
-        const res = await httpGet(`${PAGE}/${bookId}`);
-        detailInfo = parseDetailPage(res.data);
-        if (isCompleted && Object.keys(detailInfo).length > 0) {
-          cache[bookId] = detailInfo;
-          cacheUpdated = true;
-        }
-      } catch(e) {}
-      if (i < top.length - 1) await sleep(REQUEST_DELAY);
-    }
-
-    const bookName        = topInfo.book_name || detailInfo.book_name || `ID:${bookId}`;
-    const author          = topInfo.author || detailInfo.author || 'Unknown';
-    const category        = topInfo.category || '';
-    const abstract        = detailInfo.description || '';
-    const thumbUrl        = normalizeThumbUrl(detailInfo.hdImage || topInfo.thumb_url || rawBook.thumb_url || '');
-    const tags            = detailInfo.tags?.length > 0 ? detailInfo.tags : (category ? [category] : []);
-    const lastChapterTime  = rawBook.last_chapter_time ?? null;
-    const firstChapterTime = detailInfo.first_chapter_time ?? null;
+    const detailInfo = await loadDetail(bookId, isCompleted, cache);
+    if (isCompleted) cacheUpdated = true;
+    const bookName = detailInfo.book_name || `ID:${bookId}`;
+    const author = detailInfo.author || 'Unknown';
+    const abstract = detailInfo.abstract || '';
+    const thumbUrl = normalizeThumbUrl(metadata.valid('thumb_url', rawBook.thumb_uri) ? rawBook.thumb_uri : detailInfo.thumb_url || '');
+    const tags = detailInfo.tags || [];
+    const lastChapterTime = metadata.timestamp(rawBook.last_chapter_time) || detailInfo.last_chapter_time || null;
+    const firstChapterTime = detailInfo.first_chapter_time || null;
 
     books.push({
       hot_rank: hotRank,
@@ -362,7 +311,7 @@ async function scrapeOnce(prevData, readSet, seenBookIds, categoryId = -1) {
       author,
       tags,
       abstract,
-      status: statusLabel,
+      status: metadata.status(rawBook.creation_status) || detailInfo.status || statusLabel,
       thumb_url: thumbUrl,
       last_chapter_time: lastChapterTime,
       first_chapter_time: firstChapterTime,
@@ -487,7 +436,6 @@ async function scrapeRankCat(catId) {
       book_id:           String(b.bookId || ''),
       currentPos:        b.currentPos   ?? null,
       rankPosDiff:       b.rankPosDiff  ?? null,
-      read_count:        b.read_count   ?? null,
       creation_status:   parseInt(b.creationStatus ?? -1, 10),
       last_chapter_time: b.lastChapterUpdateTime ? parseInt(b.lastChapterUpdateTime, 10) : null,
       thumb_url:         b.thumbUri || '',
@@ -529,37 +477,21 @@ async function scrapeRankCat(catId) {
       const statusLabel  = raw.creation_status === 0 ? 'Completed' : raw.creation_status === 1 ? 'Ongoing' : 'Unknown';
       const isCompleted  = statusLabel === 'Completed';
 
-      let detailInfo = {};
-      if (isCompleted && cache[bookId]) {
-        detailInfo = cache[bookId];
-        console.log(`  [mold=${rankMold} ${books.length+1}/${quota}] cache: ${bookId}`);
-      } else {
-        try {
-          const res = await httpGet(`${PAGE}/${bookId}`);
-          detailInfo = parseDetailPage(res.data);
-          if (isCompleted && Object.keys(detailInfo).length > 0) {
-            cache[bookId] = detailInfo;
-            cacheUpdated  = true;
-          }
-        } catch(e) {
-          console.log(`  detail failed: ${bookId} — ${e.message}`);
-        }
-        if (books.length < quota - 1) await sleep(REQUEST_DELAY);
-      }
+      const detailInfo = await loadDetail(bookId, isCompleted, cache);
+      if (isCompleted) cacheUpdated = true;
 
       books.push({
         book_id:            bookId,
         book_name:          detailInfo.book_name  || `ID:${bookId}`,
         author:             detailInfo.author     || 'Unknown',
         tags:               detailInfo.tags?.length > 0 ? detailInfo.tags : [],
-        abstract:           detailInfo.description || '',
-        status:             statusLabel,
-        thumb_url:          normalizeThumbUrl(detailInfo.hdImage || raw.thumb_url || ''),
-        last_chapter_time:  raw.last_chapter_time,
+        abstract:           detailInfo.abstract || '',
+        status:             metadata.status(raw.creation_status) || detailInfo.status || statusLabel,
+        thumb_url:          normalizeThumbUrl(metadata.valid('thumb_url', raw.thumb_url) ? raw.thumb_url : detailInfo.thumb_url || ''),
+        last_chapter_time:  metadata.timestamp(raw.last_chapter_time) || detailInfo.last_chapter_time || null,
         first_chapter_time: detailInfo.first_chapter_time ?? null,
         currentPos:         raw.currentPos,
         rankPosDiff:        raw.rankPosDiff,
-        read_count:         raw.read_count,
         rankMold,           // ← field để UI biết section nào
       });
     }
