@@ -1985,6 +1985,11 @@ function toggleRead(bookId, btn, tab) {
 // a status/search/category change therefore reuses them instead of fetching
 // the same book again.
 const scoreCache = new Map();       // book_id -> score (including "N/A")
+const deferredScoreIds = new Set();
+let scoreSharePhaseDepth = 0;
+let scoreBridgeTailTimer = null;
+let scoreBridgeTailActive = false;
+const scoreBridgeTailWaiters = [];
 const scoreRequests = new Map();    // book_id -> in-flight Promise
 const scoreErrors = new Map();      // book_id -> latest failure details
 const scoreRetryState = { running: false, cancelled: false };
@@ -2740,6 +2745,8 @@ async function scanQualifiedScorePage(state) {
     return;
   }
   state.running = true;
+  scoreSharePhaseDepth++;
+  const bridgeTail = new Set();
   drawQualifiedScorePage(state);
   try {
     while (qualifiedScanIsCurrent(state) && state.matches.length < target && state.cursor < state.candidates.length) {
@@ -2750,7 +2757,10 @@ async function scanQualifiedScorePage(state) {
       const failed = [];
       await Promise.all(batch.map(async (row, offset) => {
         try {
-          if (row.minimum !== null && !scoreCache.has(row.id)) await requestScore(row.id);
+          if (row.minimum !== null && !scoreCache.has(row.id)) {
+            await requestScoreDirect(row.id);
+            if (!scoreCache.has(row.id)) bridgeTail.add(row.id);
+          }
         } catch (_) {
           failed.push(from + offset);
         } finally {
@@ -2767,7 +2777,22 @@ async function scanQualifiedScorePage(state) {
         break;
       }
     }
+    // Release the direct-pass hold before explicitly draining its bridge tail.
+    scoreSharePhaseDepth--;
+    try {
+      if (qualifiedScanIsCurrent(state)) {
+        await runDeferredScoreBridge([...bridgeTail], () => qualifiedScanIsCurrent(state));
+        const failed = state.candidates.slice(0, state.cursor)
+          .map((row, index) => ({row, index}))
+          .filter(({row}) => bridgeTail.has(row.id) && !scoreCache.has(row.id));
+        if (failed.length) {
+          state.cursor = Math.min(state.cursor, ...failed.map(item => item.index));
+          state.errors = failed.length;
+        }
+      }
+    } finally { scoreSharePhaseDepth++; }
   } finally {
+    scoreSharePhaseDepth--;
     state.running = false;
     clearTimeout(state.drawTimer);
     state.drawTimer = null;
@@ -2919,10 +2944,11 @@ function maybeFlushStatusesAfterCurrentPage() {
 }
 
 // One network request per book at a time. All duplicate cards share it.
-function requestScore(bookId) {
+function requestScore(bookId, options = {}) {
   bookId = String(bookId);
   if (scoreCache.has(bookId)) return Promise.resolve(scoreCache.get(bookId));
-  if (scoreRequests.has(bookId)) return scoreRequests.get(bookId);
+  const requestKey = bookId + (options.deferBridge ? ':share' : '');
+  if (scoreRequests.has(requestKey)) return scoreRequests.get(requestKey);
 
   const fetchFn = window.fqShareApiFetchBookMeta;
   if (typeof fetchFn !== 'function') {
@@ -2930,10 +2956,15 @@ function requestScore(bookId) {
   }
 
   const request = Promise.resolve()
-    .then(() => fetchFn(bookId))
+    .then(() => fetchFn(bookId, options))
     .then(metadata => {
       const score = metadata && typeof metadata === 'object' ? metadata.score : metadata;
-      // "N/A" and "0.0" are valid resolved values. Only null/empty remains
+      if (metadata?.bridge_deferred) {
+        handleFetchedBookStatus(bookId, metadata);
+        deferredScoreIds.add(bookId);
+        return null;
+      }
+      // "N/A" and "0.0 are valid resolved values. Only null/empty remains
       // unresolved and is eligible for the next immediate retry round.
       if (score == null || score === '') throw new Error('Score trống');
       if (metadata && typeof metadata === 'object') {
@@ -2941,6 +2972,7 @@ function requestScore(bookId) {
       }
       const value = String(score);
       scoreCache.set(bookId, value);
+      deferredScoreIds.delete(bookId);
       considerAutomaticRead(bookId, value, metadata);
       scoreErrors.delete(bookId);
       updateScoreBadges(bookId, value);
@@ -2956,7 +2988,8 @@ function requestScore(bookId) {
       throw error;
     })
     .finally(() => {
-      scoreRequests.delete(bookId);
+      scoreRequests.delete(requestKey);
+      scheduleDeferredScoreBridge();
       queueMicrotask(() => {
         if (statusFlushAfterInflight && scoreRequests.size === 0 && !scoreRetryState.running) {
           statusFlushAfterInflight = false;
@@ -2967,8 +3000,46 @@ function requestScore(bookId) {
       });
     });
 
-  scoreRequests.set(bookId, request);
+  scoreRequests.set(requestKey, request);
   return request;
+}
+
+// A direct pass can cover many eight-book batches. Keep bridge fallback out
+// until the whole current pass ends, not just until its first batch finishes.
+function scheduleDeferredScoreBridge() {
+  if (scoreSharePhaseDepth || scoreRetryState.running || scoreBridgeTailActive || scoreBridgeTailTimer || !deferredScoreIds.size) return;
+  scoreBridgeTailTimer = setTimeout(() => {
+    scoreBridgeTailTimer = null;
+    if (scoreSharePhaseDepth || scoreRetryState.running || [...scoreRequests.keys()].some(key => key.endsWith(':share'))) {
+      scheduleDeferredScoreBridge();
+      return;
+    }
+    runDeferredScoreBridge().catch(error => console.warn('[Score bridge tail]', error));
+  }, 150);
+}
+async function runDeferredScoreBridge(ids = [...deferredScoreIds], isCurrent = () => true) {
+  if (scoreBridgeTailActive) {
+    await new Promise(resolve => scoreBridgeTailWaiters.push(resolve));
+    return runDeferredScoreBridge(ids, isCurrent);
+  }
+  scoreBridgeTailActive = true;
+  try {
+    for (const id of ids) {
+      if (!isCurrent() || scoreSharePhaseDepth || scoreRetryState.cancelled) break;
+      if (scoreCache.has(id)) { deferredScoreIds.delete(id); continue; }
+      // On failure leave the badge unresolved for explicit Retry score.
+      deferredScoreIds.delete(id);
+      try { await requestScore(id); } catch (_) {}
+    }
+  } finally {
+    scoreBridgeTailActive = false;
+    for (const resolve of scoreBridgeTailWaiters.splice(0)) resolve();
+    scheduleDeferredScoreBridge();
+  }
+}
+async function requestScoreDirect(bookId) {
+  // Older userscripts retain their original behavior until updated.
+  return requestScore(bookId, {deferBridge: Boolean(window.fqShareApiDeferredBridge), refreshShare: true});
 }
 
 function loadingScoreIdsInActivePanel() {
@@ -3032,7 +3103,14 @@ async function retryLoadingScores() {
 
       round++;
       btn.textContent = `⏹ Dừng · lượt ${round} · còn ${unresolved.length}`;
-      await Promise.allSettled(unresolved.map(requestScore));
+      scoreSharePhaseDepth++;
+      try {
+        await Promise.allSettled(unresolved.map(requestScoreDirect));
+      } finally { scoreSharePhaseDepth--; }
+      if (!scoreRetryState.cancelled) {
+        btn.textContent = `⏹ Dừng · bridge cuối lượt · còn ${bookIds.filter(id => !scoreCache.has(id)).length}`;
+        await runDeferredScoreBridge(unresolved.filter(id => !scoreCache.has(id)), () => !scoreRetryState.cancelled);
+      }
 
       const stillUnresolved = bookIds.filter(id => !scoreCache.has(id));
       if (!scoreRetryState.cancelled && stillUnresolved.length > 0 && round < SCORE_RETRY_MAX_ROUNDS) {
@@ -3055,9 +3133,13 @@ async function retryLoadingScores() {
       toast(`✓ Đã tải xong ${bookIds.length} score qua ${round} lượt`, 'ok');
     }
   } finally {
+    if (scoreRetryState.cancelled) {
+      for (const id of bookIds) deferredScoreIds.delete(id);
+    }
     scoreRetryState.running = false;
     scoreRetryState.cancelled = false;
     btn.textContent = '⭐ Retry score';
+    scheduleDeferredScoreBridge();
     // One retry session equals one GitHub status batch, including a session
     // that ends with a few permanent score failures.
     statusFlushAfterInflight = false;
@@ -3144,7 +3226,7 @@ function fetchScoreForBadge(el, attempts = 0) {
     setTimeout(() => fetchScoreForBadge(el, attempts + 1), 200);
     return;
   }
-  requestScore(bookId).catch(() => {
+  requestScoreDirect(bookId).catch(() => {
     // Leave it in loading state. Retry only failed IDs on the next manual pass.
   });
 }
@@ -4502,3 +4584,4 @@ loadConfig();
 <script src="read-removal.js"></script>
 </body>
 </html>
+
