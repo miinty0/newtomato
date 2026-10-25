@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-10-25 06:37:13",
-  "update_date": "2026-10-25",
+  "update_time": "2026-10-26 06:41:59",
+  "update_date": "2026-10-26",
   "category_id": 748,
-  "total_count": 130,
-  "new_count": 30,
+  "total_count": 142,
+  "new_count": 12,
   "books": [
     {
       "book_id": "7614203610057935934",
@@ -265,7 +265,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/6af9eb805292b177e3b94647228a729d",
       "last_chapter_time": 1778060685,
       "first_chapter_time": 1765597565,
-      "currentPos": 7,
+      "currentPos": 4,
       "rankPosDiff": -17,
       "read_count": "82327",
       "rankMold": 2
@@ -772,7 +772,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o1458340a03785ba5328d171e332d3c57",
       "last_chapter_time": 1792684752,
       "first_chapter_time": 1786847576,
-      "currentPos": 55,
+      "currentPos": 54,
       "rankPosDiff": 6,
       "read_count": "149835",
       "rankMold": 2
@@ -794,7 +794,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o5a3de265e095dc54478040bd627fc1ba",
       "last_chapter_time": 1786270329,
       "first_chapter_time": 1769394448,
-      "currentPos": 59,
+      "currentPos": 53,
       "rankPosDiff": 23,
       "read_count": "113049",
       "rankMold": 2
@@ -816,7 +816,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ode3d46b05a5e07f0c6f31aea4fa2f59b",
       "last_chapter_time": 1792704344,
       "first_chapter_time": 1784161638,
-      "currentPos": 78,
+      "currentPos": 74,
       "rankPosDiff": 12,
       "read_count": "112445",
       "rankMold": 2
@@ -882,7 +882,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6d8cbca554e2fa17b03a96e1f9e95c9f",
       "last_chapter_time": 1783092351,
       "first_chapter_time": 1775651472,
-      "currentPos": 95,
+      "currentPos": 93,
       "rankPosDiff": -7,
       "read_count": "100045",
       "rankMold": 2
@@ -970,7 +970,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe25f6d6fa8d1616d04ce21ad4e765fd4",
       "last_chapter_time": 1792545624,
       "first_chapter_time": 1756446260,
-      "currentPos": 112,
+      "currentPos": 105,
       "rankPosDiff": 2,
       "read_count": "85091",
       "rankMold": 2
@@ -1081,7 +1081,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o8326f381ed721a5d1a02a2bfd37af947",
       "last_chapter_time": 1788470809,
       "first_chapter_time": 1778030476,
-      "currentPos": 92,
+      "currentPos": 81,
       "rankPosDiff": 0,
       "read_count": "81299",
       "rankMold": 2
@@ -1103,7 +1103,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o7d39a7e73f9a9d026b751f5b2f0e6292",
       "last_chapter_time": 1792671636,
       "first_chapter_time": 1779414066,
-      "currentPos": 105,
+      "currentPos": 98,
       "rankPosDiff": 0,
       "read_count": "78931",
       "rankMold": 2
@@ -1192,7 +1192,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o73f8804fd759ea4fe266c83284fc5cdc",
       "last_chapter_time": 1792675868,
       "first_chapter_time": 1780446842,
-      "currentPos": 137,
+      "currentPos": 134,
       "rankPosDiff": 0,
       "read_count": "71230",
       "rankMold": 2
@@ -1431,7 +1431,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2odf10c1f712ebdf2abf331e89d03fd5e9",
       "last_chapter_time": 1792771092,
       "first_chapter_time": 1782653825,
-      "currentPos": 145,
+      "currentPos": 140,
       "rankPosDiff": 0,
       "read_count": "71487",
       "rankMold": 2
@@ -1474,7 +1474,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o0cb2b5694b957384cfe57b2ff0d1d13e",
       "last_chapter_time": 1781669336,
       "first_chapter_time": 1773490433,
-      "currentPos": 142,
+      "currentPos": 131,
       "rankPosDiff": 0,
       "read_count": "70994",
       "rankMold": 2
@@ -1496,7 +1496,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/ec51c3fbc60f64e7303880be7a4fa138",
       "last_chapter_time": 1785744701,
       "first_chapter_time": 1772096026,
-      "currentPos": 138,
+      "currentPos": 123,
       "rankPosDiff": 0,
       "read_count": "70450",
       "rankMold": 2
@@ -1583,7 +1583,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2od1304bb5e757d84a117a3042b1d46fb3",
       "last_chapter_time": 1790608264,
       "first_chapter_time": 1772538771,
-      "currentPos": 161,
+      "currentPos": 157,
       "rankPosDiff": 0,
       "read_count": "68076",
       "rankMold": 2
@@ -1606,7 +1606,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ode549de7b0312d4fadba1a825b9d38fa",
       "last_chapter_time": 1792759617,
       "first_chapter_time": 1784206392,
-      "currentPos": 158,
+      "currentPos": 133,
       "rankPosDiff": 0,
       "read_count": "67806",
       "rankMold": 2
@@ -1716,7 +1716,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o04cd5cf39b2d16ad25ca1b25ea8e0f4c",
       "last_chapter_time": 1792752606,
       "first_chapter_time": 1781514026,
-      "currentPos": 182,
+      "currentPos": 170,
       "rankPosDiff": 0,
       "read_count": "61650",
       "rankMold": 2
@@ -1848,7 +1848,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ofda78395af18deaffd501eccaeb54302",
       "last_chapter_time": 1792504066,
       "first_chapter_time": 1785254518,
-      "currentPos": 221,
+      "currentPos": 215,
       "rankPosDiff": 0,
       "read_count": "53984",
       "rankMold": 2
@@ -1870,7 +1870,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o7f6a6c32ef6e7150b81a3da96dfa3651",
       "last_chapter_time": 1792764301,
       "first_chapter_time": 1787895626,
-      "currentPos": 225,
+      "currentPos": 224,
       "rankPosDiff": 0,
       "read_count": "53762",
       "rankMold": 2
@@ -1935,7 +1935,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ob982ef3e828595ad6ae7ef163058427f",
       "last_chapter_time": 1791473067,
       "first_chapter_time": 1781164538,
-      "currentPos": 188,
+      "currentPos": 164,
       "rankPosDiff": 0,
       "read_count": "51728",
       "rankMold": 2
@@ -2044,7 +2044,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6cd85cea016c86dcb574a2474a7f4029",
       "last_chapter_time": 1789309106,
       "first_chapter_time": 1772765547,
-      "currentPos": 17,
+      "currentPos": 14,
       "rankPosDiff": 1,
       "read_count": "111352",
       "rankMold": 1
@@ -2176,7 +2176,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2od48bb2a2046391e4f5ef41154a4f9add",
       "last_chapter_time": 1792730563,
       "first_chapter_time": 1787122504,
-      "currentPos": 20,
+      "currentPos": 19,
       "rankPosDiff": 4,
       "read_count": "85072",
       "rankMold": 1
@@ -2242,7 +2242,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o5b1fbe563065245a61a144dd9004c9f6",
       "last_chapter_time": 1792682896,
       "first_chapter_time": 1787494976,
-      "currentPos": 23,
+      "currentPos": 20,
       "rankPosDiff": 6,
       "read_count": "82803",
       "rankMold": 1
@@ -2264,7 +2264,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o373d6074bfcc23c3242b16fa9a067110",
       "last_chapter_time": 1792802886,
       "first_chapter_time": 1788579352,
-      "currentPos": 124,
+      "currentPos": 120,
       "rankPosDiff": -96,
       "rankMold": 2
     },
@@ -2307,7 +2307,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2of48beca982880f349280af66dd428b17",
       "last_chapter_time": 1792857963,
       "first_chapter_time": 1789554862,
-      "currentPos": 207,
+      "currentPos": 184,
       "rankPosDiff": -156,
       "rankMold": 2
     },
@@ -2329,7 +2329,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o46e546d5a018fa1e4ebb8204392d91f1",
       "last_chapter_time": 1791210552,
       "first_chapter_time": 1785393519,
-      "currentPos": 217,
+      "currentPos": 180,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2375,7 +2375,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o18a9e26abef6430488c972be0d0d5591",
       "last_chapter_time": 1791043100,
       "first_chapter_time": 1783730712,
-      "currentPos": 240,
+      "currentPos": 233,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2396,7 +2396,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o43cac8a0f22af81b50e4007662cf1dd6",
       "last_chapter_time": 1782822246,
       "first_chapter_time": 1776149405,
-      "currentPos": 262,
+      "currentPos": 257,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2418,7 +2418,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o037c71c807966a62e08eaee36c95b316",
       "last_chapter_time": 1792809891,
       "first_chapter_time": 1788228132,
-      "currentPos": 269,
+      "currentPos": 262,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2481,7 +2481,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2offc91949147262d21bd53ee5c06ab6c2",
       "last_chapter_time": 1789384494,
       "first_chapter_time": 1785714516,
-      "currentPos": 278,
+      "currentPos": 276,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2544,7 +2544,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/58e50c8597a0365c94eb4a1f53efd208",
       "last_chapter_time": 1792857444,
       "first_chapter_time": 1782310811,
-      "currentPos": 287,
+      "currentPos": 286,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2566,7 +2566,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o899015424bbdeda7747ff1065d468bf0",
       "last_chapter_time": 1772628221,
       "first_chapter_time": 1746799162,
-      "currentPos": 289,
+      "currentPos": 287,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2589,7 +2589,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o15464e54ac585da2f8aae76504d82522",
       "last_chapter_time": 1792842435,
       "first_chapter_time": 1725762884,
-      "currentPos": 294,
+      "currentPos": 291,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -2653,7 +2653,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o50e14938ddd9da41ee81c8ce5ea81cd0",
       "last_chapter_time": 1792398631,
       "first_chapter_time": 1788673131,
-      "currentPos": 27,
+      "currentPos": 23,
       "rankPosDiff": 3,
       "rankMold": 1
     },
@@ -2674,7 +2674,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2of2959e3f8cb3912808a431c9f3cf9bb5",
       "last_chapter_time": 1792857889,
       "first_chapter_time": 1784639815,
-      "currentPos": 28,
+      "currentPos": 25,
       "rankPosDiff": -5,
       "rankMold": 1
     },
@@ -2696,7 +2696,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o06d1aab213f383c05ad5c8fde6625278",
       "last_chapter_time": 1792805002,
       "first_chapter_time": 1787281105,
-      "currentPos": 30,
+      "currentPos": 26,
       "rankPosDiff": 8,
       "rankMold": 1
     },
@@ -2802,7 +2802,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o9b82911a8d0c1aadb543f5b03b0bf0c9",
       "last_chapter_time": 1792804282,
       "first_chapter_time": 1791117850,
-      "currentPos": 37,
+      "currentPos": 32,
       "rankPosDiff": 3,
       "rankMold": 1
     },
@@ -2847,6 +2847,261 @@
       "first_chapter_time": 1775462424,
       "currentPos": 40,
       "rankPosDiff": 5,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7623589907990072382",
+      "book_name": "元元的选择",
+      "author": "水波1984",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "总裁",
+        "豪门世家",
+        "HE",
+        "年龄差"
+      ],
+      "abstract": "冷情貌美小孤女VS英俊多金一商人\n都市爱情+身世之谜+未婚先孕+年龄差\n从古至今流传着一个未解之谜，说是正月初一出生的女孩子是娘娘命。这个时辰出生的女孩子命带富贵，一生顺遂，还有旺夫运！\n十岁之前的方乐瑶每次听爸妈这么说都觉得幸福万分，深信自己这个正月初一出生的孩子是娘娘命。十二岁的方乐瑶对看着血泊中父母觉得这个传言是骗人的，父母双亡的小女孩怎么活下去都是问题，还谈什么娘娘命，丫鬟命还差不多！",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o166437e81fe2511427679069fa9bde03",
+      "last_chapter_time": 1781651537,
+      "first_chapter_time": 1775006021,
+      "currentPos": 275,
+      "rankPosDiff": 0,
+      "rankMold": 2
+    },
+    {
+      "book_id": "7648863041274006553",
+      "book_name": "哄太子爷同居后，重生女主被亲哭",
+      "author": "甜甜爱",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "总裁",
+        "重生",
+        "宠夫",
+        "位尊权重"
+      ],
+      "abstract": "（糙汉太子爷+训狗+出租屋+绝对忠诚+绝限拉扯）\n张瑶死了，死在顾承最恨她年。\n张瑶重生了，重生在顾承最纯情的那年。\n骗流落民间的太子爷顾承为自己赚钱卖命教学费，最后一脚踹了他。\n没想到顾承摇身成为顶级权贵二少爷，张瑶费尽心机爬上的位置，连给他擦皮鞋都不配。\n她像个疯子一样，想要夺回这个男人，却得到冷酷的嘲讽，她终于把自己作死了。\n睁眼，她重生回到十八岁，再次决定利用这张美丽的脸，把流落民间的太子爷顾承死死缠住。\n先哄他同居，顾承年轻力壮，张瑶每晚都吃不消。\n纯情顾少，每天只想一件事，赚钱给老婆花。\n重生后的张瑶也只想一件事，宠他，宠他，只宠他。\n她觉的，以顾承的人品，只要她加倍对他好，他回归上流社会时，就会给她一笔钱，她就能富贵过完这一生。\n在他回归太子爷身份后，张瑶悄然离开，却被他拽入怀里：“老婆，是我哪里不够好吗？”\n张瑶红着眼睛说：“是我不配。”\n顾承抵着她唇：“我喜欢你，你就是绝配。”",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o485c4a704bdb0ca9c1b2f2a53c178d46",
+      "last_chapter_time": 1792927669,
+      "first_chapter_time": 1780894000,
+      "currentPos": 297,
+      "rankPosDiff": 0,
+      "rankMold": 2
+    },
+    {
+      "book_id": "7663900548839509017",
+      "book_name": "替嫁翻车想跑？乖，老公疼你",
+      "author": "墨九十",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "女扮男装",
+        "豪门世家",
+        "大佬",
+        "代嫁代娶"
+      ],
+      "abstract": "豪门替嫁+女扮男装掉马+生理性喜欢\nCP：能屈能伸美貌小白花X斯文败类豪门掌权人\n传言裴氏掌权人命硬克妻，寻常女人受不住，需要娶个男妻冲一冲。\n程意浓为了巨额彩礼，女扮男装代替哥哥嫁给他。\n结婚前，裴照野说：“我对男人不感性趣。”\n言下之意，他不会碰她半分。\n程意浓心想：太好了，女扮男装不会被拆穿了。\n不料婚后没多久，裴照野就失控吻了她这个“男妻”。\n从此，尝到甜头的男人一发不可收。\n从清心寡欲到浓情重欲，他发狠了，忘情了！\n只差最后一步。\n程意浓知道，裴照野还做不到和男人做那种事。\n她战战兢兢扮演他的男妻，生怕女人身份露馅会被他弄死。\n——\n裴照野自认为性取向正常，绝不可能对一个男人产生冲动。\n直到他娶了一个男妻。\n男妻的唇很嫩，男妻的腰很细，男妻的手很软……\n男妻浑身上下都在勾引他。\n他一再克制，隐忍，最终彻底失控。\n——\n程意浓女人身份被拆穿那天，她连夜收拾东西跑了。\n后来被裴照野抓住。\n男人眼底欲色汹涌，指腹狠狠揉着她的唇。\n“小骗子，跑什么？”\n“不跑等着你送我坐牢吗？”\n“乖，老公只会疼你。”\n当晚，程意浓实在受不住，哭着求他停下。\n裴照野在她耳边轻哄：“老婆，我们要个宝宝好不好？”",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o884bb73def7fc3b13dbc06badf7d56ac",
+      "last_chapter_time": 1792932627,
+      "first_chapter_time": 1784504488,
+      "currentPos": 35,
+      "rankPosDiff": 14,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7691570788029172798",
+      "book_name": "蒙面雇佣兵和落入狼窝的小可怜",
+      "author": "我爱汤泡饭",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "甜宠",
+        "追妻火葬场"
+      ],
+      "abstract": "覆面系雇佣兵+可代入乙女+多男主+初期强制+初期微虐+后期甜宠+唯一女主+微雄竞+无雌竞\n放心！后期等大兵们回归正常身份生活，一定追妻火葬场！看我之前一篇小甜文就知道啦！（觉得这篇更新太慢的，可以去作者前一篇小甜文逛逛～这是一个系列的作品，本作品为第二篇章）",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o1a01a0279b8a42550076c5a1d37ba29e",
+      "last_chapter_time": 1792925648,
+      "first_chapter_time": 1790834848,
+      "currentPos": 39,
+      "rankPosDiff": 7,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7648178680786586649",
+      "book_name": "卡他失忆哄离婚，病娇又又失控了",
+      "author": "灯下不黑黑",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "总裁",
+        "病娇",
+        "豪门世家",
+        "HE"
+      ],
+      "abstract": "假乖巧x真病娇\n强取豪夺x火葬场xhe\n路小桥是路家被宠坏的宝。\n谢浔是令人闻风丧胆的爷。\n谢浔说：“娶你是为了让大嫂安心。”\n她乖巧：“我想要两千万～”\n谢浔说：“你不要跟大嫂抢。”\n她眨眼：“那孩子跟我姓哦～”\n心上人变大嫂，都说谢浔娶她是自暴自弃，而她嫁他则是爱惨了他。\n路小桥撇嘴巴。\n这些瞎子。\n—\n大哥意外去世。\n小叔子和大嫂的传言越演越烈。\n背德，禁忌，热闹好大。\n一场婚姻她赚的盆满钵满，路小桥爱这世界缤纷，可她唯独不爱绿色。\n她说：“离婚吧。”\n谢浔拨弄婚戒，睨她：“又缺什么了？”\n啥都不缺。\n她有乖崽，财务自由，人生体验感拉满。\n申请躺平。\n都以为谢浔会顺势应她，然后跟大嫂顺理成章，可一年过去了，丝毫没有进展。\n-\n谢浔车祸失忆了。\n为了救大嫂。\n可惜他不知道，车里的是路小桥，若知道，他的拼命将毫无意义。\n但离婚的机会来了。\n路小桥哄道：“不被爱的才是小三，签了这份协议，我助你们双宿双飞。”\n谢浔头痛欲裂，在她小嘴叭叭时只想吻上去。\n-\n深夜长街，跑车横在中央，谢浔看向光柱里逃跑的姑娘，阴鸷双眸压着猩红隐忍：“方向盘抓稳，脚别抖——”\n“来，撞死我，你就自由了。”",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o9f64753fda6e2220970a03f4332f0178",
+      "last_chapter_time": 1786153415,
+      "first_chapter_time": 1780731745,
+      "currentPos": 40,
+      "rankPosDiff": 8,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7690070613813103641",
+      "book_name": "太子爷被恶毒路人甲强制圈养后",
+      "author": "阿皎皎皎",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "病娇",
+        "1v1",
+        "豪门世家",
+        "总裁"
+      ],
+      "abstract": "【女强制男×穷人强制爱×阴暗出租屋×黑芝麻阴湿小汤圆×病娇ing×sc×1v1】\n觉醒剧情的路人甲张晓，把本该下线的太子爷沈砚背回了家。\n剧情不要的漂亮宝贝，她要了！\n工作虽然辛苦，但想到家里锁着的是女主求而不得的早死白月光，张晓就忍不住桀桀狂笑。\n------------\n从小缺爱的沈砚，在被至亲背刺后毫无求生欲。\n可难得有人不想他死，愿意分给他一点点爱，那就……被当做自动小狗也很开心。\n------------\n唯一的烦恼是：张晓也太穷了。\n算了，打起精神来给她赚点钱吧。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2od86e8db26292d02cb6abe9dbe6343067",
+      "last_chapter_time": 1792667181,
+      "first_chapter_time": 1790484530,
+      "currentPos": 42,
+      "rankPosDiff": 3,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7692295584929041470",
+      "book_name": "睡完京圈太子爷，小公主连夜出逃",
+      "author": "小鸽儿丷",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "位尊权重",
+        "暗恋",
+        "双洁",
+        "甜宠",
+        "情有独钟"
+      ],
+      "abstract": "【又欲又撩矜贵京圈大子爷&甜美软萌可爱小公主】\n　　【双洁+宠溺+双向暗恋+一夜偷吃后逃跑+太子爷追妻甜宠】\n　　阮星念是万千疼爱的小公主，自幼被捧在手心长大。\n　　她心里藏着一个秘密，她喜欢谢聿珩。\n　　某天，听说他要有未婚妻，小公主急了，干脆主动出击。\n　　趁他醉酒睡了他，天亮火速跑路出国，主打一个圆梦就撤！\n　　而谢聿珩，是站在京圈顶端的大子爷，手握权势，万众瞩目，无数人趋之若鹜。\n　　一觉醒来人没了。\n　　平生第一次，被人“吃干抹净”后消失不见。\n　　三年后重逢的第一天。\n　　谢聿珩扣住她的细腰，嗓音低哑勾人：“吃干抹净完就跑。”\n　　“今晚得好好惩罚一下。”\n            “不然还有力气逃跑。”\n　　阮星念红着脸小声辩：“你不是有未婚妻了吗……”\n　　“快放开我。”\n　　谢聿珩将她圈在怀里，温热气息扫过耳廓，嗓音低哑：“我哪里来的未婚妻？”\n　　“我的未婚妻，如今不就在我眼前吗？”\n　　话音未落，侵略性的吻骤然落下…………\n　　阮星念：完了！跑不掉了！\n　　阮星念：既然如此，那就享受吧！",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ocd639de7e030cddff0eca7be507a9448",
+      "last_chapter_time": 1792942102,
+      "first_chapter_time": 1791004531,
+      "currentPos": 44,
+      "rankPosDiff": 52,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7681567652552133694",
+      "book_name": "恶毒女配重生，全员大佬疯魔成瘾",
+      "author": "大胖二胖龟儿子",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "虐恋情深",
+        "重生",
+        "大佬",
+        "总裁",
+        "豪门世家"
+      ],
+      "abstract": "【排雷:雄竞修罗场+强取豪夺+男强女弱+多男主+全员恶人】\n重生回到给梁羽生下药那晚。孙苗苗端起酒杯，转身灌进了他兄弟许诺嘴里。\n她以为换了个人睡，就能逃开上一世的结局。\n可许诺拿着照片威胁她当女朋友。\n梁羽生拿着合同说是她债权人。\n顾问花了几个亿接孙家的盘，他温声说：“你爸把你卖给我了。”\n还有个叫秦牧的男人，笑着说他是来替姐姐报仇的。\n上辈子她为一个男人蠢死。\n这辈子四个男人都想把她拆碎了吞干净。\n她逃到天涯海角，才发现全世界的路，都是他们铺好的。\n1v4疯批修罗场｜极致拉扯｜男主们疯起来自己都打｜女主只想保命结果全员沦陷",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o2a31852d6b39e27a809c4d311f85b1d8",
+      "last_chapter_time": 1792901100,
+      "first_chapter_time": 1788506052,
+      "currentPos": 46,
+      "rankPosDiff": -3,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7653451658042559513",
+      "book_name": "婚后迟温",
+      "author": "年年无鱼",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "先婚后爱",
+        "追妻火葬场",
+        "双洁",
+        "总裁",
+        "婚恋"
+      ],
+      "abstract": "【先婚后爱+追妻火葬场+上位者低头+双 c】\n柳恬原定的订婚对象是周柏近，最终却风风光光嫁给他的大哥周朔远。\n人人艳羡她得来不易的圆满，可光鲜皆是做给外人看，内里荒芜唯有她自己清楚。\n 同处一个屋檐，柳恬学着融入周朔远的世界，努力维系这段婚姻。\n直到一日，她听见周朔远无情的声音：\n“我不会和她生孩子的，你死了这条心。”\n婆母宁茹盛怒之下，给了他一个耳光。\n柳恬才彻底明白，真心在偏见面前，不过是一个笑话。\n他在外人面前逢场作戏，私底下漠然置之。\n柳恬受够了，将婚戒弃于落雪之中，把签好字的离婚协议推到他面前，眼中褪去所有眷恋：“周朔远，我们离婚吧。”",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oc05a417b64a1f88731676e6ff8ef1674",
+      "last_chapter_time": 1792921473,
+      "first_chapter_time": 1786257902,
+      "currentPos": 47,
+      "rankPosDiff": 9,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7686873814063402008",
+      "book_name": "意外怀崽后，竹马老公夜夜吻",
+      "author": "虞饭饭",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "青梅竹马",
+        "追妻火葬场",
+        "暗恋",
+        "双洁",
+        "1v1"
+      ],
+      "abstract": "刚开分，后面会涨～\n[先孕后爱+双洁1v1+青梅竹马+追妻]　\n[女主视角下的暗恋成真，男主视角下的朋友变妻子]\n\n闻时景是戚相宜年少时的一束光。\n\n在她慢慢喜欢上他后，他依然只把她当好朋友。\n\n她高中时见过他与他人般配的样子。\n\n喜欢的秘密埋在心底，仓皇逃离六年。\n\n回来后因酒后失控一夜荒唐，一个月后她看着两条杠欲哭无泪。\n\n之后他们谈妥协议结婚，他说生下孩子后随她选择是否离婚。\n\n婚后他们相处融洽，生活平淡而幸福，就在她以为可以与他一直这样下去时，他那位白月光回来了。\n\n她等他一夜后，递出离婚协议，带着孩子离开。\n\n谁知他却撕毁协议，嗓音委屈哽咽，卑微求合，“老婆，别走，求你。”\n—\n闻时景一直把戚相宜划在“挚友”名单里。\n\n谁知因他一夜昏头，事情走向完全失控。\n\n闻时景：我该死，我玷污了我们纯洁的友谊。\n\n两个月后的闻时景：老婆结婚。\n\n本来闻时景的设想是恪守朋友的底线，当好相敬如宾的夫妻。\n\n却没想到婚后他会彻底失控，步步沦陷。\n—\n【先婚后爱小甜文，不虐】\n【男主没有白月光，身心都洁】",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o47204ca32225e212bdbe082d23551046",
+      "last_chapter_time": 1792948486,
+      "first_chapter_time": 1789740684,
+      "currentPos": 48,
+      "rankPosDiff": -1,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7683405410883095577",
+      "book_name": "男主你剧情跑偏了，我只是炮灰女",
+      "author": "竹林有姝",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "穿书",
+        "总裁",
+        "情有独钟",
+        "豪门世家",
+        "1v1"
+      ],
+      "abstract": "（提示：有黑原女主剧情，纯恋爱文，非大女主，介意勿入）简伊穿书了，穿成了一本百万字言情小说里连名字都只出现过三次的炮灰女配。\n按照剧情，她应该默默暗恋男二，默默远走他乡，默默客死异乡。跟男主萧崇樾，这辈子都不该有半毛钱关系。结果因为走错房间，和全书最粗的那条大腿有了交集：“……这剧情不对。”\n简伊：“我不喜欢你。”\n萧崇樾：“你有喜欢的人？”\n简伊：“没有。”\n萧崇樾：“那就喜欢我。”\n简伊：？？？男主你醒醒，女主在隔壁，你往我这儿跑干什么？\n简伊崩溃：男主你能不能按剧本来？你是女主的，我是炮灰的，咱俩不是一个片场！\n萧崇樾：剧情？什么剧情？我命由我不由天。\n萧崇樾把她圈在怀里，低头凑近她耳畔：“剧本？我撕了。这书的剧情，就由我来写。”\n原女主的戏份，莫名其妙没了。\n原男二的线，稀里糊涂断了。\n简伊手里的炮灰剧本，被人强行修改。\n简伊：“我真的是炮灰。”\n萧崇樾：“你是我的女主角。”\n当剧情崩了，简伊只能将错就错，把炮灰活成女主。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe5651b52bcad75a4ac26f41a89acfef2",
+      "last_chapter_time": 1792941907,
+      "first_chapter_time": 1789890438,
+      "currentPos": 50,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7670450395256212542",
+      "book_name": "漂亮恶女，靠伪装财阀千金登顶",
+      "author": "桃花映酒",
+      "tags": [
+        "豪门总裁",
+        "现代言情",
+        "总裁",
+        "穿越",
+        "穿书",
+        "豪门世家"
+      ],
+      "abstract": "【分刚出会涨】\n（韩国架空背景｜无系统｜财阀｜恶女万人迷｜代入感｜底层逆袭+跨越阶层的登顶游戏）\n（过程1vn，结局待定｜训狗｜雄竞修罗场｜男全洁）\n-\n【你出身底层贫民窟，极度自卑又极度贪婪\n拼尽全力，靠特招考入顶层圈层摇篮圣岚学院\n你的唯一目标，就是勾引、攀附财阀继承人，以此跨越阶级\n毕竟，你长着一张引以为傲的漂亮脸蛋\n然而阶层认知为零的你，自以为高明的所有手段，在五大顶级财阀眼里——\n廉价、拙劣、低级、愚蠢\n你的结局：\n被全校唾弃、封杀、制裁，彻底沦为笑柄\n最终被推进深海喂鲨鱼，尸骨无存】\n—\n具熹璟刚穿进书里，就看完了自己这个角色的生平\n或者说，她的命运\n她瞳色浅浅扫过那行结局\n从出生开始，人的阶层和等级就已经注定，想跨上一层，都难如登天\n然而阶层这种东西，在她原本的世界里，就是由她这类人亲手构筑出来的\n她会改写命运\n而且会让这些所有人，心甘情愿，将她捧上顶点\n—\n（女主顶级心智，走一步看十步，积累财富把控人心，在外界眼中不会掉马/后期逐渐暴露恶劣）\n（当所有人认为假的是真的，那它就是真的。灵感来自《莎拉的真伪人生）\n（看文时，韩元÷200就是大概人民币金额）\n（1vn之一男主有三十岁的，和女主年龄差较大，介意读者可自行避雷）",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ob267407946602c281af0014d5b515ddb",
+      "last_chapter_time": 1792941854,
+      "first_chapter_time": 1786125764,
+      "currentPos": 51,
+      "rankPosDiff": 0,
       "rankMold": 1
     }
   ]
