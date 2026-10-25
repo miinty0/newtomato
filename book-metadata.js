@@ -85,14 +85,28 @@ function parseDetailPage(html) {
   if (typeof categories === 'string') { try { categories = JSON.parse(categories); } catch { categories = null; } }
   if (Array.isArray(categories)) assign('tags', [...new Set(categories.map(c => c.Name))]);
   const chapters = Array.isArray(page.chapterListWithVolume) ? page.chapterListWithVolume.flat(Infinity) : [];
-  const first = chapters.find(c => c && String(c.realChapterOrder) === '1');
-  assign('first_chapter_time', timestamp(first?.firstPassTime));
-  if (!info.first_chapter_time) {
-    for (const object of raw.match(/\{[^{}]*"realChapterOrder"\s*:\s*"?1"?\s*[,}][^{}]*\}/g) || []) {
-      const time = timestamp(extract(object, 'firstPassTime'));
-      if (time) { info.first_chapter_time = time; break; }
+  let firstOrder = Infinity;
+  let firstTime = null;
+  const considerChapter = chapter => {
+    const order = Number(chapter?.realChapterOrder);
+    const time = timestamp(chapter?.firstPassTime);
+    if (Number.isInteger(order) && order > 0 && order < firstOrder && time !== null) {
+      firstOrder = order;
+      firstTime = time;
+    }
+  };
+  for (const chapter of chapters) considerChapter(chapter);
+  if (firstTime === null) {
+    // Recover complete chapter fields even when another part of the state is
+    // broken. Braces inside JSON strings must not split chapter objects.
+    for (const object of raw.match(/\{(?:[^{}"]|"(?:[^"\\]|\\[\s\S])*")*\}/g) || []) {
+      considerChapter({
+        realChapterOrder: extract(object, 'realChapterOrder'),
+        firstPassTime: extract(object, 'firstPassTime'),
+      });
     }
   }
+  assign('first_chapter_time', firstTime);
   if (Object.keys(info).length) return { kind: 'ok', info };
   // Only a successfully decoded, explicitly empty page can be marked Hidden.
   if (page.status === null) return { kind: 'hidden' };
@@ -105,3 +119,4 @@ function legacyDetail(info) {
   return result;
 }
 module.exports = { text, timestamp, status, normalizeThumbUrl, valid, missingFields, fillMissing, parseDetailPage, legacyDetail };
+

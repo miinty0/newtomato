@@ -195,3 +195,46 @@ test('only missing hot_rank/currentPos is excluded, while missing or corrupt met
   assert.equal(ctx.checkMissing({...daily,author:'Unknown'}),true);
   assert.equal(ctx.checkMissing({...rankcat,abstract:'�'}),true);
 });
+
+
+test('hidden chapter 1 uses the smallest available order across unsorted volumes', () => {
+  const chapters = [
+    [{realChapterOrder:'10',firstPassTime:'1790000010'}, {realChapterOrder:3,firstPassTime:'1790000003'}],
+    [{firstPassTime:'1790000002',realChapterOrder:'2'}],
+  ];
+  const b = m.parseDetailPage(html({...page,chapterListWithVolume:chapters})).info;
+  assert.equal(b.first_chapter_time,1790000002);
+});
+test('choose by chapter order, not by earliest timestamp or array position', () => {
+  const b = m.parseDetailPage(html({...page,chapterListWithVolume:[[
+    {realChapterOrder:8,firstPassTime:'1700000000'},
+    {realChapterOrder:4,firstPassTime:'1790000000'},
+  ]]})).info;
+  assert.equal(b.first_chapter_time,1790000000);
+});
+test('use the smallest chapter order whose firstPassTime is readable', () => {
+  const b = m.parseDetailPage(html({...page,chapterListWithVolume:[[
+    {realChapterOrder:0,firstPassTime:'1700000000'},
+    {realChapterOrder:2,firstPassTime:null},
+    {realChapterOrder:3,firstPassTime:'�'},
+    {realChapterOrder:4,firstPassTime:'1790000004'},
+    {realChapterOrder:5,firstPassTime:'1790000005'},
+  ]]})).info;
+  assert.equal(b.first_chapter_time,1790000004);
+});
+test('malformed state still recovers smallest available chapter order and handles braces in titles', () => {
+  const source = html({...page,chapterListWithVolume:[[
+    {realChapterOrder:'12',title:'chapter {12}',firstPassTime:'1790000012'},
+    {firstPassTime:'1790000003',title:'chapter {3}',realChapterOrder:'3'},
+  ]]}).replace('"author":','"unused":undefined,"author":');
+  const b = m.parseDetailPage(source).info;
+  assert.equal(b.first_chapter_time,1790000003);
+  assert.equal(b.author,page.author);
+});
+test('no readable chapter timestamp remains missing for a later refetch', () => {
+  const b = m.parseDetailPage(html({...page,chapterListWithVolume:[[
+    {realChapterOrder:'2',firstPassTime:''},
+    {realChapterOrder:'3',firstPassTime:'bad'},
+  ]]})).info;
+  assert.equal(b.first_chapter_time,undefined);
+});
