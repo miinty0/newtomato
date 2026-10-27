@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-10-27T10:44:53.791Z",
+  "updated_at": "2026-10-27T11:05:29.593Z",
   "books": {
     "7134583389499165731": {
       "status": "Completed",
@@ -7903,9 +7903,9 @@
       "checked_at": "2026-10-23T03:38:28.494Z"
     },
     "7612958953693006873": {
-      "status": "Ongoing",
-      "creation_status": 1,
-      "checked_at": "2026-10-23T03:38:28.494Z"
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-10-27T10:52:22.830Z"
     },
     "7612986314048162841": {
       "status": "Completed",
@@ -19953,9 +19953,9 @@
       "checked_at": "2026-10-16T04:14:08.903Z"
     },
     "7647458669554060312": {
-      "status": "Ongoing",
-      "creation_status": 1,
-      "checked_at": "2026-10-23T03:40:06.456Z"
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-10-27T10:56:37.813Z"
     },
     "7647459450055298072": {
       "status": "Completed",
@@ -20053,9 +20053,9 @@
       "checked_at": "2026-10-23T06:44:22.260Z"
     },
     "7647726847018404889": {
-      "status": "Ongoing",
-      "creation_status": 1,
-      "checked_at": "2026-10-23T03:40:08.464Z"
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-10-27T10:53:19.821Z"
     },
     "7647778079263181848": {
       "status": "Completed",
@@ -23031,6 +23031,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-21T08:45:43.495Z"
+    },
+    "7656346259292163097": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-10-27T10:52:29.824Z"
     },
     "7656356938350857241": {
       "status": "Completed",
@@ -26958,9 +26963,9 @@
       "checked_at": "2026-10-20T06:26:23.843Z"
     },
     "7670123152080391193": {
-      "status": "Ongoing",
-      "creation_status": 1,
-      "checked_at": "2026-10-23T03:40:50.460Z"
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-10-27T11:00:26.827Z"
     },
     "7670133752122592280": {
       "status": "Completed",
