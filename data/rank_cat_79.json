@@ -1,9 +1,9 @@
 {
-  "update_time": "2026-10-31 07:55:31",
-  "update_date": "2026-10-31",
+  "update_time": "2026-11-01 07:29:48",
+  "update_date": "2026-11-01",
   "category_id": 79,
-  "total_count": 326,
-  "new_count": 11,
+  "total_count": 338,
+  "new_count": 12,
   "books": [
     {
       "book_id": "7634360267891018814",
@@ -143,7 +143,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oa0edde5dc9dbf243e66276573b9682ea",
       "last_chapter_time": 1791476316,
       "first_chapter_time": 1784647051,
-      "currentPos": 26,
+      "currentPos": 25,
       "rankPosDiff": -4,
       "read_count": "159483",
       "rankMold": 2
@@ -187,7 +187,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oc8816c19e3d5e8960b2d7a70ad82f46a",
       "last_chapter_time": 1791449086,
       "first_chapter_time": 1779763508,
-      "currentPos": 20,
+      "currentPos": 18,
       "rankPosDiff": 13,
       "read_count": "143309",
       "rankMold": 2
@@ -859,7 +859,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o0e44ffcba2b240bb79c70e382f4a2db6",
       "last_chapter_time": 1791561478,
       "first_chapter_time": 1789442140,
-      "currentPos": 6,
+      "currentPos": 5,
       "rankPosDiff": 18,
       "read_count": "68978",
       "rankMold": 1
@@ -991,7 +991,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o608516356710bffe6563117cae2f1cec",
       "last_chapter_time": 1791557319,
       "first_chapter_time": 1785549825,
-      "currentPos": 111,
+      "currentPos": 101,
       "rankPosDiff": 0,
       "read_count": "74550",
       "rankMold": 2
@@ -1077,7 +1077,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o89c10ba9c2e55b481acb38088b0f5ecd",
       "last_chapter_time": 1791601216,
       "first_chapter_time": 1784289494,
-      "currentPos": 147,
+      "currentPos": 123,
       "rankPosDiff": 0,
       "read_count": "68644",
       "rankMold": 2
@@ -1207,7 +1207,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o0269f03a3e3219a2ff262e5b09c28b05",
       "last_chapter_time": 1791583946,
       "first_chapter_time": 1786410945,
-      "currentPos": 84,
+      "currentPos": 53,
       "rankPosDiff": 0,
       "read_count": "58358",
       "rankMold": 2
@@ -2116,7 +2116,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o9dcd9d613ca58efc35fbda9e067d8d44",
       "last_chapter_time": 1791810386,
       "first_chapter_time": 1780409862,
-      "currentPos": 38,
+      "currentPos": 35,
       "rankPosDiff": 0,
       "read_count": "58560",
       "rankMold": 2
@@ -2484,7 +2484,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oa61104ec88cd120f9268eaacc8d6ad45",
       "last_chapter_time": 1791590062,
       "first_chapter_time": 1788178175,
-      "currentPos": 26,
+      "currentPos": 25,
       "rankPosDiff": 1,
       "read_count": "40109",
       "rankMold": 1
@@ -2743,7 +2743,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o1edd0c664a8afb2897a59db3032893f4",
       "last_chapter_time": 1769527651,
       "first_chapter_time": 1758248417,
-      "currentPos": 103,
+      "currentPos": 102,
       "rankPosDiff": 0,
       "read_count": "67280",
       "rankMold": 2
@@ -3207,7 +3207,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o51f086cc13ccc7a5cd245b627071b92b",
       "last_chapter_time": 1792165815,
       "first_chapter_time": 1788623196,
-      "currentPos": 47,
+      "currentPos": 39,
       "rankPosDiff": 0,
       "read_count": "24976",
       "rankMold": 1
@@ -3293,7 +3293,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oca748d5ea8f313d004ef0fff2c11d198",
       "last_chapter_time": 1788460140,
       "first_chapter_time": 1780752656,
-      "currentPos": 42,
+      "currentPos": 40,
       "rankPosDiff": 0,
       "read_count": "23603",
       "rankMold": 1
@@ -3465,7 +3465,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o14cc172aec08d5d03afdd13a17419913",
       "last_chapter_time": 1792244011,
       "first_chapter_time": 1789211771,
-      "currentPos": 9,
+      "currentPos": 8,
       "rankPosDiff": 51,
       "read_count": "23804",
       "rankMold": 1
@@ -3747,7 +3747,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4a5e498cd055bc8e510460083307dff3",
       "last_chapter_time": 1789548052,
       "first_chapter_time": 1785242109,
-      "currentPos": 52,
+      "currentPos": 51,
       "rankPosDiff": 7,
       "read_count": "20623",
       "rankMold": 1
@@ -4050,7 +4050,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o71b3d04d8ea184e4a1c91fd817354db2",
       "last_chapter_time": 1791767070,
       "first_chapter_time": 1788764042,
-      "currentPos": 50,
+      "currentPos": 48,
       "rankPosDiff": 8,
       "read_count": "19660",
       "rankMold": 1
@@ -4094,7 +4094,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o311d166f36c827d956dfaa57226fa11f",
       "last_chapter_time": 1792327414,
       "first_chapter_time": 1788242635,
-      "currentPos": 59,
+      "currentPos": 57,
       "rankPosDiff": 21,
       "read_count": "18613",
       "rankMold": 1
@@ -4683,7 +4683,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o81610f49666d742bff2d58907ca82a49",
       "last_chapter_time": 1792595689,
       "first_chapter_time": 1786470448,
-      "currentPos": 56,
+      "currentPos": 43,
       "rankPosDiff": 13,
       "read_count": "16878",
       "rankMold": 1
@@ -4854,7 +4854,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o8090d98fc0d979621990b6c7919842a3",
       "last_chapter_time": 1792678829,
       "first_chapter_time": 1776412492,
-      "currentPos": 13,
+      "currentPos": 12,
       "rankPosDiff": 0,
       "read_count": "19500",
       "rankMold": 1
@@ -4898,7 +4898,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4b7aa899ac4d2d469c315ec3f3363bb1",
       "last_chapter_time": 1792684008,
       "first_chapter_time": 1787207117,
-      "currentPos": 60,
+      "currentPos": 56,
       "rankPosDiff": 9,
       "read_count": "16293",
       "rankMold": 1
@@ -4984,7 +4984,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4eddfb41dcff92ff25f0803b2de70f80",
       "last_chapter_time": 1787800888,
       "first_chapter_time": 1757243400,
-      "currentPos": 44,
+      "currentPos": 42,
       "rankPosDiff": -5,
       "read_count": "15648",
       "rankMold": 1
@@ -5027,7 +5027,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oaa5af6455f1304f72e3f3f8527c9054b",
       "last_chapter_time": 1792657716,
       "first_chapter_time": 1791388828,
-      "currentPos": 38,
+      "currentPos": 27,
       "rankPosDiff": 21,
       "read_count": "15524",
       "rankMold": 1
@@ -5049,7 +5049,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o44295c1c27068f2cca4017ee54a8c6b6",
       "last_chapter_time": 1791265715,
       "first_chapter_time": 1778505006,
-      "currentPos": 102,
+      "currentPos": 92,
       "rankPosDiff": 0,
       "read_count": "58058",
       "rankMold": 2
@@ -5071,7 +5071,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o04f2275f39857ee4b7651ea1d2bfec8e",
       "last_chapter_time": 1791794606,
       "first_chapter_time": 1781490096,
-      "currentPos": 172,
+      "currentPos": 170,
       "rankPosDiff": 0,
       "read_count": "56356",
       "rankMold": 2
@@ -5116,7 +5116,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o96804ea2feddb12afb140b8422d6991f",
       "last_chapter_time": 1791087865,
       "first_chapter_time": 1788177871,
-      "currentPos": 36,
+      "currentPos": 33,
       "rankPosDiff": 0,
       "read_count": "18103",
       "rankMold": 1
@@ -5158,7 +5158,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oabd095f673dbd6c2f4384a039bf364e3",
       "last_chapter_time": 1792718610,
       "first_chapter_time": 1790417524,
-      "currentPos": 45,
+      "currentPos": 35,
       "rankPosDiff": 13,
       "read_count": "16024",
       "rankMold": 1
@@ -5226,7 +5226,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o74e2f30a489d08218c85812ecbdda045",
       "last_chapter_time": 1792765282,
       "first_chapter_time": 1781699942,
-      "currentPos": 106,
+      "currentPos": 101,
       "rankPosDiff": 2,
       "read_count": "15670",
       "rankMold": 1
@@ -5290,7 +5290,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe85068d4dc1f937c217712e396951c27",
       "last_chapter_time": 1792748671,
       "first_chapter_time": 1784113226,
-      "currentPos": 81,
+      "currentPos": 76,
       "rankPosDiff": 5,
       "read_count": "14623",
       "rankMold": 1
@@ -5311,7 +5311,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o59b05bfcbfa9ed5f35148aa923172e54",
       "last_chapter_time": 1791356558,
       "first_chapter_time": 1748605994,
-      "currentPos": 159,
+      "currentPos": 154,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5332,7 +5332,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oc2c59c0f3c22cdcc96c6d0b957d90fbf",
       "last_chapter_time": 1792852633,
       "first_chapter_time": 1770877716,
-      "currentPos": 201,
+      "currentPos": 192,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5352,7 +5352,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/07b0f470e2bcb77ff12f56fd86ebe6c3",
       "last_chapter_time": 1791756207,
       "first_chapter_time": 1772763282,
-      "currentPos": 200,
+      "currentPos": 197,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5373,7 +5373,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe857c015fc599167ca787d31b0e331d0",
       "last_chapter_time": 1792589304,
       "first_chapter_time": 1780308394,
-      "currentPos": 202,
+      "currentPos": 187,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5412,7 +5412,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/45a68e1b5c245cafddc126408f7ae146",
       "last_chapter_time": 1791382908,
       "first_chapter_time": 1760635558,
-      "currentPos": 29,
+      "currentPos": 23,
       "rankPosDiff": 26,
       "rankMold": 1
     },
@@ -5432,7 +5432,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oebd7471ec605c0a7f1869227bb4bf081",
       "last_chapter_time": 1792845749,
       "first_chapter_time": 1786114032,
-      "currentPos": 98,
+      "currentPos": 93,
       "rankPosDiff": 7,
       "rankMold": 1
     },
@@ -5474,7 +5474,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ocf35a6f677f5d9aae99b103abffe103e",
       "last_chapter_time": 1792804240,
       "first_chapter_time": 1789347198,
-      "currentPos": 37,
+      "currentPos": 28,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -5577,7 +5577,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o7b2dcf0a9e0ea83ff040ac02641e677e",
       "last_chapter_time": 1792805574,
       "first_chapter_time": 1779770270,
-      "currentPos": 150,
+      "currentPos": 142,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5596,7 +5596,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ob3df02f38b9396aa26ff6cf81b06369a",
       "last_chapter_time": 1792847435,
       "first_chapter_time": 1781218879,
-      "currentPos": 255,
+      "currentPos": 254,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5617,7 +5617,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o2202a7402c9f014d45fb994078d1a452",
       "last_chapter_time": 1787383239,
       "first_chapter_time": 1790812820,
-      "currentPos": 18,
+      "currentPos": 16,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -5659,7 +5659,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o47131d5c4ec3609ed058c44db8f7fae4",
       "last_chapter_time": 1789620791,
       "first_chapter_time": 1788359115,
-      "currentPos": 73,
+      "currentPos": 60,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -5723,7 +5723,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4e461b2917afd8a3e4fd4915dda274cf",
       "last_chapter_time": 1792840709,
       "first_chapter_time": 1786928422,
-      "currentPos": 108,
+      "currentPos": 106,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -5784,7 +5784,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o80f576c94efbe075e8466e6ab3d30dcd",
       "last_chapter_time": 1792155174,
       "first_chapter_time": 1790812832,
-      "currentPos": 67,
+      "currentPos": 58,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -5825,7 +5825,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o965a1a0a2e782cb9fb2087f71b69df34",
       "last_chapter_time": 1777781647,
       "first_chapter_time": 1751642385,
-      "currentPos": 99,
+      "currentPos": 84,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5846,7 +5846,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o401ea322303d4718578a18b399ba2d4e",
       "last_chapter_time": 1793029281,
       "first_chapter_time": 1784170703,
-      "currentPos": 166,
+      "currentPos": 153,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5866,7 +5866,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o9d699ba7c419742bbbec6ffa7671a38b",
       "last_chapter_time": 1791723270,
       "first_chapter_time": 1777262417,
-      "currentPos": 219,
+      "currentPos": 218,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5887,7 +5887,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o894859e498e57b1e3d92a0e8d8d68bf0",
       "last_chapter_time": 1793014225,
       "first_chapter_time": 1784109638,
-      "currentPos": 234,
+      "currentPos": 217,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -5909,7 +5909,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oa5cabf87fb186bad880f3a41a0576c74",
       "last_chapter_time": 1792825341,
       "first_chapter_time": 1790662328,
-      "currentPos": 41,
+      "currentPos": 38,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -5990,7 +5990,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/ai/p2o0668a1c82af9a03b03a74a6a9ceb0f93",
       "last_chapter_time": 1793028646,
       "first_chapter_time": 1785680870,
-      "currentPos": 70,
+      "currentPos": 53,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6012,7 +6012,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2obfa5f62074aaa958d01e673462623137",
       "last_chapter_time": 1793004803,
       "first_chapter_time": 1791725862,
-      "currentPos": 69,
+      "currentPos": 50,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6032,7 +6032,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ob0a60f556d7635258df0fdd94e551687",
       "last_chapter_time": 1793016490,
       "first_chapter_time": 1775728709,
-      "currentPos": 78,
+      "currentPos": 70,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6053,7 +6053,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oc6299673c05f5dd97e14b78c1f829d2e",
       "last_chapter_time": 1793035847,
       "first_chapter_time": 1789591192,
-      "currentPos": 76,
+      "currentPos": 72,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6094,7 +6094,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o232f5f6d69700111824f7e53c2c415fc",
       "last_chapter_time": 1791983814,
       "first_chapter_time": 1750235297,
-      "currentPos": 140,
+      "currentPos": 133,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -6136,7 +6136,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2odf7575fc76061d931638c6823a2c9d74",
       "last_chapter_time": 1793100040,
       "first_chapter_time": 1787571182,
-      "currentPos": 24,
+      "currentPos": 20,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6156,7 +6156,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o3c2ce8df91ad882e52ac3cd9abd20006",
       "last_chapter_time": 1793116334,
       "first_chapter_time": 1791025000,
-      "currentPos": 25,
+      "currentPos": 14,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6176,7 +6176,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o59ba6b1a0541c18d77cafab44d9fbcbe",
       "last_chapter_time": 1790678729,
       "first_chapter_time": 1788225934,
-      "currentPos": 80,
+      "currentPos": 74,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6196,7 +6196,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o9de6f90e51f1319f42f63c90ed94f6da",
       "last_chapter_time": 1793113801,
       "first_chapter_time": 1789277749,
-      "currentPos": 97,
+      "currentPos": 95,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6217,7 +6217,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe7eba90b31ce269f91cbb7a11100dd1e",
       "last_chapter_time": 1793087082,
       "first_chapter_time": 1789707973,
-      "currentPos": 89,
+      "currentPos": 84,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6259,7 +6259,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o5629f2f742d28b599281868253544dbe",
       "last_chapter_time": 1793115797,
       "first_chapter_time": 1787637683,
-      "currentPos": 131,
+      "currentPos": 126,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6279,7 +6279,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o42874dd2e9a5ccb909f4aac28c021e32",
       "last_chapter_time": 1793078135,
       "first_chapter_time": 1791190099,
-      "currentPos": 91,
+      "currentPos": 88,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6300,7 +6300,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o445b5e7cf583da7aa49d9b60b812c9ed",
       "last_chapter_time": 1793086372,
       "first_chapter_time": 1792465020,
-      "currentPos": 134,
+      "currentPos": 128,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6360,7 +6360,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oe4664881618214870019b63bb57096c8",
       "last_chapter_time": 1791554918,
       "first_chapter_time": 1740989309,
-      "currentPos": 220,
+      "currentPos": 198,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -6381,7 +6381,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4f77ad4ef1cb1881cda72f9eb8a72800",
       "last_chapter_time": 1793176458,
       "first_chapter_time": 1783582074,
-      "currentPos": 55,
+      "currentPos": 41,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6402,7 +6402,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2of970b74543869583544435654102ccdf",
       "last_chapter_time": 1793099226,
       "first_chapter_time": 1790664077,
-      "currentPos": 84,
+      "currentPos": 78,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6423,7 +6423,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o5bcb3fd8e9c6841ff48f5481ab1d78c3",
       "last_chapter_time": 1793019007,
       "first_chapter_time": 1785590272,
-      "currentPos": 127,
+      "currentPos": 124,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6528,7 +6528,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6613e0584e34ed1c8b31f0fcc1f8ddae",
       "last_chapter_time": 1793189627,
       "first_chapter_time": 1791204749,
-      "currentPos": 85,
+      "currentPos": 73,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6549,7 +6549,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o2f5732a1eb4c9f01ed29d44ef68e1747",
       "last_chapter_time": 1793227751,
       "first_chapter_time": 1788145200,
-      "currentPos": 111,
+      "currentPos": 107,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6589,7 +6589,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o1ea0b82299d21349176cb32d88dfa3fc",
       "last_chapter_time": 1791517350,
       "first_chapter_time": 1743432561,
-      "currentPos": 245,
+      "currentPos": 224,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -6609,7 +6609,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ob6a1a39061182ae576f1165fad46b4d2",
       "last_chapter_time": 1793264719,
       "first_chapter_time": 1790901652,
-      "currentPos": 123,
+      "currentPos": 116,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6630,7 +6630,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4052b9a370867d2d9804c5af8cea3a9f",
       "last_chapter_time": 1793249775,
       "first_chapter_time": 1791802320,
-      "currentPos": 107,
+      "currentPos": 96,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6674,7 +6674,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o102ab6d27e22b5872c8965df009a1a02",
       "last_chapter_time": 1793274351,
       "first_chapter_time": 1791371544,
-      "currentPos": 125,
+      "currentPos": 122,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6713,7 +6713,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6eea219ca3edb046e61feb9773bed46d",
       "last_chapter_time": 1793314685,
       "first_chapter_time": 1791859796,
-      "currentPos": 144,
+      "currentPos": 139,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6734,7 +6734,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4c97b64fa9f2cd2369e591bf93226737",
       "last_chapter_time": 1793289634,
       "first_chapter_time": 1791417311,
-      "currentPos": 118,
+      "currentPos": 66,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6756,7 +6756,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o770e3c630e57423030ba8191e44a4bc3",
       "last_chapter_time": 1790324689,
       "first_chapter_time": 1784285370,
-      "currentPos": 148,
+      "currentPos": 147,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6776,7 +6776,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o82640949c26a8d5f5376c4f82d4d8bd9",
       "last_chapter_time": 1767792446,
       "first_chapter_time": 1756908748,
-      "currentPos": 299,
+      "currentPos": 287,
       "rankPosDiff": 0,
       "rankMold": 2
     },
@@ -6799,7 +6799,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6dc501654bddcdec36c401ee0c64bfd4",
       "last_chapter_time": 1793375957,
       "first_chapter_time": 1775201874,
-      "currentPos": 119,
+      "currentPos": 89,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6821,7 +6821,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o58ed49edf9e7f64f23d32242ba6188da",
       "last_chapter_time": 1793375850,
       "first_chapter_time": 1790876686,
-      "currentPos": 122,
+      "currentPos": 111,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6842,7 +6842,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ob4b329bd75e0b0b4142e7b1e8d406a1c",
       "last_chapter_time": 1793010978,
       "first_chapter_time": 1792162991,
-      "currentPos": 124,
+      "currentPos": 77,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6861,7 +6861,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o3fa730f215b732821505dc73edb4ea9e",
       "last_chapter_time": 1793316537,
       "first_chapter_time": 1791680424,
-      "currentPos": 132,
+      "currentPos": 115,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6880,7 +6880,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2obef9e984df8b35bc8ab44a5157e04173",
       "last_chapter_time": 1793364559,
       "first_chapter_time": 1790427439,
-      "currentPos": 133,
+      "currentPos": 123,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6900,7 +6900,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2ofaf2ca86793b5be4f0c7f75aed902cad",
       "last_chapter_time": 1793386594,
       "first_chapter_time": 1778342432,
-      "currentPos": 136,
+      "currentPos": 87,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6921,7 +6921,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o01cd26240c4a69811823c9f555e90330",
       "last_chapter_time": 1793360071,
       "first_chapter_time": 1790733635,
-      "currentPos": 138,
+      "currentPos": 119,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6942,7 +6942,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2of4a4382cfe8b75c94d15e6367b9f3cdb",
       "last_chapter_time": 1793190060,
       "first_chapter_time": 1789305717,
-      "currentPos": 146,
+      "currentPos": 144,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6964,7 +6964,7 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o7edcf7e17cec89f666e2b06bc463b5e6",
       "last_chapter_time": 1793340879,
       "first_chapter_time": 1792070151,
-      "currentPos": 149,
+      "currentPos": 112,
       "rankPosDiff": 0,
       "rankMold": 1
     },
@@ -6984,7 +6984,253 @@
       "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o5781a3cd465c0120efff0dd64c4a45d7",
       "last_chapter_time": 1788966429,
       "first_chapter_time": 1785077833,
-      "currentPos": 153,
+      "currentPos": 145,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7664991489365134398",
+      "book_name": "【年代】从差点没命到岁岁平安",
+      "author": "子非喵",
+      "tags": [
+        "年代",
+        "现代言情",
+        "家长里短"
+      ],
+      "abstract": "【七零 + 土著女主 + 配角穿越 + 读书改命+家长里短】\n姚家住在机械厂家属院里，有五个孩子，各有各的脾性。\n老四姚安平，是最容易被忽视的一个。\n从小在忽视和不公里长大，她觉醒了。\n想吃的好，就要学习好；\n想住的好，也要学习好；\n想不下乡，还是要学习好。\n好不容易学有所成，眼看日子要熬出头。\n妈妈的偏心与无知，又差点害死了她。\n万幸，一个自投罗网的表哥，悄无声息间拉了她一把。\n没人知道，他救她，是因为她是书里那个早早死去的人。\n经过这次，她大彻大悟，而后她走出了一条属于姚安平自己的路。\n而这个过程中，她也遇见了一个爱她的人。\n至此，事业圆满，小家终成。",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o7dc094c9267224b3f17e789817f05de6",
+      "last_chapter_time": 1793416503,
+      "first_chapter_time": 1784714447,
+      "currentPos": 290,
+      "rankPosDiff": 0,
+      "rankMold": 2
+    },
+    {
+      "book_id": "7646392764342488089",
+      "book_name": "绝美神医娇妻，禁欲军官夜夜求",
+      "author": "妙妙",
+      "tags": [
+        "年代",
+        "现代言情",
+        "乡村",
+        "宠妻",
+        "空间",
+        "穿书"
+      ],
+      "abstract": "【神医+空间+年代+宠妻+发家致富】\n医学天才秦娇娇穿书了，\n穿成了她昨晚刚看的一本年代团宠文里，只出场过一次就跳水身亡的小炮灰；\n她皱眉看了看自己明艳逼人的五官，又看了看凹凸有致引人垂涎的身材，\n就这？小炮灰？还因被退婚跳水身亡？\n想到渣未婚夫为了和继妹在一起，设计陷害原主逼迫她退婚的事儿，\n秦娇娇就气得要炸了；\n很好，这么来是吧，那她发疯也很正常了。\n对娘家拳打脚踢，对渣未婚夫家更是手段凌厉，\n等她闪婚禁欲大佬，凭借自身本事成为远近闻名的神医，\n娘家和渣未婚夫家全都哭天抢地悔恨不已；\n梁砚修搂着怀里的娇人儿，轻声问道：“媳妇儿，要不要再替你好好出气。”\n秦娇娇睨了男人一眼，没好气道：“不用你出手，我自己能搞定，你只要晚上安分点就好了。”",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o60d95cb4210fdc1262b10fa60d1e6be4",
+      "last_chapter_time": 1792079800,
+      "first_chapter_time": 1780803306,
+      "currentPos": 292,
+      "rankPosDiff": 0,
+      "rankMold": 2
+    },
+    {
+      "book_id": "7694475588555246616",
+      "book_name": "逃婚的二丫",
+      "author": "蓝猫哈基米",
+      "tags": [
+        "年代",
+        "现代言情",
+        "乡村",
+        "日久生情",
+        "逃婚"
+      ],
+      "abstract": "二丫半夜撞破了大姐的丑事，反被大姐诬告偷人。\n爹娘怕夜长梦多，连夜把她许给了村北头的瘫子冲喜。\n让二丫和大姐同一天出嫁。\n出嫁前夜，二丫逃婚。\n出嫁当天，大姐被退了婚。\n县城街头，二丫被一群混混盯上。\n一个穿大西服的男人救了她。\n两人日久生情。\n原来他竟是……",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o4275c88d871ef0f27e2cded989ce0a3d",
+      "last_chapter_time": 1793489154,
+      "first_chapter_time": 1791522329,
+      "currentPos": 109,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7696777725222079512",
+      "book_name": "重回八零：接乡下男人和孩子回城",
+      "author": "耳夕",
+      "tags": [
+        "年代",
+        "现代言情",
+        "重生",
+        "打脸",
+        "双重生"
+      ],
+      "abstract": "【夫妻双重生+爽文+打脸】\n寿终正寝的顾臻心底有个不为人知的遗憾——想再见一面早逝的儿子，但没想到是她竟然重生了——\n前世，她十六岁丧母，被继母算计下乡后，嫁给了乡下男人沈闻礼，还生下孩子\n她拼命考上大学，却被沈家堂伯和继母勾结，造谣迷晕卖进深山，十年蹉跎，被港商舅舅所救，等来的却是丈夫和孩子亡故的噩耗\n重回上大学前夕\n顾臻掀桌\n堂伯伪善？撕破脸，送他全家进泥潭\n继母狠毒？让她身败名裂\n亲爹眼瞎？连他一起扫地出门\n拿回母亲的遗产，第一件事便是将乡下男人和孩子接进城\n上辈子受的窝囊气，她绝对不再受了\n上辈子对儿子的愧疚，要弥补回来\n上辈子未再婚，所以这辈子对感情更没什么期待，相敬如宾将孩子养大便好\n重来一回，总不能浪费老天给的机会——拼事业，投身科技报国，将人生经营得精彩纷呈\n只是她没想到，她这一辈子会那么圆满\n就连她不祈求的感情，也有了新的模样\n——\n沈闻礼一直以为顾臻恨他，前世回城后杳无音信\n这一次他没耽误她的前程，亲自送她离开，安顿好一切准备带儿子去寻她，却见到了那个本该在城里的女人，站在田埂上大喊，“沈闻礼，我来接你和孩子进城了。”",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o6b3dbc7f8e1389aa8a5f836e83e2419d",
+      "last_chapter_time": 1793180298,
+      "first_chapter_time": 1792045862,
+      "currentPos": 121,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7664997383469534233",
+      "book_name": "疯批继姐下乡，冷面首长天天哄",
+      "author": "西风良人",
+      "tags": [
+        "年代",
+        "现代言情",
+        "位尊权重",
+        "甜宠",
+        "穿越",
+        "穿书"
+      ],
+      "abstract": "【军婚+甜宠+空间+穿越+爽文不憋屈+冷面首长VS疯批美人】\n姜晚晚从末世意外撞车，穿成了年代文里女主的凄惨炮灰继姐，一个被继父母和继妹设计嫁给家暴男、被折磨致死的对照组工具人。\n面对这憋屈的命运，姜晚晚冷笑一声，当众抄起斧头把家砸了个稀烂，继母和继妹想要道德绑架，她抬手就是大鼻窦无情扇倒。\n为了摆脱剧情，她带着空间物资大摇大摆地下乡，顺便盯上了背景通天的军区第一太子爷陆怀野，陆怀野本以为这姑娘是个清纯无辜、弱不禁风的知青小可怜，谁知一转头就看到她拿着板砖把地痞拍得头破血流……\n这个禁欲高冷的军区太子爷非但没嫌弃，反而心疼她会不会鲜血吓到。\n她抄起劈柴的扁担把女知青肋骨打断，听到消息赶来的陆怀野，第一反应是拉起她的手：拿刀做什么，没割到手吧？\n恶毒继母、继妹被她逼疯后，她揉着肩膀，依偎在退休首长的怀里：老公，我好累。\n陆首长（心疼坏了）：媳妇乖，晚上给你洗脚揉腿，下次这种事让我来。",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o65c73a51a44f57c8f3c80aea8fc92107",
+      "last_chapter_time": 1787291127,
+      "first_chapter_time": 1784648951,
+      "currentPos": 129,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7676487699930287166",
+      "book_name": "一胎四宝小孕妻替老公和婆婆撑腰",
+      "author": "竹墨粉黛",
+      "tags": [
+        "年代",
+        "现代言情",
+        "重生",
+        "先婚后爱",
+        "虐渣",
+        "双洁"
+      ],
+      "abstract": "【年代】【军婚】【双洁】\n医院小护士江意棠被人陷害，不小心爬了重伤残疾飞行员顾毅铮的床。\n上一世，她羞愧跳河而死，连累肚子里的一胎四宝也死了。\n重活一世，她决定不再软弱！\n挺着孕肚嫁给顾毅铮！\n顾家住在大院，婆婆老实可欺，偏心公公只会护着白莲花母女。\n江意棠谁也不惯着，直接成为顾家话事人，替老公和婆婆撑腰！\n四个儿子平安出生，白莲花母女哭晕了。\n江意棠还顺手治好了顾毅铮的腿，让他顺利归队！",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2od52fa51dc97a249d381c4a84bc25daea",
+      "last_chapter_time": 1792039233,
+      "first_chapter_time": 1787813794,
+      "currentPos": 135,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7691229073778953240",
+      "book_name": "重生八零研究所：我家都是魔丸",
+      "author": "迷途不迷途",
+      "tags": [
+        "年代",
+        "现代言情",
+        "重生",
+        "前世今生",
+        "家长里短"
+      ],
+      "abstract": "姜好想象里的周楚：呆板，木讷，还小气！\n姜好亲眼看到的周楚：帅气，潇洒，还阳光！\n这个周楚不错，可以试着交往一下。\n周楚想象中的姜好：死板，固执，还傻缺！\n周楚亲眼看到的姜好：聪明，漂亮，还腹黑！\n哦莫！这个姜好和他是一路人，他喜欢！\n……\n姜好从小就知道自己的捡来的孩子，只是她这个捡来的孩子没有挨冻受饿，也没有挨打受骂，她的养父母把她养的很好。\n直到她长大了，亲生母亲找上门来了……\n好吧，姜好既要好名声，也要亲爹留下的财产。\n有点心眼但不多的父母，小心思多多能力少少的奶奶，表面清冷实际话痨的大弟弟，见钱眼开的妹妹，还有一个三天不惹事就睡不着的小弟弟……\n但这些却是姜好最想牢牢抓在手里的……",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2od048c5cec5e3812c7b2f5ef92095aaab",
+      "last_chapter_time": 1793353071,
+      "first_chapter_time": 1790812841,
+      "currentPos": 136,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7671495617339739198",
+      "book_name": "我200斤咋了？旺夫旺崽旺全家",
+      "author": "六六一定发财",
+      "tags": [
+        "年代",
+        "现代言情",
+        "重生",
+        "打脸",
+        "养崽",
+        "家长里短"
+      ],
+      "abstract": "【胖妈重生逆袭+嘴硬糙汉+养两对双胞胎+战斗力超强四川奶奶+家长里短日常流+打脸虐渣】\n　　陈昭昭重生了。\n　　上辈子她是资本家大小姐，下乡嫁糙汉，两胎四宝，体重飙到200斤，却被人蒙骗，抛夫弃子离婚回城，最后自己和四个孩子都没落得好下场。\n　　重来一世，婆婆让她割肉还夫，她死也不离婚，发誓这辈子要火力全开，养崽宠夫，带着全家蒸蒸日上。\n　　可她发现自己竟然拿的团宠剧本！\n　　她建筑企业首富的男人：婆娘，不用你数到三，洗衣服做饭我全干！\n　　她头脑简单的大儿子：妈妈，你喜欢金牌是吗？我给你多拿几个！\n　　她沉默寡言的二儿子：妈妈，我要当文化程度最高的男人，为你撑腰。\n　　她鸡飞狗跳的三儿子：妈妈，看，这是我为你打下的钱山！\n　　她贪吃懒睡的四儿子：妈妈，我把你最爱吃的鱼做出花来啦~\n　　就连她五十多岁的歪婆婆：老娘儿媳妇不行？你真是批话超过文化，老鹰打饱嗝儿—死鸡儿吃多了！滚你丫的！\n　　---\n　　许娇穿回五十年前，一眼就相中了三十岁发育期的大佬。\n　　她耐着性子，等他那位二百斤的前妻闹离婚、等他儿子夭折，好趁虚而入取而代之。\n　　可她等啊等，等来的却是——大佬全家跟着前妻步步高升，闻名全国的新闻。\n　　许娇：？",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o32da1bf1c51822301a245fa1c43f8d62",
+      "last_chapter_time": 1792244242,
+      "first_chapter_time": 1786165213,
+      "currentPos": 138,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7646297437484633112",
+      "book_name": "七零被逼嫁秃顶，洞错房后被团宠",
+      "author": "冰魄神针",
+      "tags": [
+        "年代",
+        "现代言情",
+        "乡村",
+        "团宠",
+        "先婚后爱",
+        "打脸"
+      ],
+      "abstract": "评分刚出，会涨\n【军婚｜脑洞｜穿越飒姐｜全员团宠｜手撕极品】\n末世女，林惊晚穿越了！\n刚死的爸，杀人的妈\n人怂孤苦凄惨的她，正在被秃瓢欺压！\n一脚踹晕了“新婚丈夫”，出逃后又误闯别人洞房？\n换她上，行不行？\n**\n林惊晚没想到随便睡的男人不一般\n她闯祸，他撑腰，她打架，他递刀。\n他事事做在前，处处护她周全。\n婚后她才惊悚发现 —— 自己何止嫁了个好人家，简直闯了大佬窝！\n姥姥是御用厨食传人，手艺冠绝华国\n收养的妹妹，是开国元勋遗孤\n收养的弟弟，是顶级财团唯一继承人\n就连她大伯都是华国第一卧底！\n更别说，公公、爷爷、奶奶、二叔、堂哥\n全员大佬，满门顶配。\n唯独她这个末世穿来的人，看似最为普通。\n可谁都知道，她才是最特别的那一个！",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o8dee7b56030df7e75c2f7a532f108398",
+      "last_chapter_time": 1786526914,
+      "first_chapter_time": 1780294764,
+      "currentPos": 140,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7686774002030742553",
+      "book_name": "七零女司机：开重卡，撕极品！",
+      "author": "云林鸟岛",
+      "tags": [
+        "年代",
+        "现代言情",
+        "乡村",
+        "穿越",
+        "虐渣",
+        "家长里短"
+      ],
+      "abstract": "末世霸王花沈娇娇一睁眼，成了七零年代受气包。\n偏心眼的爷奶，恶毒的极品亲戚，还有个被折腾得半死不活的包子娘。\n大伯一家抢她顶岗名额，还要把她卖给老鳏夫换彩礼？\n沈娇娇冷笑，反手抄起劈柴大斧头，直接把堂屋八仙桌劈成两半！\n“抢工作？行，我送你们全家进重症监护室！”\n踹翻极品堂哥、榨干偏心爷奶、脚踢恶霸鳏夫，她带着爹娘火速分家！\n考进国营运输队，她成了唯一的女重卡司机。\n遇路霸？一脚油门踩到底，劫匪跪地喊娘！\n遇特务？修车扳手飞过去，顺手捞个一等功！\n只是那位清冷禁欲的公安陆队长，看她的眼神怎么越来越不对劲？\n某天，陆队将她堵在卡车后厢，红着耳朵眼神拉丝。\n沈娇娇掏出大扳手，一脸惊恐：“陆队，你脸红得像猴屁股，该不是被狂犬病狗咬了吧？我给你放放血？”\n陆峥：“……”（毁灭吧，这恋爱谁爱谈谁谈！）",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o79dc59d68aac3c4ceaff1054c3be7af1",
+      "last_chapter_time": 1793414187,
+      "first_chapter_time": 1789717782,
+      "currentPos": 146,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7668280400820587544",
+      "book_name": "李阿姨重生，虐渣！断亲！暴富！",
+      "author": "我爱宝宝",
+      "tags": [
+        "年代",
+        "现代言情",
+        "重生",
+        "空间",
+        "虐渣",
+        "发家致富"
+      ],
+      "abstract": "〔九十年代+重生+打脸虐渣+年代逆袭+三线市井生活+空间〕\n李秀兰丈夫早死，前世独自拉扯女儿长大，女儿哭喊着要嫁家庭穷苦的男同学。\n她全力阻止，可女儿却背着自己跟男同学私奔。\n她只能认命，全力托举女儿和女婿，让他们都有好工作，出钱买房子，照顾外孙女，把自己做生意挣的钱都拿给女儿。\n她累的吐血，发现自己有癌症，找女儿要钱治病，\n女儿女婿嫌弃她是沉重负担，直接把她赶出家门！\n她含恨而终，死不瞑目！\n\n重生回到九十年代，李秀兰才40岁，再也不当冤大头，20岁的女儿哭着喊着要嫁同学，“随你便！”\n\n婆家上门想白嫖她，李秀兰笑着说：“我女儿都是你们家的人了，户口也迁到你们家。嫁出去女泼出去的水，我自己挣的钱留着自己养老！”\n\n娘家弟弟要让孩子上她户口本，李秀兰直接硬刚断亲，“我的财产已经有继承人了，你们想吃绝户，做梦吧！”\n\n这一世，她虐渣！断亲！搞钱！只为自己痛快活一生！",
+      "status": "Completed",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2oa56f923441960367e072ff2433cce88a",
+      "last_chapter_time": 1788740362,
+      "first_chapter_time": 1786001649,
+      "currentPos": 148,
+      "rankPosDiff": 0,
+      "rankMold": 1
+    },
+    {
+      "book_id": "7684139579254787096",
+      "book_name": "重生八零，嫁绝嗣小叔我好孕连连",
+      "author": "鹿杳杳",
+      "tags": [
+        "年代",
+        "现代言情",
+        "系统",
+        "宠妻",
+        "重生",
+        "真假千金"
+      ],
+      "abstract": "【架空年代+娇软小辣椒X年上爹系科研院院长】\n前世，真千金程穗穗被假千金设计失身瘸子，受尽折磨惨死柴房！\n重回被陷害当晚，她一脚踹翻瘸子，绑定好运系统——只要给绝嗣大佬生崽，就能兑换各种系统道具。\n假千金洋洋得意抢走渣男未婚夫，嘲讽她嫁不出去？\n程穗穗转身睡了渣男那位权势滔天、被断言终生绝嗣的小叔！\n渣男贱女都在看笑话，赌她守活寡，一辈子无儿无女，可等来的却是小叔把她捧在心尖宠，更是三年抱三、四胎生五个，孩子满院子的跑。\n程穗穗被全家捧成了心尖宠。\n",
+      "status": "Ongoing",
+      "thumb_url": "https://p6-novel.byteimg.com/thumb/novel-pic/p2o189f8fb7332ac088805b96abaac2db11",
+      "last_chapter_time": 1793458144,
+      "first_chapter_time": 1789122176,
+      "currentPos": 150,
       "rankPosDiff": 0,
       "rankMold": 1
     }
