@@ -4628,6 +4628,55 @@ async function initApp() {
   if (statusFilter === 'Hidden') setStatusFilter('Hidden');
 }
 
+
+ // Browser-tab score indicator. This is presentation-only: score pipeline is untouched.
+const SCORE_TAB_ORIGINAL_TITLE = document.title;
+let scoreTabLastState = 'idle';
+let scoreTabHasRun = false;
+const scoreTabFavicon = document.createElement('link');
+scoreTabFavicon.rel = 'icon';
+scoreTabFavicon.type = 'image/svg+xml';
+scoreTabFavicon.id = 'score-tab-favicon';
+
+function setScoreTabIndicator(status) {
+  if (status === scoreTabLastState) return;
+  scoreTabLastState = status;
+  if (status === 'idle') {
+    scoreTabFavicon.remove();
+    document.title = SCORE_TAB_ORIGINAL_TITLE;
+    return;
+  }
+  const colors = { running: '#eab308', done: '#22c55e', error: '#ef4444' };
+  const labels = { running: 'Đang quét score', done: 'Đã quét score xong', error: 'Quét score còn lỗi' };
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">' +
+    '<circle cx="16" cy="16" r="12" fill="' + colors[status] + '"/>' +
+    '<circle cx="12" cy="12" r="3" fill="#ffffff" fill-opacity=".35"/>' +
+    '</svg>';
+  scoreTabFavicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+  if (!scoreTabFavicon.isConnected) document.head.appendChild(scoreTabFavicon);
+  document.title = (status === 'running' ? '🟡 ' : status === 'done' ? '🟢 ' : '🔴 ') +
+    SCORE_TAB_ORIGINAL_TITLE + ' · ' + labels[status];
+}
+
+function refreshScoreTabIndicator() {
+  const scans = [...qualifiedScoreScans.values()].filter(state => qualifiedScanIsCurrent(state));
+  const active = scoreRetryState.running || scoreBridgeTailActive ||
+    !!scoreBridgeTailTimer || scoreRequests.size > 0 ||
+    scans.some(state => state.running);
+  if (active) scoreTabHasRun = true;
+  if (!scoreTabHasRun) return;
+  if (active) {
+    setScoreTabIndicator('running');
+  } else {
+    const failed = scans.some(state => state.errors > 0) ||
+      deferredScoreIds.size > 0;
+    setScoreTabIndicator(failed ? 'error' : 'done');
+  }
+}
+// A lightweight visual heartbeat also covers observer-initiated score requests
+// and transitions from Share API to deferred Bridge without editing their logic.
+setInterval(refreshScoreTabIndicator, 400);
+
 loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
