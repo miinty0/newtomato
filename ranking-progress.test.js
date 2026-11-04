@@ -17,12 +17,12 @@ function environment(storage=new Map()) {
     'fq-ranking-period':select([['daily','Hằng ngày'],['weekly','Hằng tuần'],['monthly','Hằng tháng']],'daily'),
     'fq-ranking-subtab':select([['auto','Theo giới tính'],['1','Bảng tháng'],['5','Nam tần'],['4','Nữ tần']],'auto'),
     'fq-ranking-category':select([['24','24 – Mau xuyên']],'24'),
-    'fq-ranking-info':{},'fq-ranking-run-checks':{},
+    'fq-ranking-info':{},'fq-ranking-run-checks':{},'fq-ranking-retry':{},'fq-ranking-batch-info':{},
     'fq-ranking-sections':{replaceChildren(){}},'fq-ranking-words':{replaceChildren(){}},
   };
   const calls=[],logs=[],events={};
   const ctx=vm.createContext({
-    CFG:{user:'u',repo:'newtomato'},Date:ClockDate,Option,CATEGORY_NAMES:{24:'Mau xuyên'},booksPage:{rankings:1},
+    qualifiedScoreScans:new Map(), CFG:{user:'u',repo:'newtomato'},Date:ClockDate,Option,CATEGORY_NAMES:{24:'Mau xuyên'},booksPage:{rankings:1},
     document:{getElementById:id=>nodes[id]},window:{addEventListener:(name,fn)=>events[name]=fn},
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
     FqRankings:utils,pendingRead:{rankings:new Set()},automaticReadHidden:new Set(),
@@ -127,4 +127,65 @@ test('category diagnostic compares APP 135 category 0 and 24 without marking the
   assert.equal(report.comparison.sameFirstPageIds,true);
   assert.equal(vm.runInContext('Object.keys(fqLoadRankingProgress().runs).length',e.ctx),0);
   assert.ok(e.logs[0].startsWith('FQ_CATEGORY_DIAGNOSTIC'));
+});
+
+
+function batchEnvironment() {
+  const e = environment();
+  Object.assign(e.nodes, {
+    'fq-ranking-stop': {}, 'rankings-books': {dataset:{}}, 'fq-ranking-more': {style:{}}
+  });
+  e.ctx.document.querySelectorAll = () => [];
+  e.ctx.clearPagination = () => {};
+  e.ctx.unobserveScoresIn = () => {};
+  vm.runInContext("fqRankingState.initialized=true; fqRankingState.worker={closed:false}; fqRankingCategories={male:[{id:24},{id:25}],female:[{id:26}]};", e.ctx);
+  return e;
+}
+test('batch scopes cover nine APP combinations, three peak subtabs and every supported web category', () => {
+  const e = batchEnvironment();
+  assert.equal(vm.runInContext("fqRankingBatchScopes('board').length", e.ctx), 9);
+  e.nodes['fq-ranking-type'].value='app-200';
+  assert.equal(vm.runInContext("fqRankingBatchScopes('board').map(s=>s.subTab).sort().join(',')", e.ctx),'1,4,5');
+  e.nodes['fq-ranking-type'].value='reading';
+  assert.equal(vm.runInContext("fqRankingBatchScopes('board').map(s=>s.gender+':'+s.categoryId).join(',')", e.ctx),'1:24,1:25,0:26');
+  assert.equal(vm.runInContext("new Set(fqRankingBatchScopes('all').map(fqRankingScopeKey)).size === fqRankingBatchScopes('all').length",e.ctx),true);
+});
+test('batch exhausts source pages, carries sessions, deduplicates and checks only completed scopes', async () => {
+  const e = batchEnvironment(), calls=[];
+  e.ctx.fqRankRequest = async (_,p) => {
+    calls.push(p);
+    return { books: [{book_id:'123',abstract:'ok'}, {book_id:String(1000+calls.length),abstract:'ok'}],
+      has_more:p.offset===0,next_offset:p.offset+2,session_id:'session',rank_version:'version'};
+  };
+  await vm.runInContext("fqRunRankingBatch('board')",e.ctx);
+  assert.equal(calls.length,18);
+  assert.equal(calls[1].sessionId,'session');
+  assert.equal(vm.runInContext('fqRankingState.books.length',e.ctx),19);
+  assert.equal(vm.runInContext("fqRankingBoardDone('app-101')",e.ctx),true);
+  assert.equal(vm.runInContext('fqRankingBatch.remaining.length',e.ctx),0);
+});
+test('repeated pages retain partial results, remain unchecked and retry only unfinished scopes', async () => {
+  const e=batchEnvironment();
+  e.ctx.fqRankRequest=async(_,p)=>({books:[{book_id:p.gender===2?'123':'456',abstract:'ok'}],has_more:p.gender===2,next_offset:p.offset+1});
+  await vm.runInContext("fqRunRankingBatch('board')",e.ctx);
+  assert.equal(vm.runInContext('fqRankingBatch.remaining.length',e.ctx),3);
+  assert.equal(vm.runInContext("fqRankingScopeDone(fqRankingStandardScope('app-101','daily','2'))",e.ctx),false);
+  let retried=0;
+  e.ctx.fqRankRequest=async()=>{retried++;return {books:[{book_id:'789',abstract:'ok'}],has_more:false}};
+  await vm.runInContext("fqRunRankingBatch('retry')",e.ctx);
+  assert.equal(retried,3);
+  assert.equal(vm.runInContext('fqRankingState.books.length',e.ctx),3);
+  assert.equal(vm.runInContext("fqRankingBoardDone('app-101')",e.ctx),true);
+});
+test('stop keeps fetched books and queues current and unstarted scopes without checking them', async () => {
+  const e=batchEnvironment();
+  e.ctx.fqRankRequest=async()=>{
+    vm.runInContext('fqStopRankingBatch()',e.ctx);
+    return {books:[{book_id:'123',abstract:'ok'}],has_more:true,next_offset:1};
+  };
+  await vm.runInContext("fqRunRankingBatch('board')",e.ctx);
+  assert.equal(vm.runInContext('fqRankingState.books.length',e.ctx),1);
+  assert.equal(vm.runInContext('fqRankingBatch.remaining.length',e.ctx),9);
+  assert.equal(vm.runInContext('Object.keys(fqLoadRankingProgress().runs).length',e.ctx),0);
+  assert.equal(vm.runInContext('fqRankingState.busy',e.ctx),false);
 });

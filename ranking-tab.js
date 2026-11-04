@@ -214,6 +214,12 @@ async function initRankings() {
 }
 
 function fqRankingChanged(resetCategory = false) {
+  if (fqRankingBatch.running) return;
+  fqRankingBatch.aggregate = false;
+  fqRankingBatch.remaining = [];
+  fqRankEl('fq-ranking-retry').hidden = true;
+  fqRankEl('fq-ranking-batch-info').textContent = '';
+  qualifiedScoreScans.delete('rankings');
   fqRankingState.generation++;
   const type = fqRankEl('fq-ranking-type').value;
   const category = fqRankEl('fq-ranking-category');
@@ -249,7 +255,13 @@ function fqRankingChanged(resetCategory = false) {
 }
 
 async function fqFetchRankings(append, targetOverride) {
-  if (fqRankingState.busy || append && !fqRankingState.more) return;
+  if (fqRankingBatch.running || fqRankingState.busy || append && !fqRankingState.more) return;
+  if (!append) {
+    fqRankingBatch.aggregate = false; fqRankingBatch.remaining = [];
+    fqRankEl('fq-ranking-batch-info').textContent = '';
+    fqRankEl('fq-ranking-retry').hidden = true;
+    qualifiedScoreScans.delete('rankings');
+  }
   const generation = fqRankingState.generation;
   const runScope = fqRankingRunScope();
   const runDay = fqRankingProgressDay();
@@ -352,6 +364,7 @@ function fqSelectRankingSection(index) {
 }
 
 function fqRankingBoardKey() {
+  if (fqRankingBatch.aggregate) return 'batch:' + fqRankingBatch.serial;
   const value = id => fqRankEl('fq-ranking-' + id)?.value || '';
   const type = value('type');
   if (type === 'landing') return JSON.stringify([type, fqRankingState.section]);
@@ -387,6 +400,13 @@ function renderRankings() {
   fqRenderRankingChecks();
   const root = fqRankEl('rankings-books');
   if (!root) return;
+  registerBooks(fqRankingState.books);
+  syncCategoryScoreControl('rankings');
+  if (!fqRankingBatch.running && !fqRankingState.entries.length && renderQualifiedScorePage('rankings')) {
+    fqRankEl('fq-ranking-more').style.display = fqRankingState.more ? '' : 'none';
+    return;
+  }
+  root.dataset.qualifiedPaging = '';
   if (fqRankingState.entries.length) {
     unobserveScoresIn(root);
     const page = renderPagination('rankings', fqRankingState.entries.length);
@@ -413,7 +433,11 @@ function renderRankings() {
 }
 async function fqCopyRankings() {
   if (fqRankingState.entries.length) { toast('Bảng này không có ID truyện để copy.', 'err'); return; }
-  try { await navigator.clipboard.writeText(fqFilteredRankingBooks().filter(book => typeof pendingRead === 'undefined' || !Object.values(pendingRead).some(ids => ids.has(String(book.book_id)))).map(book => book.book_id).join('\n')); toast('Đã copy ID trong danh sách đang hiển thị.', 'ok'); }
+  try {
+    const minimum = sharedScoreMinimum();
+    const source = fqFilteredRankingBooks();
+    const waiting = minimum !== null ? source.filter(book => !scoreCache.has(String(book.book_id))).length : 0;
+    await navigator.clipboard.writeText(source.filter(book => scorePassesMinimum(scoreCache.get(String(book.book_id)), minimum)).filter(book => typeof pendingRead === 'undefined' || !Object.values(pendingRead).some(ids => ids.has(String(book.book_id)))).map(book => book.book_id).join('\n')); toast('Đã copy ID đạt bộ lọc.' + (waiting ? ' Còn ' + waiting + ' ID chưa có score.' : ''), 'ok'); }
   catch (error) { toast(error.message, 'err'); }
 }
 
@@ -478,3 +502,135 @@ async function fqDiagnoseRankingCategory(categoryId = 24, algoType = 135) {
   return report;
 }
 window.fqDiagnoseRankingCategory = fqDiagnoseRankingCategory;
+
+
+// Batch results stay separate from the selector values: switching a selector
+// returns to its individual board; score/status/read redraws preserve the union.
+const fqRankingBatch = { running: false, stop: false, aggregate: false, serial: 0, remaining: [] };
+function fqRankingBatchScopes(mode) {
+  if (mode === 'retry') return [...fqRankingBatch.remaining];
+  if (mode === 'scope') return [fqRankingRunScope()];
+  const types = mode === 'all' ? [...fqRankEl('fq-ranking-type').options].map(option => option.value) : [fqRankEl('fq-ranking-type').value];
+  return types.flatMap(type => {
+    if (type === 'app-200') return ['2', '1', '0'].map(gender => fqRankingStandardScope(type, 'special', gender));
+    if (type.startsWith('app-')) return ['daily', 'weekly', 'monthly'].flatMap(period =>
+      ['2', '1', '0'].map(gender => fqRankingStandardScope(type, period, gender)));
+    if (['reading', 'new'].includes(type)) return ['1', '0'].flatMap(gender =>
+      (fqRankingCategories[gender === '0' ? 'female' : 'male'] || []).map(row => ({ type, period: 'web', gender, categoryId: String(row.id) })));
+    return [{ type }];
+  });
+}
+function fqRankingBatchLabel(scope) {
+  const option = [...fqRankEl('fq-ranking-type').options].find(row => row.value === scope.type);
+  return [option?.dataset.baseLabel || option?.textContent || scope.type,
+    ({ daily: 'ngày', weekly: 'tuần', monthly: 'tháng' })[scope.period],
+    ({ '2': 'Toàn bộ', '1': 'Nam tần', '0': 'Nữ tần' })[scope.gender],
+    scope.categoryId && scope.categoryId !== '0' ? 'thể loại ' + scope.categoryId : ''].filter(Boolean).join(' · ');
+}
+function fqRankingBatchControls(running) {
+  document.querySelectorAll('#tab-rankings .filter-bar select, #tab-rankings .filter-bar button, [data-fq-bulk]').forEach(el => {
+    if (running) { el.dataset.fqWasDisabled = el.disabled ? '1' : '0'; el.disabled = true; }
+    else { el.disabled = el.dataset.fqWasDisabled === '1'; delete el.dataset.fqWasDisabled; }
+  });
+  fqRankEl('fq-ranking-stop').hidden = !running;
+  fqRankEl('fq-ranking-retry').hidden = running || !fqRankingBatch.remaining.length;
+}
+function fqStopRankingBatch() {
+  fqRankingBatch.stop = true;
+  fqRankEl('fq-ranking-batch-info').textContent = 'Đang dừng sau phản hồi hiện tại; kết quả đã lấy được giữ lại.';
+}
+async function fqRunRankingBatch(mode) {
+  if (fqRankingBatch.running || fqRankingState.busy) return;
+  if (!fqRankingState.initialized) { await initRankings(); if (!fqRankingState.initialized) return; }
+  if (!fqRankingState.worker || fqRankingState.worker.closed) {
+    toast('Kết nối tab Fanqie trước khi chạy hàng loạt.', 'err'); return;
+  }
+  const scopes = fqRankingBatchScopes(mode);
+  if (!scopes.length) { toast('Không có mục để chạy.', 'err'); return; }
+  fqRankingBatch.running = true;
+  fqRankingBatch.stop = false;
+  fqRankingBatch.aggregate = true;
+  if (mode !== 'retry') fqRankingBatch.serial++;
+  fqRankingBatch.remaining = [];
+  fqRankingState.generation++;
+  fqRankingState.busy = true;
+  fqRankingState.more = false;
+  fqRankingState.entries = [];
+  fqRankingState.sections = [];
+  fqRankEl('fq-ranking-sections').replaceChildren();
+  fqRankEl('fq-ranking-words').replaceChildren();
+  const union = new Map((mode === 'retry' ? fqRankingState.books : []).map(book => [String(book.book_id), book]));
+  fqRankingState.books = [...union.values()];
+  qualifiedScoreScans.delete('rankings');
+  fqRankEl('rankings-books').dataset.qualifiedPaging = '';
+  booksPage.rankings = 1;
+  unobserveScoresIn(fqRankEl('rankings-books'));
+  fqRankEl('rankings-books').innerHTML = '<div class="state-box">Đang gom truyện từ các bảng…</div>';
+  clearPagination('rankings');
+  fqRankEl('fq-ranking-more').style.display = 'none';
+  fqRankingBatchControls(true);
+  const runDay = fqRankingProgressDay();
+  const failures = [];
+  let completed = 0, index = 0;
+  const addBooks = raw => {
+    for (const book of FqRankings.unique(raw || [])) {
+      const previous = union.get(book.book_id);
+      // Do not discard a verified abstract when another ranking lacks it.
+      union.set(book.book_id, previous?.abstract_verified && !book.abstract_verified ? previous : book);
+    }
+    fqRankingState.books = [...union.values()];
+  };
+  try {
+    await fqLoadRankingFilters();
+    for (; index < scopes.length && !fqRankingBatch.stop; index++) {
+      const scope = scopes[index];
+      let offset = 0, session = '', version = '';
+      const signatures = new Set();
+      try {
+        do {
+          fqRankEl('fq-ranking-batch-info').textContent = `Đang chạy ${index + 1}/${scopes.length} · ${fqRankingBatchLabel(scope)} · offset ${offset} · ${union.size} ID duy nhất`;
+          const isApp = scope.type.startsWith('app-');
+          const result = await fqRankRequest(isApp ? 'app-rank-list' : scope.type === 'landing' ? 'search-landing' : 'rank-list', isApp ? {
+            algoType: Number(scope.type.slice(4)), offset, categoryId: 0, gender: Number(scope.gender),
+            period: scope.type === 'app-200' ? 'daily' : scope.period,
+            ...(scope.type === 'app-200' ? { subTab: Number(scope.subTab) } : {}),
+            sessionId: session, requireAbstract: fqRankingKeywords.length > 0
+          } : { type: scope.type, offset, categoryId: scope.categoryId || '0', gender: scope.gender || '1', rankVersion: version, requireAbstract: fqRankingKeywords.length > 0 });
+          if (scope.type === 'landing') {
+            if (!Array.isArray(result.sections) || !result.sections.length) throw new Error('Trang tìm kiếm thiếu danh sách');
+            for (const section of result.sections) addBooks(section.books);
+            break;
+          }
+          if (!Array.isArray(result.books)) throw new Error('Phản hồi thiếu danh sách');
+          const entries = Array.isArray(result.entries) ? result.entries : [];
+          const signature = JSON.stringify([result.books.map(book => String(book.book_id ?? book.bookId)), entries.map(row => row.id || row.query || row.title)]);
+          if ((result.books.length || entries.length) && signatures.has(signature)) throw new Error('API lặp lại trang; chưa lấy hết mục này');
+          signatures.add(signature);
+          addBooks(result.books);
+          if (!result.has_more) break;
+          const next = Number(result.next_offset);
+          if (!Number.isFinite(next) || next <= offset || !result.books.length && !entries.length) throw new Error('API báo còn dữ liệu nhưng không trả trang tiếp theo hợp lệ');
+          offset = next; session = result.session_id || session; version = result.rank_version || version;
+        } while (!fqRankingBatch.stop);
+        if (fqRankingBatch.stop) { fqRankingBatch.remaining.push(scope); index++; break; }
+        completed++;
+        fqMarkRankingRun(scope, runDay);
+      } catch (error) {
+        failures.push(fqRankingBatchLabel(scope) + ': ' + error.message);
+        fqRankingBatch.remaining.push(scope);
+        // A missing bridge would otherwise cause one timeout per remaining scope.
+        if (!fqRankingState.worker || fqRankingState.worker.closed || /không phản hồi/.test(error.message)) { index++; break; }
+      }
+    }
+  } catch (error) { failures.push(error.message); }
+  finally {
+    fqRankingBatch.remaining.push(...scopes.slice(index));
+    fqRankingBatch.running = false;
+    fqRankingState.busy = false;
+    fqRankingState.loaded = true;
+    fqRankingState.paused = true;
+    fqRankingBatchControls(false);
+    fqRankEl('fq-ranking-batch-info').textContent = `${fqRankingBatch.stop ? 'Đã dừng' : 'Kết thúc lượt chạy'} · thành công ${completed}/${scopes.length} mục · ${union.size} ID duy nhất · ${fqRankingBatch.remaining.length} mục lỗi/chưa xong` + (failures.length ? ' · ' + failures.join(' | ') : '');
+    renderRankings();
+  }
+}

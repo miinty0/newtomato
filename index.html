@@ -209,6 +209,7 @@
   }
   .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
   .btn-outline:disabled { opacity: .45; cursor: not-allowed; }
+  #tab-rankings .btn[hidden] { display: none; }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
   .btn-success { background: var(--green); color: #fff; }
   .btn-success:hover { opacity: .88; }
@@ -1137,6 +1138,17 @@
     <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
   </div>
   <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc, từ khóa dọn dẹp và năm cập nhật cuối (ẩn từ 2024 trở về trước). Đánh dấu đọc chưa lưu cũng được ẩn ở bảng khác. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
+  <div class="action-row" style="margin-bottom:12px">
+    <button class="btn btn-danger btn-sm" data-fq-bulk onclick="fqRunRankingBatch('all')">▶ Chạy tất cả bảng</button>
+    <button class="btn btn-outline btn-sm" data-fq-bulk onclick="fqRunRankingBatch('board')">▶ Chạy hết bảng đang chọn</button>
+    <button class="btn btn-outline btn-sm" data-fq-bulk onclick="fqRunRankingBatch('scope')">▶ Chạy hết mục đang chọn</button>
+    <button id="fq-ranking-stop" class="btn btn-outline btn-sm" hidden onclick="fqStopRankingBatch()">Dừng</button>
+    <button id="fq-ranking-retry" class="btn btn-outline btn-sm" hidden data-fq-bulk onclick="fqRunRankingBatch('retry')">Thử lại mục lỗi / chưa xong</button>
+    <label class="score-filter-control">Score ≥ <input id="fq-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setScoreMinimum('rankings', this)"></label>
+    <span id="fq-score-filter-info" class="section-meta"></span>
+  </div>
+  <p class="section-meta">Chạy hết bảng gồm các kỳ ngày/tuần/tháng và Toàn bộ/Nam tần/Nữ tần được hỗ trợ; bảng web chạy các thể loại. Kết quả gộp bỏ ID trùng, giữ bộ lọc hiện có. Score dùng chung với Category/Rankcat; để trống để xem tất cả.</p>
+  <p id="fq-ranking-batch-info" class="update-info" role="status"></p>
   <p id="fq-ranking-run-checks" class="section-meta" role="status"></p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
   <div id="fq-ranking-sections" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"></div>
@@ -2551,11 +2563,15 @@ function setScoreListLimit(tab, kind, input) {
 
 function syncCategoryScoreControl(tab) {
   const isCategory = tab === 'category';
-  const catId = scoreListScope(tab);
-  const prefix = tab === 'daily' ? 'daily' : isCategory ? 'cat' : 'rc';
+  const catId = tab === 'rankings' ? '__rankings' : scoreListScope(tab);
+  const prefix = tab === 'rankings' ? 'fq' : tab === 'daily' ? 'daily' : isCategory ? 'cat' : 'rc';
   const input = document.getElementById(prefix + '-score-min');
   input.disabled = false;
   input.value = sharedScoreMinimum() ?? '';
+  if (tab === 'rankings') {
+    if (sharedScoreMinimum() === null) document.getElementById('fq-score-filter-info').textContent = '';
+    return;
+  }
   for (const kind of ['rank', 'copy']) {
     const limitInput = document.getElementById(prefix + '-' + kind + '-max');
     limitInput.disabled = !catId;
@@ -2584,8 +2600,10 @@ function setScoreMinimum(tab, input) {
   syncCategoryScoreControl('category');
   syncCategoryScoreControl('rankcat');
   syncCategoryScoreControl('daily');
-  for (const name of ['daily', 'category', 'rankcat']) booksPage[name] = 1;
-  if (tab === 'daily') renderDaily();
+  syncCategoryScoreControl('rankings');
+  for (const name of ['daily', 'category', 'rankcat', 'rankings']) booksPage[name] = 1;
+  if (tab === 'rankings') renderRankings();
+  else if (tab === 'daily') renderDaily();
   else if (tab === 'category') renderCatPanels();
   else renderRcPanels();
 }
@@ -2622,6 +2640,7 @@ function applyCategoryScoreFilters() {
 }
 
 function scoreCandidatesForTab(tab) {
+  if (tab === 'rankings') return fqFilteredRankingBooks().map(book => ({ id: normalizedBookId(book), book, catId: '__rankings', minimum: sharedScoreMinimum(), readSet: fqRankingReadSet }));
   const prefix = tab === 'daily' ? 'daily' : tab === 'category' ? 'cat' : 'rc';
   const query = document.getElementById(prefix + '-search').value.toLowerCase().trim();
   let groups;
@@ -2672,7 +2691,7 @@ function qualifiedBookIdsForTab(tab) {
 const qualifiedScoreScans = new Map();
 
 function qualifiedScanRoot(tab) {
-  return document.getElementById(tab === 'daily' ? 'daily-books' : tab === 'category' ? 'cat-panels' : 'rankcat-books');
+  return document.getElementById(tab === 'rankings' ? 'rankings-books' : tab === 'daily' ? 'daily-books' : tab === 'category' ? 'cat-panels' : 'rankcat-books');
 }
 
 function qualifiedScanIsCurrent(state) {
@@ -2693,9 +2712,10 @@ function drawQualifiedScorePage(state) {
   const root = qualifiedScanRoot(tab);
   unobserveScoresIn(root);
   root.className = 'books-grid';
+  const pageSize = tab === 'rankings' ? 30 : BOOKS_PER_PAGE;
   const current = booksPage[tab] || 1;
-  const start = (current - 1) * BOOKS_PER_PAGE;
-  const rows = state.matches.slice(start, start + BOOKS_PER_PAGE);
+  const start = (current - 1) * pageSize;
+  const rows = state.matches.slice(start, start + pageSize);
   root.innerHTML = rows.map(row => scoreFilteredBookCardHTML(row.book, tab,
     row.readSet || dailyReadSet, row.catId)).join('') ||
     '<div class="state-box">' + (state.running ? '⏳ Đang lấy score để gom card đạt ngưỡng…' :
@@ -2704,14 +2724,14 @@ function drawQualifiedScorePage(state) {
   // intersection observers and can continue across source-page boundaries.
   loadScoresForCards(rows.map(row => row.book), root);
   const done = state.cursor >= state.candidates.length && !state.running && !state.errors;
-  const hasNext = state.matches.length > start + BOOKS_PER_PAGE ||
-    (rows.length === BOOKS_PER_PAGE && !done);
-  const label = 'Trang ' + current + ' · hiện ' + rows.length + '/' + BOOKS_PER_PAGE +
+  const hasNext = state.matches.length > start + pageSize ||
+    (rows.length === pageSize && !done);
+  const label = 'Trang ' + current + ' · hiện ' + rows.length + '/' + pageSize +
     ' · đã xét ' + state.cursor + '/' + state.candidates.length +
     ' · đạt ngưỡng ' + state.matches.length +
     (state.phase === 'bridge' ? ' · bridge cuối lượt: ' + state.pendingScoreIds.size + ' ID' : '') +
     (done ? ' · đã quét hết' : state.running ? ' · đang quét' : state.errors ? ' · còn lỗi/chờ thử lại' : ' · trang sau tải khi bấm');
-  const updateInfo = document.getElementById(tab === 'daily' ? 'daily-update-info' :
+  const updateInfo = document.getElementById(tab === 'rankings' ? 'fq-ranking-info' : tab === 'daily' ? 'daily-update-info' :
     tab === 'rankcat' ? 'rankcat-update-info' : 'cat-qualified-update-info');
   if (updateInfo) updateInfo.textContent = label;
   const controls = '<span class="pagination-info">' + label + '</span>' +
@@ -2722,7 +2742,8 @@ function drawQualifiedScorePage(state) {
     (state.errors ? '<button class="pagination-btn" onclick="retryQualifiedScoreScan(\'' + tab + '\')">Thử lại quét score</button>' : '');
   const prefix = paginationPrefix(tab);
   for (const position of ['top', 'bottom']) document.getElementById(prefix + '-pagination-' + position).innerHTML = controls;
-  const info = document.getElementById((tab === 'category' ? 'cat' : tab === 'rankcat' ? 'rc' : 'daily') + '-score-filter-info');
+  const info = document.getElementById((tab === 'rankings' ? 'fq' : tab === 'category' ? 'cat' : tab === 'rankcat' ? 'rc' : 'daily') + '-score-filter-info');
+  if (tab === 'rankings') updateReadBar('rankings');
   info.textContent = done ? 'Đã quét hết: ' + state.matches.length + ' truyện đạt ngưỡng.' :
     state.errors ? 'Còn ' + state.errors + ' ID thiếu score; Thử lại chỉ xử lý các ID này.' :
     state.running ? (state.phase === 'bridge' ? 'Đang lấy bridge cho các ID thiếu; giữ nguyên tiến độ đã xét.' : 'Đang gom đủ card đạt ngưỡng cho trang này…') : 'Đã đủ card. Bấm Trang sau để quét tiếp.';
@@ -2753,7 +2774,7 @@ async function scanQualifiedScorePage(state) {
   if (state.running || state.errors || !qualifiedScanIsCurrent(state)) return;
   state.pendingScoreIds ||= new Set();
   state.examinedIds ||= new Set();
-  const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * BOOKS_PER_PAGE;
+  const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * (state.tab === 'rankings' ? 30 : BOOKS_PER_PAGE);
   advanceQualifiedCursor(state);
   refreshQualifiedMatches(state);
   if (!state.retryPending && state.pendingScoreIds.size === 0 && (state.matches.length >= target || state.cursor >= state.candidates.length)) {
@@ -2832,6 +2853,7 @@ function retryQualifiedScoreScan(tab) {
 }
 
 function qualifiedScanScopeKey(tab, rankMax) {
+  if (tab === 'rankings') return JSON.stringify([sharedScoreMinimum(), statusFilter, fqRankingBoardKey()]);
   const prefix = tab === 'daily' ? 'daily' : tab === 'category' ? 'cat' : 'rc';
   const mode = categoryViewMode[tab] || 'single';
   const selected = mode === 'all' || tab === 'daily' ? null : String(tab === 'category' ? _catSelectValue : rcSelectValue);
@@ -2842,7 +2864,7 @@ function qualifiedScanScopeKey(tab, rankMax) {
 function renderQualifiedScorePage(tab) {
   const root = qualifiedScanRoot(tab);
   const candidates = scoreCandidatesForTab(tab);
-  const rankMax = scoreListLimit(tab, 'rank');
+  const rankMax = tab === 'rankings' ? null : scoreListLimit(tab, 'rank');
   if (categoryViewMode[tab] !== 'all' && rankMax === null && !candidates.some(row => row.minimum !== null)) {
     root.dataset.qualifiedPaging = '';
     qualifiedScoreScans.delete(tab);
@@ -4680,10 +4702,11 @@ setInterval(refreshScoreTabIndicator, 400);
 loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
-<script src="ranking-tab.js?v=20261023-checks"></script>
+<script src="ranking-tab.js?v=20261104-batch-score"></script>
 <script src="id-score-tab.js?v=3"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>
+
 
 

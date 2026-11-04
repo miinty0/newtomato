@@ -4,13 +4,13 @@ const assert = require('node:assert/strict');
 const FqRankings = require('../ranking-utils');
 function harness() {
   const nodes = new Map();
-  const element = id => { if (!nodes.has(id)) nodes.set(id, { value: '', style: {}, options: [], textContent: '', innerHTML: '', replaceChildren(...children) { this.options = children; } }); return nodes.get(id); };
+  const element = id => { if (!nodes.has(id)) nodes.set(id, { value: '', dataset: {}, style: {}, options: [], textContent: '', innerHTML: '', replaceChildren(...children) { this.options = children; } }); return nodes.get(id); };
   element('fq-ranking-type').value = 'app-101'; element('fq-ranking-gender').value = '2';
   let read = ['1','2','3','4'];
   const context = vm.createContext({
     document: { getElementById: element, createElement: () => ({}) }, window: { addEventListener() {} },
     FqRankings, crypto, Option: function(text,value){return {text,value};}, CATEGORY_NAMES: {},
-    booksPage: { rankings: 1 }, automaticReadHidden: new Set(),
+    qualifiedScoreScans: new Map(), syncCategoryScoreControl(){}, renderQualifiedScorePage(){return false;}, booksPage: { rankings: 1 }, automaticReadHidden: new Set(),
     ghRaw: async path => path.includes('read.json') ? read : ['blocked'],
     filterByStatus: books => books, registerBooks(){}, unobserveScoresIn(){}, loadScoresForCards(){}, updateReadBar(){},
     renderPagination: (_,count) => { const page = context.booksPage.rankings; return { start:(page-1)*30, end:Math.min(page*30,count) }; },
@@ -86,3 +86,4 @@ function harness() {
 
   console.log('PASS: exact cleanup keywords/read, 30-card pages, server offsets/sessions, partial failures, exhaustion, repeated pages, request guard and metadata filtering');
 })().catch(error=>{console.error(error);process.exitCode=1});
+

@@ -9,13 +9,13 @@ function harness(total, passes, options = {}) {
   const nodes = new Map();
   const root = { dataset: {}, className: '', innerHTML: '' };
   const scores = new Map();
-  const booksPage = { daily: 1, category: 1, rankcat: 1 };
+  const booksPage = { daily: 1, category: 1, rankcat: 1, rankings: 1 };
   const ctx = vm.createContext({ console, JSON, Map, Set, Math, Promise, clearTimeout, setTimeout,
-    categoryViewMode: {category:'single',rankcat:'single'}, _catSelectValue:'24', rcSelectValue:'24', statusFilter:'all', sharedScoreMinimum:()=>8.4, scoreSharePhaseDepth:0,
+    categoryViewMode: {category:'single',rankcat:'single'}, _catSelectValue:'24', rcSelectValue:'24', statusFilter:'all', fqRankingBoardKey:()=> 'batch:1', sharedScoreMinimum:()=>8.4, scoreSharePhaseDepth:0,
     BOOKS_PER_PAGE: 500, booksPage, scoreCache: scores, dailyReadSet: new Set(), automaticReadHidden: new Set(),
     document: { getElementById(id) {
       if (id.startsWith('tab-')) return { classList: { contains: () => active } };
-      if (['daily-books','cat-panels','rankcat-books'].includes(id)) return root;
+      if (['daily-books','cat-panels','rankcat-books','rankings-books'].includes(id)) return root;
       if (!nodes.has(id)) nodes.set(id, {value:''});
       return nodes.get(id);
     } },
@@ -23,7 +23,7 @@ function harness(total, passes, options = {}) {
     scoreListLimit: () => options.rankMax ?? null,
     scorePassesMinimum: (score, min) => Number(score) >= min,
     paginationPrefix: tab => tab === 'category' ? 'cat' : tab,
-    unobserveScoresIn() {}, loadScoresForCards() {}, toast() {}, requestStatusFlush() {},
+    updateReadBar() {}, unobserveScoresIn() {}, loadScoresForCards() {}, toast() {}, requestStatusFlush() {},
     scoreFilteredBookCardHTML: book => '<card id="' + book.book_id + '">',
     requestScore: async id => {
       calls.push(id);
@@ -59,6 +59,15 @@ async function run(h, tab = 'daily') {
     assert.equal(state.matches.length, 700);
     assert.equal(state.cursor, 700);
   }
+  const ranking = harness(100, 45);
+  let rs = await run(ranking, 'rankings');
+  assert.equal(rs.matches.length, 30);
+  assert.equal((ranking.root.innerHTML.match(/<card/g)||[]).length,30);
+  ranking.booksPage.rankings = 2;
+  rs = await run(ranking, 'rankings');
+  assert.equal(rs.matches.length,45); assert.equal(rs.cursor,100);
+  assert.equal((ranking.root.innerHTML.match(/<card/g)||[]).length,15);
+  assert.equal(ranking.calls.length,100);
   const h = harness(1754, 502);
   let s = await run(h);
   assert.equal(s.matches.length, 500); assert.equal(s.cursor, 500); assert.equal(h.calls.length, 500);
@@ -82,4 +91,5 @@ async function run(h, tab = 'daily') {
   assert.equal(hidden.calls.length, 501);
   console.log('PASS: 400/1754 exhaustive fill, 502/1754 lazy next page, all tabs, cached return, failed-score retry, pause/resume');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
 
