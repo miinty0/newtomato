@@ -210,6 +210,12 @@
   .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
   .btn-outline:disabled { opacity: .45; cursor: not-allowed; }
   #tab-rankings .btn[hidden] { display: none; }
+  .fq-ranking-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: nowrap; overflow-x: auto; margin-bottom: 12px;
+  }
+  .fq-ranking-toolbar > * { flex: 0 0 auto; white-space: nowrap; }
+  .fq-ranking-toolbar #fq-score-filter-info:empty { display: none; }
   .btn-sm { padding: 5px 11px; font-size: 12px; }
   .btn-success { background: var(--green); color: #fff; }
   .btn-success:hover { opacity: .88; }
@@ -1134,19 +1140,15 @@
     <select id="fq-ranking-category" onchange="fqRankingChanged()"></select>
     <button class="btn btn-outline btn-sm" onclick="fqConnectRankings()">🔗 Kết nối tab Fanqie</button>
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
-    <button class="btn btn-outline btn-sm" data-fq-copy onclick="fqCopyRankings()">📋 Copy ID đạt ngưỡng</button>
   </div>
-  <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc, từ khóa dọn dẹp và năm cập nhật cuối (ẩn từ 2024 trở về trước). Đánh dấu đọc chưa lưu cũng được ẩn ở bảng khác. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
-  <div class="action-row" style="margin-bottom:12px">
+  <div class="fq-ranking-toolbar">
+    <span id="fq-score-filter-info" class="section-meta" role="status"></span>
     <button class="btn btn-danger btn-sm" data-fq-bulk onclick="fqRunRankingBatch('all')">▶ Chạy tất cả bảng</button>
-    <button class="btn btn-outline btn-sm" data-fq-bulk onclick="fqRunRankingBatch('board')">▶ Chạy hết bảng đang chọn</button>
-    <button class="btn btn-outline btn-sm" data-fq-bulk onclick="fqRunRankingBatch('scope')">▶ Chạy hết mục đang chọn</button>
+    <label class="score-filter-control">Score ≥ <input id="fq-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setScoreMinimum('rankings', this)"></label>
+    <button class="btn btn-outline btn-sm" data-fq-copy onclick="fqCopyRankings()">📋 Copy ID đạt ngưỡng</button>
     <button id="fq-ranking-stop" class="btn btn-outline btn-sm" hidden onclick="fqStopRankingBatch()">Dừng</button>
     <button id="fq-ranking-retry" class="btn btn-outline btn-sm" hidden data-fq-bulk onclick="fqRunRankingBatch('retry')">Thử lại mục lỗi / chưa xong</button>
-    <label class="score-filter-control">Score ≥ <input id="fq-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setScoreMinimum('rankings', this)"></label>
-    <span id="fq-score-filter-info" class="section-meta"></span>
   </div>
-  <p class="section-meta">Chạy hết bảng gồm các kỳ ngày/tuần/tháng và Toàn bộ/Nam tần/Nữ tần được hỗ trợ; bảng web chạy các thể loại. Kết quả gộp bỏ ID trùng, giữ bộ lọc hiện có. Score dùng chung với Category/Rankcat; để trống để xem tất cả.</p>
   <p id="fq-ranking-batch-info" class="update-info" role="status"></p>
   <p id="fq-ranking-run-checks" class="section-meta" role="status"></p>
   <p id="fq-ranking-info" class="update-info" role="status"></p>
