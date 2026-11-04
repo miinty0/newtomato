@@ -335,7 +335,7 @@ async function fqFetchRankings(append, targetOverride) {
       fqRankingState.paused = true; failure = 'Đã lấy 40 trang trong lượt này; bấm tải tiếp để tiếp tục.';
     }
     if (append && !targetOverride && beforeCount >= FQ_RANK_PAGE_SIZE && fqRankVisibleCount() > beforeCount) booksPage.rankings = Math.floor(beforeCount / FQ_RANK_PAGE_SIZE) + 1;
-  } catch (error) { failure = error.message; fqRankingState.paused = true; }
+  } catch (error) { failure = fqRankingErrorMessage(error); fqRankingState.paused = true; }
   finally {
     fqRankingState.busy = false;
     if (generation === fqRankingState.generation) {
@@ -402,7 +402,7 @@ function renderRankings() {
   if (!root) return;
   registerBooks(fqRankingState.books);
   syncCategoryScoreControl('rankings');
-  if (!fqRankingBatch.running && !fqRankingState.entries.length && renderQualifiedScorePage('rankings')) {
+  if (!fqRankingState.entries.length && renderQualifiedScorePage('rankings')) {
     fqRankEl('fq-ranking-more').style.display = fqRankingState.more ? '' : 'none';
     return;
   }
@@ -432,13 +432,8 @@ function renderRankings() {
   fqRankRefillCurrentPage();
 }
 async function fqCopyRankings() {
-  if (fqRankingState.entries.length) { toast('Bảng này không có ID truyện để copy.', 'err'); return; }
-  try {
-    const minimum = sharedScoreMinimum();
-    const source = fqFilteredRankingBooks();
-    const waiting = minimum !== null ? source.filter(book => !scoreCache.has(String(book.book_id))).length : 0;
-    await navigator.clipboard.writeText(source.filter(book => scorePassesMinimum(scoreCache.get(String(book.book_id)), minimum)).filter(book => typeof pendingRead === 'undefined' || !Object.values(pendingRead).some(ids => ids.has(String(book.book_id)))).map(book => book.book_id).join('\n')); toast('Đã copy ID đạt bộ lọc.' + (waiting ? ' Còn ' + waiting + ' ID chưa có score.' : ''), 'ok'); }
-  catch (error) { toast(error.message, 'err'); }
+  if (fqRankingState.entries.length) { toast('Bảng này không có ID truyện.', 'err'); return; }
+  await copyQualifiedBookIds('rankings');
 }
 
 async function fqDiagnoseRankingCategory(categoryId = 24, algoType = 135) {
@@ -504,14 +499,32 @@ async function fqDiagnoseRankingCategory(categoryId = 24, algoType = 135) {
 window.fqDiagnoseRankingCategory = fqDiagnoseRankingCategory;
 
 
+function fqRankingErrorMessage(error) {
+  const message = String(error?.message || error || 'Lỗi tải');
+  if (/chưa trả truyện|thiếu danh sách/.test(message)) return 'Chưa có dữ liệu';
+  if (/trang tiếp theo|next_offset/.test(message)) return 'Lỗi phân trang';
+  if (/lặp lại trang/.test(message)) return 'Trang bị lặp';
+  if (/bảng khác/.test(message)) return 'Sai bảng';
+  if (/không phản hồi|timeout/i.test(message)) return 'Fanqie không phản hồi';
+  return message.replace(/;.*$/, '').slice(0, 80);
+}
+function fqRankingFailureSummary(failures) {
+  if (!failures.length) return '';
+  const counts = new Map();
+  for (const row of failures) counts.set(row.reason, (counts.get(row.reason) || 0) + 1);
+  const groups = [...counts].sort((a, b) => b[1] - a[1]);
+  return ' · ' + groups.slice(0, 3).map(([reason, count]) => count + ' ' + reason.toLowerCase()).join(' · ') +
+    (groups.length > 3 ? ' · lỗi khác' : '');
+}
+
 // Batch results stay separate from the selector values: switching a selector
 // returns to its individual board; score/status/read redraws preserve the union.
 const fqRankingBatch = { running: false, stop: false, aggregate: false, serial: 0, remaining: [] };
 function fqRankingBatchScopes(mode) {
-  if (mode === 'retry') return [...fqRankingBatch.remaining];
+  if (mode === 'retry') return fqRankingBatch.remaining.filter(scope => scope.type !== 'app-205');
   if (mode === 'scope') return [fqRankingRunScope()];
   const types = mode === 'all' ? [...fqRankEl('fq-ranking-type').options].map(option => option.value) : [fqRankEl('fq-ranking-type').value];
-  return types.flatMap(type => {
+  return types.filter(type => type !== 'app-205').flatMap(type => {
     if (type === 'app-200') return ['2', '1', '0'].map(gender => fqRankingStandardScope(type, 'special', gender));
     if (type.startsWith('app-')) return ['daily', 'weekly', 'monthly'].flatMap(period =>
       ['2', '1', '0'].map(gender => fqRankingStandardScope(type, period, gender)));
@@ -528,7 +541,7 @@ function fqRankingBatchLabel(scope) {
     scope.categoryId && scope.categoryId !== '0' ? 'thể loại ' + scope.categoryId : ''].filter(Boolean).join(' · ');
 }
 function fqRankingBatchControls(running) {
-  document.querySelectorAll('#tab-rankings .filter-bar select, #tab-rankings .filter-bar button, [data-fq-bulk]').forEach(el => {
+  document.querySelectorAll('#tab-rankings .filter-bar select, #tab-rankings .filter-bar button:not([data-fq-copy]), [data-fq-bulk]').forEach(el => {
     if (running) { el.dataset.fqWasDisabled = el.disabled ? '1' : '0'; el.disabled = true; }
     else { el.disabled = el.dataset.fqWasDisabled === '1'; delete el.dataset.fqWasDisabled; }
   });
@@ -572,13 +585,17 @@ async function fqRunRankingBatch(mode) {
   const runDay = fqRankingProgressDay();
   const failures = [];
   let completed = 0, index = 0;
-  const addBooks = raw => {
+  const addBooks = async raw => {
     for (const book of FqRankings.unique(raw || [])) {
       const previous = union.get(book.book_id);
       // Do not discard a verified abstract when another ranking lacks it.
       union.set(book.book_id, previous?.abstract_verified && !book.abstract_verified ? previous : book);
     }
     fqRankingState.books = [...union.values()];
+    renderRankings();
+    // Score and draw each received page before requesting the next source page.
+    // Keep the page visible and reuse the same scan as the union grows.
+    await qualifiedScoreScans.get('rankings')?.scanPromise;
   };
   try {
     await fqLoadRankingFilters();
@@ -598,7 +615,7 @@ async function fqRunRankingBatch(mode) {
           } : { type: scope.type, offset, categoryId: scope.categoryId || '0', gender: scope.gender || '1', rankVersion: version, requireAbstract: fqRankingKeywords.length > 0 });
           if (scope.type === 'landing') {
             if (!Array.isArray(result.sections) || !result.sections.length) throw new Error('Trang tìm kiếm thiếu danh sách');
-            for (const section of result.sections) addBooks(section.books);
+            for (const section of result.sections) await addBooks(section.books);
             break;
           }
           if (!Array.isArray(result.books)) throw new Error('Phản hồi thiếu danh sách');
@@ -606,7 +623,7 @@ async function fqRunRankingBatch(mode) {
           const signature = JSON.stringify([result.books.map(book => String(book.book_id ?? book.bookId)), entries.map(row => row.id || row.query || row.title)]);
           if ((result.books.length || entries.length) && signatures.has(signature)) throw new Error('API lặp lại trang; chưa lấy hết mục này');
           signatures.add(signature);
-          addBooks(result.books);
+          await addBooks(result.books);
           if (!result.has_more) break;
           const next = Number(result.next_offset);
           if (!Number.isFinite(next) || next <= offset || !result.books.length && !entries.length) throw new Error('API báo còn dữ liệu nhưng không trả trang tiếp theo hợp lệ');
@@ -616,13 +633,13 @@ async function fqRunRankingBatch(mode) {
         completed++;
         fqMarkRankingRun(scope, runDay);
       } catch (error) {
-        failures.push(fqRankingBatchLabel(scope) + ': ' + error.message);
+        failures.push({ scope: { ...scope }, error: error.message, reason: fqRankingErrorMessage(error) });
         fqRankingBatch.remaining.push(scope);
         // A missing bridge would otherwise cause one timeout per remaining scope.
         if (!fqRankingState.worker || fqRankingState.worker.closed || /không phản hồi/.test(error.message)) { index++; break; }
       }
     }
-  } catch (error) { failures.push(error.message); }
+  } catch (error) { failures.push({ error: error.message, reason: fqRankingErrorMessage(error) }); }
   finally {
     fqRankingBatch.remaining.push(...scopes.slice(index));
     fqRankingBatch.running = false;
@@ -630,7 +647,10 @@ async function fqRunRankingBatch(mode) {
     fqRankingState.loaded = true;
     fqRankingState.paused = true;
     fqRankingBatchControls(false);
-    fqRankEl('fq-ranking-batch-info').textContent = `${fqRankingBatch.stop ? 'Đã dừng' : 'Kết thúc lượt chạy'} · thành công ${completed}/${scopes.length} mục · ${union.size} ID duy nhất · ${fqRankingBatch.remaining.length} mục lỗi/chưa xong` + (failures.length ? ' · ' + failures.join(' | ') : '');
+    fqRankEl('fq-ranking-batch-info').textContent = `${fqRankingBatch.stop ? 'Đã dừng' : 'Kết thúc lượt chạy'} · thành công ${completed}/${scopes.length} mục · ${union.size} ID duy nhất · ${fqRankingBatch.remaining.length} mục lỗi/chưa xong` + fqRankingFailureSummary(failures);
+    window.fqRankingBatchErrors = failures;
+    if (failures.length) console.warn('Bảng Fanqie — chi tiết lỗi:', failures);
     renderRankings();
   }
 }
+

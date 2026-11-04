@@ -189,3 +189,38 @@ test('stop keeps fetched books and queues current and unstarted scopes without c
   assert.equal(vm.runInContext('Object.keys(fqLoadRankingProgress().runs).length',e.ctx),0);
   assert.equal(vm.runInContext('fqRankingState.busy',e.ctx),false);
 });
+
+
+test('205 is excluded from the board catalogue and bulk scopes', () => {
+  const e=batchEnvironment();
+  e.nodes['fq-ranking-type'].options.push({value:'app-205',textContent:'205 – Tác giả'});
+  assert.equal(vm.runInContext("fqRankingBatchScopes('all').some(s=>s.type==='app-205')",e.ctx),false);
+  assert(!fs.readFileSync(path.join(__dirname,'index.html'),'utf8').includes('<option value="app-205">'));
+});
+test('each received page renders and scores before the next source request', async () => {
+  const e=batchEnvironment(); let release, rendered, requests=0;
+  const gate=new Promise(resolve=>release=resolve);
+  const firstRender=new Promise(resolve=>rendered=resolve);
+  e.ctx.renderRankings=()=>{
+    const books=vm.runInContext('fqRankingState.books',e.ctx);
+    if (books.length===1) { e.ctx.qualifiedScoreScans.set('rankings',{scanPromise:gate}); rendered(); }
+    else e.ctx.qualifiedScoreScans.set('rankings',{scanPromise:Promise.resolve()});
+  };
+  e.ctx.fqRankRequest=async(_,p)=>{
+    requests++;
+    return {books:[{book_id:String(100+p.offset),abstract:'ok'}],has_more:p.offset===0,next_offset:1};
+  };
+  const run=vm.runInContext("fqRunRankingBatch('scope')",e.ctx);
+  await firstRender;
+  assert.equal(requests,1);
+  assert.equal(vm.runInContext('fqRankingState.books.length',e.ctx),1);
+  assert.equal(vm.runInContext('fqRankingBatch.running',e.ctx),true);
+  release(); await run;
+  assert.equal(requests,2);
+  assert.equal(vm.runInContext('fqRankingState.books.length',e.ctx),2);
+});
+test('batch failures show compact grouped counts and retain detailed diagnostics', () => {
+  const e=batchEnvironment();
+  const label=vm.runInContext("fqRankingFailureSummary(Array.from({length:57},()=>({reason:fqRankingErrorMessage('API báo còn dữ liệu nhưng không trả trang tiếp theo hợp lệ')})))",e.ctx);
+  assert.equal(label,' · 57 lỗi phân trang');
+});

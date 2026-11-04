@@ -1110,7 +1110,6 @@
         <option value="app-109">109 – Bảng theo dõi chương mới</option>
         <option value="app-110">110 – Bảng bình luận nổi bật</option>
         <option value="app-102">102 – Bảng ngựa ô</option>
-        <option value="app-205">205 – Bảng tác giả</option>
         <option value="app-103">103 – Bảng tìm kiếm nổi bật</option>
         <option value="app-146">146 – Bảng nhân khí</option>
         <option value="app-188">188 – Bảng quà tặng</option>
@@ -1135,7 +1134,7 @@
     <select id="fq-ranking-category" onchange="fqRankingChanged()"></select>
     <button class="btn btn-outline btn-sm" onclick="fqConnectRankings()">🔗 Kết nối tab Fanqie</button>
     <button class="btn btn-primary btn-sm" onclick="fqFetchRankings(false)">↻ Lấy danh sách mới</button>
-    <button class="btn btn-outline btn-sm" onclick="fqCopyRankings()">📋 Copy ID</button>
+    <button class="btn btn-outline btn-sm" data-fq-copy onclick="fqCopyRankings()">📋 Copy ID đạt ngưỡng</button>
   </div>
   <p style="color:var(--muted);margin-bottom:12px">Chọn bảng, giới tính và kỳ xếp hạng, kết nối tab Fanqie rồi lấy danh sách. Mỗi trang hiển thị tối đa 30 card sau lọc đã đọc, từ khóa dọn dẹp và năm cập nhật cuối (ẩn từ 2024 trở về trước). Đánh dấu đọc chưa lưu cũng được ẩn ở bảng khác. Nếu nguồn đã hết, số card có thể ít hơn 30.</p>
   <div class="action-row" style="margin-bottom:12px">
@@ -2684,7 +2683,7 @@ function qualifiedBookIdsForTab(tab) {
     if (row.minimum !== null && !scoreCache.has(row.id)) { waiting++; continue; }
     if (scorePassesMinimum(scoreCache.get(row.id), row.minimum)) ids.push(row.id);
   }
-  const copyMax = scoreListLimit(tab, 'copy');
+  const copyMax = tab === 'rankings' ? null : scoreListLimit(tab, 'copy');
   return { ids: copyMax === null ? ids : ids.slice(0, copyMax), waiting };
 }
 
@@ -2723,14 +2722,15 @@ function drawQualifiedScorePage(state) {
   // Only resolved qualifying cards are mounted. Scanning is independent of
   // intersection observers and can continue across source-page boundaries.
   loadScoresForCards(rows.map(row => row.book), root);
-  const done = state.cursor >= state.candidates.length && !state.running && !state.errors;
+  const sourcesRunning = tab === 'rankings' && typeof fqRankingBatch !== 'undefined' && fqRankingBatch.running;
+  const done = state.cursor >= state.candidates.length && !state.running && !state.errors && !sourcesRunning;
   const hasNext = state.matches.length > start + pageSize ||
-    (rows.length === pageSize && !done);
+    (rows.length === pageSize && !done && !sourcesRunning);
   const label = 'Trang ' + current + ' · hiện ' + rows.length + '/' + pageSize +
     ' · đã xét ' + state.cursor + '/' + state.candidates.length +
     ' · đạt ngưỡng ' + state.matches.length +
     (state.phase === 'bridge' ? ' · bridge cuối lượt: ' + state.pendingScoreIds.size + ' ID' : '') +
-    (done ? ' · đã quét hết' : state.running ? ' · đang quét' : state.errors ? ' · còn lỗi/chờ thử lại' : ' · trang sau tải khi bấm');
+    (done ? ' · đã quét hết' : sourcesRunning ? ' · đang lấy thêm bảng' : state.running ? ' · đang quét' : state.errors ? ' · còn lỗi/chờ thử lại' : ' · trang sau tải khi bấm');
   const updateInfo = document.getElementById(tab === 'rankings' ? 'fq-ranking-info' : tab === 'daily' ? 'daily-update-info' :
     tab === 'rankcat' ? 'rankcat-update-info' : 'cat-qualified-update-info');
   if (updateInfo) updateInfo.textContent = label;
@@ -2738,7 +2738,7 @@ function drawQualifiedScorePage(state) {
     '<button class="pagination-btn" onclick="setBooksPage(\'' + tab + '\', ' + (current - 1) + ')" ' +
     (current === 1 ? 'disabled' : '') + '>‹ Trang trước</button>' +
     '<button class="pagination-btn" onclick="setBooksPage(\'' + tab + '\', ' + (current + 1) + ')" ' +
-    (!hasNext || state.running ? 'disabled' : '') + '>Trang sau ›</button>' +
+    (!hasNext || (state.running && tab !== 'rankings') ? 'disabled' : '') + '>Trang sau ›</button>' +
     (state.errors ? '<button class="pagination-btn" onclick="retryQualifiedScoreScan(\'' + tab + '\')">Thử lại quét score</button>' : '');
   const prefix = paginationPrefix(tab);
   for (const position of ['top', 'bottom']) document.getElementById(prefix + '-pagination-' + position).innerHTML = controls;
@@ -2746,6 +2746,7 @@ function drawQualifiedScorePage(state) {
   if (tab === 'rankings') updateReadBar('rankings');
   info.textContent = done ? 'Đã quét hết: ' + state.matches.length + ' truyện đạt ngưỡng.' :
     state.errors ? 'Còn ' + state.errors + ' ID thiếu score; Thử lại chỉ xử lý các ID này.' :
+    sourcesRunning && !state.running ? 'Đang lấy thêm bảng; card đạt ngưỡng được hiển thị ngay.' :
     state.running ? (state.phase === 'bridge' ? 'Đang lấy bridge cho các ID thiếu; giữ nguyên tiến độ đã xét.' : 'Đang gom đủ card đạt ngưỡng cho trang này…') : 'Đã đủ card. Bấm Trang sau để quét tiếp.';
 }
 
@@ -2764,14 +2765,14 @@ function advanceQualifiedCursor(state) {
   state.examinedIds ||= new Set();
   while (state.cursor < state.candidates.length) {
     const row = state.candidates[state.cursor];
-    if (!state.examinedIds.has(row.id) && row.minimum !== null && !scoreCache.has(row.id)) break;
+    if (!state.examinedIds.has(row.id) && (row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) break;
     state.examinedIds.add(row.id);
     state.cursor++;
   }
 }
 
 async function scanQualifiedScorePage(state) {
-  if (state.running || state.errors || !qualifiedScanIsCurrent(state)) return;
+  if (state.running || (state.errors && (state.tab !== 'rankings' || state.cursor >= state.candidates.length)) || !qualifiedScanIsCurrent(state)) return;
   state.pendingScoreIds ||= new Set();
   state.examinedIds ||= new Set();
   const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * (state.tab === 'rankings' ? 30 : BOOKS_PER_PAGE);
@@ -2789,12 +2790,12 @@ async function scanQualifiedScorePage(state) {
   console.info(`[Score scan:${state.tab}] Share API: đã xét ${state.cursor}/${state.candidates.length}; tiếp tục ID chưa xét hoặc retry ID thiếu.`);
   const fetchRow = async row => {
     try {
-      if (row.minimum !== null && !scoreCache.has(row.id)) await requestScoreDirect(row.id);
+      if ((row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) await requestScoreDirect(row.id);
     } catch (_) {
       // Retain the ID for explicit retry without rewinding the source cursor.
     } finally {
       state.examinedIds.add(row.id);
-      if (row.minimum !== null && !scoreCache.has(row.id)) state.pendingScoreIds.add(row.id);
+      if ((row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) state.pendingScoreIds.add(row.id);
       else state.pendingScoreIds.delete(row.id);
       scheduleQualifiedDraw(state);
     }
@@ -2864,7 +2865,7 @@ function qualifiedScanScopeKey(tab, rankMax) {
 function renderQualifiedScorePage(tab) {
   const root = qualifiedScanRoot(tab);
   const candidates = scoreCandidatesForTab(tab);
-  const rankMax = tab === 'rankings' ? null : scoreListLimit(tab, 'rank');
+  const rankMax = tab === 'rankings' ? Infinity : scoreListLimit(tab, 'rank');
   if (categoryViewMode[tab] !== 'all' && rankMax === null && !candidates.some(row => row.minimum !== null)) {
     root.dataset.qualifiedPaging = '';
     qualifiedScoreScans.delete(tab);
@@ -2898,7 +2899,7 @@ function renderQualifiedScorePage(tab) {
   root.dataset.qualifiedPaging = '1';
   refreshQualifiedMatches(state);
   drawQualifiedScorePage(state);
-  scanQualifiedScorePage(state).catch(error => toast('Quét score lỗi: ' + error.message, 'err'));
+  if (!state.running) state.scanPromise = scanQualifiedScorePage(state).catch(error => toast('Quét score lỗi: ' + error.message, 'err'));
   return true;
 }
 
@@ -4702,11 +4703,12 @@ setInterval(refreshScoreTabIndicator, 400);
 loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
-<script src="ranking-tab.js?v=20261104-batch-score"></script>
+<script src="ranking-tab.js?v=20261104-live-score"></script>
 <script src="id-score-tab.js?v=3"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>
+
 
 
 
