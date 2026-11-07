@@ -55,7 +55,7 @@ function fqIdScoreRender() {
   const done = sorted.filter(row => row.status === 'done').length;
   const errors = sorted.filter(row => row.status === 'error').length;
   const numeric = sorted.filter(row => row.status === 'done' && row.score !== null).length;
-  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : state.phase === 'retry' ? 'Pha cuối: thử lại ID lỗi qua Share API…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note}`;
+  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : state.phase === 'bridge' ? 'Pha cuối: lấy score còn thiếu qua Fanqie Bridge…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note}`;
   fqIdScoreEl('start').disabled = state.running;
   fqIdScoreEl('input').disabled = state.running;
   fqIdScoreEl('clear').disabled = state.running;
@@ -68,7 +68,7 @@ function fqIdScoreRender() {
   const start = (state.page - 1) * 200;
   fqIdScoreEl('pages').innerHTML = sorted.length ? `<button class="pagination-btn" onclick="fqIdScorePage(-1)" ${state.page === 1 ? 'disabled' : ''}>←</button><span class="pagination-info">Trang ${state.page}/${pages} · ${sorted.length} ID</span><button class="pagination-btn" onclick="fqIdScorePage(1)" ${state.page === pages ? 'disabled' : ''}>→</button>` : '';
   fqIdScoreEl('results').innerHTML = sorted.slice(start, start + 200).map((row, index) => {
-    const status = row.status === 'done' ? (row.score === null ? 'Chưa có điểm' : 'Xong') : row.status === 'error' ? row.error : row.status === 'loading' ? 'Đang lấy…' : 'Chờ';
+    const status = row.status === 'done' ? (row.score === null ? 'Chưa có điểm' : 'Xong') : row.status === 'error' ? row.error : row.status === 'loading' ? 'Đang lấy…' : row.status === 'deferred' ? 'Chờ Fanqie Bridge ở pha cuối' : 'Chờ';
     return `<tr style="vertical-align:top;border-bottom:1px solid var(--border)"><td style="padding:12px 8px">${start + index + 1}</td><td style="padding:12px 8px;min-width:300px;max-width:750px">${fqIdScoreBookHTML(row)}</td><td style="padding:12px 8px;font-weight:700;white-space:nowrap">${row.status === 'done' ? (row.score === null ? 'N/A' : escapeHTML(row.display)) : '—'}</td><td style="padding:12px 8px;font-size:12px">${escapeHTML(status)}</td></tr>`;
   }).join('');
 }
@@ -118,14 +118,25 @@ async function fqIdScoreStart(retry = false) {
       try {
         // Same response supplies score and display-only metadata.
         // Never call the normal score side-effect path.
-        const response = await fetchScore(row.id);
-        const book = response?.book_info || response?.data?.book_info || {};
-        row.book = book && typeof book === 'object' && !Array.isArray(book) ? book : {};
-        row.shareInfo = response?.share_info || response?.data || null;
+        const bridgePhase = state.phase === 'bridge';
+        const fetchMeta = window.fqShareApiFetchBookMeta;
+        if (bridgePhase && typeof fetchMeta !== 'function') throw new Error('Fanqie Bridge chưa sẵn sàng; cập nhật công cụ score rồi thử lại.');
+        // Use the same fallback-enabled helper as Daily, without requestScore's
+        // shared-cache, automatic-read or persistent-status side effects.
+        const response = bridgePhase ? await fetchMeta(row.id, {deferBridge: false}) : await fetchScore(row.id);
+        const book = response?.book_info || response?.data?.book_info;
+        if (book && typeof book === 'object' && !Array.isArray(book) && Object.keys(book).length) row.book = book;
+        const shareInfo = response?.share_info || response?.data;
+        if (shareInfo) row.shareInfo = shareInfo;
         const raw = response && typeof response === 'object' ? response.score : response;
         const value = raw == null ? '' : String(raw).trim();
         if (!value) throw new Error('Score trống; có thể thử lại.');
         const na = /^N\/?A$/i.test(value);
+        if (na && !bridgePhase) {
+          row.status = 'deferred';
+          row.error = '';
+          continue;
+        }
         const score = Number(value);
         if (!na && (!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(value) || !Number.isFinite(score) || score < 0 || score > 10)) throw new Error('Score trả về không hợp lệ.');
         row.score = na ? null : score;
@@ -141,16 +152,16 @@ async function fqIdScoreStart(retry = false) {
   };
   try {
     await Promise.all(Array.from({ length: Math.min(5, queue.length) }, worker));
-    // Wait for the entire first pass before retrying failed IDs. Successful
-    // results (including an explicit N/A) are never requested again here.
+    // Like Daily: complete the direct pass before invoking Bridge for errors
+    // and missing scores. Only the final fallback can resolve an ID as N/A.
     if (!state.stopped) {
-      const failed = queue.filter(row => row.status === 'error');
+      const failed = queue.filter(row => row.status === 'error' || row.status === 'deferred');
       if (failed.length) {
         queue.splice(0, queue.length, ...failed);
         next = 0;
-        state.phase = 'retry';
+        state.phase = 'bridge';
         fqIdScoreRender();
-        await Promise.all(Array.from({ length: Math.min(5, queue.length) }, worker));
+        await worker();
       }
     }
   } finally {

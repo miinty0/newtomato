@@ -1191,7 +1191,7 @@
   <div id="tab-idscore" class="tab-panel">
     <div class="section-header"><div>
       <div class="section-title">Score theo ID</div>
-      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Lấy score, bìa và thông tin truyện qua Share API; tự thử lại ID lỗi ở pha cuối. Tự bỏ ID trùng, vẫn chạy các ID trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
+      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Lấy score, bìa và thông tin truyện qua Share API; gom ID lỗi hoặc thiếu score để gọi Fanqie Bridge ở pha cuối. Tự bỏ ID trùng, vẫn chạy các ID trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
     </div></div>
     <label for="idscore-input">Danh sách ID / link Fanqie</label>
     <textarea id="idscore-input" rows="8" spellcheck="false" placeholder="7569431547728645182 | 7676513996333124632" style="display:block;width:100%;padding:12px;margin:8px 0 12px;border:1px solid var(--border2);border-radius:var(--radius);font:13px monospace;background:var(--surface);color:var(--text);resize:vertical"></textarea>
@@ -4711,7 +4711,7 @@ loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
 <script src="ranking-tab.js?v=20261104-live-score"></script>
-<script src="id-score-tab.js?v=4"></script>
+<script src="id-score-tab.js?v=5"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>

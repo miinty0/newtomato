@@ -30,23 +30,37 @@ function harness(fetchScore) {
   return {ctx, ids, rows: () => vm.runInContext('fqIdScoreState.rows', ctx)};
 }
 
-test('ID scores retry only failures after all initial requests settle', async () => {
-  const calls = [], attempts = new Map();
+test('ID scores defer errors and N/A to the same Bridge helper as Daily after the direct pass', async () => {
+  const calls = [];
   const h = harness(async id => {
-    calls.push(id);
-    const n = (attempts.get(id) || 0) + 1;
-    attempts.set(id, n);
+    calls.push('share:' + id);
     await Promise.resolve();
-    if (id === h.ids[0] && n === 1) throw new Error('timeout');
-    if (id === h.ids[2]) return {score: 'invalid'};
-    return {score: id === h.ids[1] ? 'N/A' : '9.2'};
+    if (id === h.ids[0]) throw new Error('timeout');
+    return {score: id === h.ids[1] ? 'N/A' : '9.2', book_info: {author: '作者', book_name: '测试'}};
   });
+  h.ctx.window.fqShareApiFetchBookMeta = async (id, options) => {
+    assert.equal(options.deferBridge, false);
+    calls.push('bridge:' + id);
+    return {score: id === h.ids[0] ? '9.5' : 'N/A'};
+  };
   await h.ctx.fqIdScoreStart();
-  assert.deepEqual(calls.slice(0, 3), h.ids);
-  assert.deepEqual(calls.slice(3), [h.ids[0], h.ids[2]]);
-  assert.deepEqual(Array.from(h.rows(), r => r.status), ['done', 'done', 'error']);
-  assert.equal(h.rows()[0].score, 9.2);
+  assert.deepEqual(calls.slice(0, 3), h.ids.map(id => 'share:' + id));
+  assert.deepEqual(calls.slice(3), [h.ids[0], h.ids[1]].map(id => 'bridge:' + id));
+  assert.deepEqual(Array.from(h.rows(), r => r.status), ['done', 'done', 'done']);
+  assert.equal(h.rows()[0].score, 9.5);
   assert.equal(h.rows()[1].score, null);
+  assert.equal(h.rows()[1].book.author, '作者');
+  assert.equal(h.rows()[2].score, 9.2);
+});
+
+test('Bridge errors stay retryable and do not erase Share API display metadata', async () => {
+  const h = harness(async () => ({score: 'N/A', book_info: {author: '作者'}}));
+  h.ctx.window.fqShareApiFetchBookMeta = async () => {throw new Error('bridge timeout');};
+  await h.ctx.fqIdScoreStart();
+  assert.equal(h.rows().every(row => row.status === 'error' && row.book.author === '作者'), true);
+  h.ctx.window.fqShareApiFetchBookMeta = async () => ({score: '8.8'});
+  await h.ctx.fqIdScoreStart(true);
+  assert.equal(h.rows().every(row => row.status === 'done' && row.score === 8.8 && row.book.author === '作者'), true);
 });
 
 test('stop skips automatic final retry and manual retry can recover', async () => {
