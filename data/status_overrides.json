@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-05T11:15:55.060Z",
+  "updated_at": "2026-11-07T05:51:01.708Z",
   "books": {
     "7134583389499165731": {
       "status": "Completed",
@@ -6221,6 +6221,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-06T13:14:43.670Z"
+    },
+    "7599973969520757784": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-07T05:49:53.852Z"
     },
     "7600016135123110937": {
       "status": "Completed",
@@ -30911,6 +30916,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-08T10:42:25.250Z"
+    },
+    "7684667129416649790": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-07T05:49:52.760Z"
     },
     "7684672130495024153": {
       "status": "Completed",
