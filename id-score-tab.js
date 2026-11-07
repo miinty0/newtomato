@@ -2,7 +2,7 @@
 
 // Deliberately isolated from requestScore: no status updates, automatic read,
 // shared score cache, global metadata registration, or persistent storage.
-const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '' };
+const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '', phase: '' };
 const fqIdScoreEl = id => document.getElementById('idscore-' + id);
 
 function fqIdScoreParse(text) {
@@ -29,7 +29,6 @@ function fqIdScoreBookHTML(row) {
   const book = row.book || {};
   const cover = fqIdScoreCoverUrl(book.thumb_url);
   const fieldText = value => value && typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '');
-  const fields = Object.entries(book).map(([key, value]) => `<div style="display:grid;grid-template-columns:145px minmax(0,1fr);gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><dt>${escapeHTML(key)}</dt><dd style="white-space:pre-wrap;overflow-wrap:anywhere">${escapeHTML(fieldText(value))}</dd></div>`).join('');
   const title = book.book_name || book.book_short_name || row.shareInfo?.text || row.id;
   const abstract = book.abstract || row.shareInfo?.sub_text || '';
   const stats = [
@@ -43,11 +42,9 @@ function fqIdScoreBookHTML(row) {
     <div style="flex:1;min-width:0">
       <a href="https://fanqienovel.com/page/${row.id}" target="_blank" rel="noopener noreferrer" style="font-weight:600;font-size:16px">${escapeHTML(title)}</a>
       <div style="font:11px monospace;color:var(--muted);margin:3px 0 8px">${row.id}</div>
-      <div style="font-size:12px;color:var(--muted)">${stats.map(([label, value]) => `${label}: ${escapeHTML(fieldText(value))}`).join(' · ')}</div>
+      <div style="font-size:12px;color:var(--muted)">${stats.map(([label, value]) => `${label}: ${label === 'Tác giả' ? authorLinkHTML(value) : escapeHTML(fieldText(value))}`).join(' · ')}</div>
       ${abstract ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0">${escapeHTML(abstract)}</p>` : ''}
       ${metadataMissing ? '<p style="color:var(--muted);font-size:12px">Share API không trả thông tin truyện cho ID này.</p>' : ''}
-      ${fields ? `<details><summary style="cursor:pointer;color:var(--accent)">Toàn bộ field book_info (${Object.keys(book).length})</summary><dl style="font-size:12px;margin:8px 0">${fields}</dl></details>` : ''}
-      ${row.shareInfo ? `<details><summary style="cursor:pointer;color:var(--muted);font-size:12px">Toàn bộ dữ liệu Share API</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;margin:8px 0">${escapeHTML(JSON.stringify(row.shareInfo, null, 2))}</pre></details>` : ''}
     </div>
   </div>`;
 }
@@ -58,7 +55,7 @@ function fqIdScoreRender() {
   const done = sorted.filter(row => row.status === 'done').length;
   const errors = sorted.filter(row => row.status === 'error').length;
   const numeric = sorted.filter(row => row.status === 'done' && row.score !== null).length;
-  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note}`;
+  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : state.phase === 'retry' ? 'Pha cuối: thử lại ID lỗi qua Share API…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note}`;
   fqIdScoreEl('start').disabled = state.running;
   fqIdScoreEl('input').disabled = state.running;
   fqIdScoreEl('clear').disabled = state.running;
@@ -110,6 +107,7 @@ async function fqIdScoreStart(retry = false) {
   if (!queue.length) return;
   state.running = true;
   state.stopped = false;
+  state.phase = 'initial';
   let next = 0;
   fqIdScoreRender();
   const worker = async () => {
@@ -143,8 +141,21 @@ async function fqIdScoreStart(retry = false) {
   };
   try {
     await Promise.all(Array.from({ length: Math.min(5, queue.length) }, worker));
+    // Wait for the entire first pass before retrying failed IDs. Successful
+    // results (including an explicit N/A) are never requested again here.
+    if (!state.stopped) {
+      const failed = queue.filter(row => row.status === 'error');
+      if (failed.length) {
+        queue.splice(0, queue.length, ...failed);
+        next = 0;
+        state.phase = 'retry';
+        fqIdScoreRender();
+        await Promise.all(Array.from({ length: Math.min(5, queue.length) }, worker));
+      }
+    }
   } finally {
     state.running = false;
+    state.phase = '';
     clearTimeout(state.timer);
     state.timer = null;
     fqIdScoreRender();

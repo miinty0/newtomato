@@ -945,7 +945,7 @@
     <div class="cat-toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input id="daily-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterDailyBooks()" />
+        <input id="daily-search" type="text" placeholder="Nhập nhiều từ khóa, cách bằng dấu cách: 快穿 无CP (phải khớp tất cả)…" oninput="filterDailyBooks()" />
       </div>
       <label class="score-filter-control" title="Ngưỡng Score dùng chung cho Hằng ngày, Category và Rankcat. Để trống để hiện tất cả.">Score ≥ <input id="daily-score-min" type="number" min="0" max="10" step="0.1" placeholder="Tất cả" onchange="setScoreMinimum('daily', this)" /></label>
       <label class="score-filter-control" title="Chỉ lấy score và hiện truyện có thứ hạng từ 1 đến giới hạn này. Để trống để không giới hạn.">Hạng ≤ <input id="daily-rank-max" type="number" min="1" step="1" placeholder="Tất cả" onchange="setScoreListLimit('daily', 'rank', this)" /></label>
@@ -994,7 +994,7 @@
       </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input id="cat-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterCatBooks()" />
+        <input id="cat-search" type="text" placeholder="Nhập nhiều từ khóa, cách bằng dấu cách: 快穿 无CP (phải khớp tất cả)…" oninput="filterCatBooks()" />
       </div>
       <button class="btn btn-outline btn-sm" id="cat-reload-btn" onclick="reloadCategory()" disabled>↻ Tải lại</button>
       <button class="btn btn-primary btn-sm" id="cat-show-all" onclick="showAllSavedCategories('category')" title="Chỉ tải và gộp các file dữ liệu đã có khi bấm nút này; dùng chung tìm kiếm, Score và Hạng.">▶ Hiển thị tất cả</button>
@@ -1062,7 +1062,7 @@
       </div>
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input id="rc-search" type="text" placeholder="Tìm tên truyện, tag hoặc từ khoá trong tóm tắt…" oninput="filterRcBooks()" />
+        <input id="rc-search" type="text" placeholder="Nhập nhiều từ khóa, cách bằng dấu cách: 快穿 无CP (phải khớp tất cả)…" oninput="filterRcBooks()" />
       </div>
 
       <button class="btn btn-outline btn-sm" id="rc-reload-btn" onclick="loadRankCat()" disabled>↻ Tải lại</button>
@@ -1191,7 +1191,7 @@
   <div id="tab-idscore" class="tab-panel">
     <div class="section-header"><div>
       <div class="section-title">Score theo ID</div>
-      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Lấy score, bìa và thông tin truyện trong cùng một lần gọi API. Tự bỏ ID trùng, vẫn chạy các ID trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
+      <div class="section-meta">Dán ID hoặc link Fanqie, ngăn bằng xuống dòng, dấu |, dấu phẩy hoặc khoảng trắng. Lấy score, bìa và thông tin truyện qua Share API; tự thử lại ID lỗi ở pha cuối. Tự bỏ ID trùng, vẫn chạy các ID trong read.json. Chỉ giữ kết quả trong phiên trang này.</div>
     </div></div>
     <label for="idscore-input">Danh sách ID / link Fanqie</label>
     <textarea id="idscore-input" rows="8" spellcheck="false" placeholder="7569431547728645182 | 7676513996333124632" style="display:block;width:100%;padding:12px;margin:8px 0 12px;border:1px solid var(--border2);border-radius:var(--radius);font:13px monospace;background:var(--surface);color:var(--text);resize:vertical"></textarea>
@@ -3336,6 +3336,12 @@ function htmlJSString(value) {
   return escapeHTML(JSON.stringify(String(value ?? '')));
 }
 
+function authorLinkHTML(author) {
+  const name = String(author ?? '').trim();
+  if (!name || ['Unknown', '[Hidden]'].includes(name)) return escapeHTML(author);
+  return `<a href="https://wikicv.org/tac-gia/${encodeURIComponent(name)}" target="_blank" rel="noopener noreferrer">${escapeHTML(author)}</a>`;
+}
+
 function fmtTime(ts) {
   if (!ts) return '';
   const d = new Date(ts * 1000);
@@ -3416,7 +3422,7 @@ function bookCardHTML(book, tab, readSet = new Set()) {
     <div class="book-info">
       <div class="book-rank notranslate" id="rank-${htmlId}">${posDisplay}${scoreBadge}${readCountBadge}</div>
       <div class="book-name" title="${escapeHTML(book.book_name)}">${escapeHTML(book.book_name)}</div>
-      <div class="book-author notranslate">${escapeHTML(book.author)}</div>
+      <div class="book-author notranslate">${authorLinkHTML(book.author)}</div>
       <a href="https://fanqienovel.com/page/${encodeURIComponent(bookId)}" target="_blank" rel="noopener" class="book-id-link notranslate">#${htmlId}</a>
       ${book.abstract ? `<div class="book-abstract" id="abs-${htmlId}">${escapeHTML(book.abstract)}</div><button class="btn-abstract" onclick="openAbstract(${jsId}, this)">Xem thêm ▾</button>` : ''}
       <div class="book-tags">${specialTags}${statusTag}${tags}</div>
@@ -4309,11 +4315,10 @@ async function loadRankCat() {
 
 // Book matches search query in name, tags, or abstract
 function bookMatchesQuery(b, query) {
-  if (!query) return true;
-  if ((b.book_name || '').toLowerCase().includes(query)) return true;
-  if ((b.abstract || '').toLowerCase().includes(query)) return true;
-  if ((b.tags || []).some(t => (t || '').toLowerCase().includes(query))) return true;
-  return false;
+  const keywords = String(query ?? '').toLowerCase().trim().split(/[\s,，;；|]+/u).filter(Boolean);
+  const fields = [b.book_name, b.abstract, ...(Array.isArray(b.tags) ? b.tags : [])]
+    .map(value => String(value ?? '').toLowerCase());
+  return keywords.every(keyword => fields.some(field => field.includes(keyword)));
 }
 
 // ── Render: no query -> single selected category (mold split); query -> search across all loaded rank categories ──
@@ -4706,7 +4711,7 @@ loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
 <script src="ranking-tab.js?v=20261104-live-score"></script>
-<script src="id-score-tab.js?v=3"></script>
+<script src="id-score-tab.js?v=4"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>
