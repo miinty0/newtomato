@@ -32,9 +32,12 @@ function fqIdScoreBookHTML(row) {
   const title = book.book_name || book.book_short_name || row.shareInfo?.text || row.id;
   const abstract = book.abstract || row.shareInfo?.sub_text || '';
   const stats = [
-    ['Tác giả', book.author], ['Tag', book.tags], ['Danh mục', book.category],
-    ['Số chương', book.serial_count], ['Số chữ', book.word_number], ['Lượt đọc', book.read_count],
+    ['Tác giả', book.author],
+    ['Số chương', book.serial_count],
     ['Trạng thái', book.creation_status == null ? null : String(book.creation_status) === '0' ? 'Hoàn thành' : String(book.creation_status) === '1' ? 'Còn tiếp' : book.creation_status],
+    ['Tag', book.tags],
+    ['Số chữ', book.word_number],
+    ['Lượt đọc', book.read_count],
   ].filter(([, value]) => value != null && value !== '');
   const metadataMissing = row.status === 'done' && !Object.keys(book).length;
   return `<div style="display:flex;gap:14px;align-items:flex-start">
