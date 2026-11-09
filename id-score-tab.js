@@ -178,7 +178,7 @@ async function fqIdScoreCopy(withScore) {
   if (!rows.length) return;
   const text = withScore
     ? 'ID\tScore\n' + rows.map(row => row.id + '\t' + (row.score === null ? 'N/A' : row.display)).join('\n')
-    : rows.map(row => row.id).join('|');
+    : rows.map(row => row.id).join('\n');
   try {
     await navigator.clipboard.writeText(text);
     toast(`Đã copy ${rows.length} ID theo score; bỏ qua ID lỗi / chưa chạy.`, 'ok');
