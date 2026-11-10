@@ -25,6 +25,7 @@ const context = vm.createContext({
   updateReadBar: () => {}, renderDaily: () => {}, renderCatPanels: () => {}, renderRcPanels: () => {}, renderSpecial: () => {},
   toast: () => {}, b64DecodeUTF8: value => value,
   isStatusShaConflict: error => /409/.test(error.message), statusSyncDelay: async () => {},
+  ghRaw: async () => ['双男', '', '双男'],
   ghGetFile: async () => ({ content: JSON.stringify(remote), sha: String(writes) }),
   ghPutFile: async (_, content) => {
     if (failConflict) { failConflict = false; remote.push('another-tab'); throw Error('HTTP 409'); }
@@ -48,6 +49,12 @@ for (const raw of [0, '0']) assert.equal(context.mappedFanqieStatus(raw), 'Compl
 for (const raw of [1, '1']) assert.equal(context.mappedFanqieStatus(raw), 'Ongoing');
 for (const raw of [null, undefined, '', 2, 3, 4]) assert.equal(context.mappedFanqieStatus(raw), null);
 (async () => {
+  await context.ensureCleanupKeywords();
+  assert.equal(context.considerCleanupRead({book_id:'keyword', abstract:'含双男简介'}), true);
+  assert.equal(context.considerCleanupRead({book_id:'safe', abstract:'双 男'}), false);
+  assert.equal(context.considerCleanupRead({book_id:'description', description:'双男'}), true);
+  assert.equal(vm.runInContext("automaticReadQueue.has('keyword') && automaticReadHidden.has('keyword')", context), true);
+  vm.runInContext("automaticReadQueue.delete('keyword'); automaticReadQueue.delete('description');", context);
   context.considerAutomaticRead('candidate', '7.4', {
     first_chapter_time: (Date.now() - 301 * 86400000) / 1000,
   });
@@ -91,3 +98,4 @@ for (const raw of [null, undefined, '', 2, 3, 4]) assert.equal(context.mappedFan
   assert.deepEqual(cleaned[cleaned.length - 1], [copiedId]);
   console.log('PASS: boundaries, invalid data, status mapping, conflict merge, deduplication, cleanup, failed-save retry');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+

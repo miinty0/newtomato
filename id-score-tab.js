@@ -1,7 +1,6 @@
 'use strict';
 
-// Deliberately isolated from requestScore: no status updates, automatic read,
-// shared score cache, global metadata registration, or persistent storage.
+// Score lookup keeps its own cache and status; abstract cleanup uses the shared read queue.
 const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '', phase: '' };
 const fqIdScoreEl = id => document.getElementById('idscore-' + id);
 
@@ -12,9 +11,14 @@ function fqIdScoreParse(text) {
   return { ids, duplicates: valid.length - ids.length };
 }
 
+function fqIdScoreCleanupHidden(row) {
+  const matched = considerCleanupRead(row.book, row.id) || considerCleanupRead({ abstract: row.shareInfo?.sub_text }, row.id);
+  return matched || cleanupKeywordReadIds.has(row.id);
+}
+
 function fqIdScoreSorted() {
   const group = row => row.status === 'done' ? (row.score === null ? 1 : 0) : row.status === 'error' ? 2 : 3;
-  return [...fqIdScoreState.rows].sort((a, b) =>
+  return fqIdScoreState.rows.filter(row => !fqIdScoreCleanupHidden(row)).sort((a, b) =>
     group(a) - group(b) || (group(a) === 0 ? b.score - a.score : 0) || a.order - b.order);
 }
 
@@ -64,8 +68,9 @@ function fqIdScoreRender() {
   fqIdScoreEl('clear').disabled = state.running;
   fqIdScoreEl('stop').disabled = !state.running || state.stopped;
   fqIdScoreEl('retry').disabled = state.running || !sorted.some(row => row.status !== 'done');
-  fqIdScoreEl('copy').disabled = !done;
-  fqIdScoreEl('copy-table').disabled = !done;
+  const copyable = sorted.some(row => row.status === 'done' || row.status === 'error');
+  fqIdScoreEl('copy').disabled = !copyable;
+  fqIdScoreEl('copy-table').disabled = !copyable;
   const pages = Math.max(1, Math.ceil(sorted.length / 200));
   state.page = Math.min(pages, Math.max(1, state.page));
   const start = (state.page - 1) * 200;
@@ -97,6 +102,8 @@ function fqIdScoreClear() {
 async function fqIdScoreStart(retry = false) {
   const state = fqIdScoreState;
   if (state.running) return;
+  try { await ensureCleanupKeywords(true); }
+  catch (error) { toast('Không tải được từ khóa cleanup: ' + error.message, 'err'); return; }
   const fetchScore = window.fqShareApiFetchShareInfo;
   if (typeof fetchScore !== 'function') { toast('Cập nhật công cụ Fanqie score lên 1.5.1 rồi tải lại trang để lấy trực tiếp Share API.', 'err'); return; }
   if (!retry) {
@@ -131,6 +138,7 @@ async function fqIdScoreStart(retry = false) {
         if (book && typeof book === 'object' && !Array.isArray(book) && Object.keys(book).length) row.book = book;
         const shareInfo = response?.share_info || response?.data;
         if (shareInfo) row.shareInfo = shareInfo;
+        fqIdScoreCleanupHidden(row);
         const raw = response && typeof response === 'object' ? response.score : response;
         const value = raw == null ? '' : String(raw).trim();
         if (!value) throw new Error('Score trống; có thể thử lại.');
@@ -177,13 +185,17 @@ async function fqIdScoreStart(retry = false) {
 }
 
 async function fqIdScoreCopy(withScore) {
-  const rows = fqIdScoreSorted().filter(row => row.status === 'done');
+  try { await ensureCleanupKeywords(true); }
+  catch (error) { toast('Không tải được từ khóa cleanup: ' + error.message, 'err'); return; }
+  fqIdScoreRender();
+  const rows = fqIdScoreSorted().filter(row => row.status === 'done' || row.status === 'error');
   if (!rows.length) return;
   const text = withScore
-    ? 'ID\tScore\n' + rows.map(row => row.id + '\t' + (row.score === null ? 'N/A' : row.display)).join('\n')
+    ? 'ID\tScore\n' + rows.map(row => row.id + '\t' + (row.status === 'error' ? 'ERROR' : row.score === null ? 'N/A' : row.display)).join('\n')
     : rows.map(row => row.id).join('\n');
   try {
     await navigator.clipboard.writeText(text);
-    toast(`Đã copy ${rows.length} ID theo score; bỏ qua ID lỗi / chưa chạy.`, 'ok');
+    toast(`Đã copy ${rows.length} ID theo score; gồm ID lỗi; đã bỏ truyện khớp cleanup và ID chưa chạy.`, 'ok');
   } catch (error) { toast('Không copy được: ' + error.message, 'err'); }
 }
+

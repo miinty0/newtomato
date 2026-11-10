@@ -3,7 +3,7 @@ let fqRankingReadSet = new Set();
 let fqRankingKeywords = [];
 const fqRankingPendingOrigins = new Map();
 const FQ_RANK_LAST_UPDATE_CUTOFF = 2024;
-const FQ_RANK_PAGE_SIZE = 30;
+const FQ_RANK_PAGE_SIZE = 500;
 const fqRankingState = { initialized: false, worker: null, pending: new Map(), books: [], entries: [], sections: [], section: 0, next: 0, more: false, version: '', session: '', generation: 0, busy: false, loaded: false, paused: false, signatures: new Set(), title: '', fetchedAt: '' };
 const FQ_RANK_ORIGIN = 'https://fanqienovel.com';
 const FQ_RANK_CHANNEL = 'wd-fq-bridge-v2';
@@ -60,7 +60,7 @@ async function fqConnectRankings() {
 async function fqLoadRankingFilters() {
   const [read, keywords] = await Promise.all([
     ghRaw('data/read.json'),
-    ghRaw('data/cleanup_abstract_keywords.json').catch(error => { if (/HTTP 404/.test(error.message)) return []; throw error; })
+    ensureCleanupKeywords(true).then(() => cleanupAbstractKeywords)
   ]);
   if (!Array.isArray(read) || !Array.isArray(keywords) || keywords.some(word => typeof word !== 'string')) throw new Error('Dữ liệu read/từ khóa dọn dẹp không hợp lệ');
   // Preserve in-flight local read updates while refreshing the data branch.
@@ -343,7 +343,7 @@ async function fqFetchRankings(append, targetOverride) {
       renderRankings();
       const count = fqRankVisibleCount();
       const pending = fqRankingKeywords.length ? fqRankingState.books.filter(book => !book.abstract_verified && !fqRankingReadSet.has(book.book_id)).length : 0;
-      fqRankEl('fq-ranking-info').textContent = `${fqRankingState.title || 'Bảng Fanqie'} · ${count} mục sau lọc · 30 card/trang${!failure && !fqRankingState.more && count < target ? ' · nguồn đã hết hoặc không hỗ trợ tải tiếp' : ''}${pending ? ' · ' + pending + ' truyện thiếu tóm tắt, chưa hiển thị' : ''}${failure ? ' · ' + failure : ''}`;
+      fqRankEl('fq-ranking-info').textContent = `${fqRankingState.title || 'Bảng Fanqie'} · ${count} mục sau lọc · 500 card/trang${!failure && !fqRankingState.more && count < target ? ' · nguồn đã hết hoặc không hỗ trợ tải tiếp' : ''}${pending ? ' · ' + pending + ' truyện thiếu tóm tắt, chưa hiển thị' : ''}${failure ? ' · ' + failure : ''}`;
     }
   }
 }
@@ -653,4 +653,5 @@ async function fqRunRankingBatch(mode) {
     renderRankings();
   }
 }
+
 

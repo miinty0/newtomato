@@ -1158,7 +1158,7 @@
   <div id="rankings-pagination-top" class="pagination"></div>
   <div id="rankings-books" class="books-grid"></div>
   <div id="rankings-pagination-bottom" class="pagination"></div>
-  <button id="fq-ranking-more" class="btn btn-outline" style="display:none;margin-top:14px" onclick="fqFetchRankings(true)">Tải thêm 30 card sau lọc</button>
+  <button id="fq-ranking-more" class="btn btn-outline" style="display:none;margin-top:14px" onclick="fqFetchRankings(true)">Tải thêm 500 card sau lọc</button>
 </div>
 
   <div id="tab-special" class="tab-panel">
@@ -1268,7 +1268,7 @@ function clearPagination(tab) {
 }
 
 function paginationWindow(tab, totalItems) {
-  const pageSize = tab === 'rankings' ? 30 : BOOKS_PER_PAGE;
+  const pageSize = BOOKS_PER_PAGE;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const current = Math.min(Math.max(1, Number(booksPage[tab]) || 1), totalPages);
   booksPage[tab] = current;
@@ -1277,7 +1277,7 @@ function paginationWindow(tab, totalItems) {
 }
 
 function paginationHTML(tab, totalItems, page) {
-  const pageSize = tab === 'rankings' ? 30 : BOOKS_PER_PAGE;
+  const pageSize = BOOKS_PER_PAGE;
   if (totalItems <= pageSize) return '';
 
   const wanted = [...new Set([1, page.current - 1, page.current, page.current + 1, page.totalPages]
@@ -2045,6 +2045,49 @@ let automaticReadTimer = null;
 let automaticReadActive = null;
 let automaticReadQueuedAt = 0;
 
+// Match the manual abstract cleanup policy exactly, without depending on score.
+let cleanupAbstractKeywords = [];
+let cleanupKeywordsPromise = null;
+let cleanupKeywordsLoadedAt = 0;
+const cleanupKeywordReadIds = new Set();
+async function ensureCleanupKeywords(force = false) {
+  if (cleanupKeywordsPromise) return cleanupKeywordsPromise;
+  if (!force && cleanupKeywordsLoadedAt && Date.now() - cleanupKeywordsLoadedAt < 60000) return;
+  cleanupKeywordsPromise = (async () => {
+    const words = await ghRaw('data/cleanup_abstract_keywords.json').catch(error => {
+      if (/HTTP 404/.test(error.message)) return [];
+      throw error;
+    });
+    if (!Array.isArray(words) || words.some(word => typeof word !== 'string')) {
+      throw new Error('cleanup_abstract_keywords.json phải là một mảng chuỗi.');
+    }
+    cleanupAbstractKeywords = [...new Set(words.map(word => word.trim()).filter(Boolean))];
+    cleanupKeywordsLoadedAt = Date.now();
+    for (const book of Object.values(_bookRegistry)) considerCleanupRead(book);
+  })().finally(() => { cleanupKeywordsPromise = null; });
+  return cleanupKeywordsPromise;
+}
+function matchesCleanupAbstract(book) {
+  const abstract = String(book?.abstract ?? book?.description ?? '');
+  return cleanupAbstractKeywords.some(keyword => abstract.includes(keyword));
+}
+function considerCleanupRead(book, bookId = normalizedBookId(book || {})) {
+  if (cleanupKeywordReadIds.has(String(bookId))) return true;
+  if (!bookId || !matchesCleanupAbstract(book)) return false;
+  bookId = String(bookId);
+  cleanupKeywordReadIds.add(bookId);
+  automaticReadHidden.add(bookId);
+  document.querySelectorAll('.book-card[data-id]').forEach(card => {
+    if (String(card.dataset.id) === bookId) card.classList.add('automatic-read-hidden');
+  });
+  if (!automaticReadSaved.has(bookId)) {
+    automaticReadQueue.add(bookId);
+    if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+    scheduleAutomaticRead();
+  }
+  return true;
+}
+
 function considerAutomaticRead(bookId, score, metadata) {
   bookId = String(bookId);
   if (automaticReadSaved.has(bookId)) return;
@@ -2135,17 +2178,18 @@ async function flushAutomaticRead() {
   if (!automaticReadQueue.size) return;
   const batch = new Set(automaticReadQueue);
   const copiedCount = [...batch].filter(id => copiedReadQueued.has(id)).length;
+  const cleanupCount = [...batch].filter(id => cleanupKeywordReadIds.has(id)).length;
   automaticReadQueue.clear();
   automaticReadQueuedAt = 0;
   automaticReadActive = (async () => {
     try {
       const result = await mergeReadIds(batch, copiedCount
         ? 'mark queued copied book IDs and automatic read candidates as read'
-        : 'auto read: older than 300 days and score below 7.5');
+        : 'auto read: cleanup keywords or older than 300 days with score below 7.5');
       for (const id of batch) automaticReadSaved.add(id);
       applyReadIdsLocally(result.ids);
       toast(copiedCount ? '✓ Đã lưu ' + result.added + ' ID mới từ hàng đợi read.' :
-        '✓ Tự đưa ' + result.added + ' truyện trên 300 ngày, score <7.5 vào read.', 'ok');
+        '✓ Tự đưa ' + result.added + ' truyện vào read' + (cleanupCount ? ' (có từ khóa cleanup).' : ' (trên 300 ngày, score <7.5).'), 'ok');
       await cleanupAfterRead(batch);
       for (const id of batch) copiedReadQueued.delete(id);
     } catch (error) {
@@ -2181,6 +2225,7 @@ function mappedFanqieStatus(creationStatus) {
 }
 
 async function ensureStatusOverrides() {
+  await ensureCleanupKeywords();
   if (statusOverridesLoadPromise) return statusOverridesLoadPromise;
   statusOverridesLoadPromise = ghRaw(STATUS_OVERRIDES_PATH)
     .then(data => {
@@ -2713,7 +2758,7 @@ function drawQualifiedScorePage(state) {
   const root = qualifiedScanRoot(tab);
   unobserveScoresIn(root);
   root.className = 'books-grid';
-  const pageSize = tab === 'rankings' ? 30 : BOOKS_PER_PAGE;
+  const pageSize = BOOKS_PER_PAGE;
   const current = booksPage[tab] || 1;
   const start = (current - 1) * pageSize;
   const rows = state.matches.slice(start, start + pageSize);
@@ -2777,7 +2822,7 @@ async function scanQualifiedScorePage(state) {
   if (state.running || (state.errors && (state.tab !== 'rankings' || state.cursor >= state.candidates.length)) || !qualifiedScanIsCurrent(state)) return;
   state.pendingScoreIds ||= new Set();
   state.examinedIds ||= new Set();
-  const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * (state.tab === 'rankings' ? 30 : BOOKS_PER_PAGE);
+  const target = state.rankMax !== null && state.rankMax !== undefined ? Infinity : (booksPage[state.tab] || 1) * BOOKS_PER_PAGE;
   advanceQualifiedCursor(state);
   refreshQualifiedMatches(state);
   if (!state.retryPending && state.pendingScoreIds.size === 0 && (state.matches.length >= target || state.cursor >= state.candidates.length)) {
@@ -4059,7 +4104,7 @@ window.addEventListener('beforeunload', (e) => {
   const hasUnsaved = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
   const cleanupBusy = homeReadSaving || cleanupActivePromise !== null || cleanupQueuedIds.size > 0;
   const statusSyncBusy = statusSyncActivePromise !== null || pendingStatusOverrides.size > 0;
-  if (hasUnsaved || cleanupBusy || statusSyncBusy) {
+  if (hasUnsaved || cleanupBusy || statusSyncBusy || automaticReadQueue.size || automaticReadActive) {
     e.preventDefault();
     e.returnValue = '';
   }
@@ -4079,6 +4124,7 @@ function registerBooks(books) {
     // Normalise alternate API field names once so filtering, read state,
     // modal lookup and score fetching all refer to the same ID.
     b.book_id = bookId;
+    considerCleanupRead(b, bookId);
     applyStatusOverride(b);
     _bookRegistry[bookId] = b;
     if (!_bookInstances.has(bookId)) _bookInstances.set(bookId, new Set());
@@ -4611,9 +4657,10 @@ function renderSpecial() {
   const container = document.getElementById('special-books');
   const infoEl = document.getElementById('special-update-info');
   const query = document.getElementById('special-search').value.toLowerCase().trim();
-  const books = query ? specialBooks.filter(b =>
+  const availableBooks = specialBooks.filter(b => !automaticReadHidden.has(normalizedBookId(b)));
+  const books = query ? availableBooks.filter(b =>
     normalizedBookId(b).includes(query) || bookMatchesQuery(b, query)
-  ) : specialBooks;
+  ) : availableBooks;
   unobserveScoresIn(container);
   const hiddenCount = specialBooks.filter(b => b._specialHidden).length;
   const noRankCount = specialBooks.filter(b => b._specialNoRank).length;
@@ -4710,11 +4757,12 @@ setInterval(refreshScoreTabIndicator, 400);
 loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
-<script src="ranking-tab.js?v=20261104-live-score"></script>
-<script src="id-score-tab.js?v=5"></script>
+<script src="ranking-tab.js?v=20261110-cleanup-500"></script>
+<script src="id-score-tab.js?v=6"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>
+
 
 
 

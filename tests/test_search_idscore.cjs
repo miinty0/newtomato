@@ -21,7 +21,7 @@ test('search requires every keyword across title, tags and abstract', () => {
 function harness(fetchScore) {
   const ids = ['7569431547728645182', '7676513996333124632', '7676513996333124633'];
   const elements = new Map();
-  const ctx = vm.createContext({URL, window: {fqShareApiFetchShareInfo: fetchScore},
+  const ctx = vm.createContext({URL, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
     document: {getElementById(id) {
       if (!elements.has(id)) elements.set(id, {value: ids.join('\n')});
       return elements.get(id);
@@ -90,4 +90,26 @@ test('author links encode path segments and ID cards omit raw API details', () =
   assert.ok(!card.includes('<details>'));
   assert.ok(!card.includes('secret_field'));
   assert.ok(!card.includes('raw-share'));
+});
+
+
+test('ID copy hides cleanup matches and includes failed scores in both formats', async () => {
+  const h = harness(async () => ({}));
+  const copied = [];
+  h.ctx.toast = () => {};
+  h.ctx.navigator = {clipboard: {writeText: async text => copied.push(text)}};
+  h.ctx.considerCleanupRead = book => String(book?.abstract || book?.description || '').includes('双男');
+  vm.runInContext(`fqIdScoreState.rows = [
+    {id:'1', order:0, status:'done', score:9, display:'9', book:{abstract:'双男 story'}},
+    {id:'2', order:1, status:'done', score:8.4, display:'8.4'},
+    {id:'3', order:2, status:'error', score:null, error:'timeout'},
+    {id:'4', order:3, status:'error', score:null, book:{abstract:'双男'}},
+    {id:'5', order:4, status:'done', score:null, display:'N/A'},
+    {id:'6', order:5, status:'pending', score:null}
+  ]`, h.ctx);
+  await h.ctx.fqIdScoreCopy(false);
+  await h.ctx.fqIdScoreCopy(true);
+  assert.equal(copied[0], '2\n5\n3');
+  assert.equal(copied[1], 'ID\tScore\n2\t8.4\n5\tN/A\n3\tERROR');
+  assert(!h.ctx.document.getElementById('idscore-results').innerHTML.includes('双男'));
 });

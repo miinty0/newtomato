@@ -25,6 +25,7 @@ function environment(storage=new Map()) {
     qualifiedScoreScans:new Map(), CFG:{user:'u',repo:'newtomato'},Date:ClockDate,Option,CATEGORY_NAMES:{24:'Mau xuyên'},booksPage:{rankings:1},
     document:{getElementById:id=>nodes[id]},window:{addEventListener:(name,fn)=>events[name]=fn},
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},
+    ensureCleanupKeywords:async()=>{},cleanupAbstractKeywords:[],
     FqRankings:utils,pendingRead:{rankings:new Set()},automaticReadHidden:new Set(),
     filterByStatus:books=>books,console:{warn(){},log:message=>logs.push(message)},
     ghRaw:async file=>file.includes('ranking-categories')?{male:[{id:'24',name:'快穿'}],female:[{id:'24',name:'快穿'}]}:file.includes('ranking-snapshot')?{peak:{books:[]},fetched_at:'old'}:[],
@@ -224,3 +225,4 @@ test('batch failures show compact grouped counts and retain detailed diagnostics
   const label=vm.runInContext("fqRankingFailureSummary(Array.from({length:57},()=>({reason:fqRankingErrorMessage('API báo còn dữ liệu nhưng không trả trang tiếp theo hợp lệ')})))",e.ctx);
   assert.equal(label,' · 57 lỗi phân trang');
 });
+

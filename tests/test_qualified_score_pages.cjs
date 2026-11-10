@@ -59,22 +59,22 @@ async function run(h, tab = 'daily') {
     assert.equal(state.matches.length, 700);
     assert.equal(state.cursor, 700);
   }
-  const ranking = harness(100, 45);
+  const ranking = harness(1000, 545);
   let rs = await run(ranking, 'rankings');
-  assert.equal(rs.matches.length, 45);
-  assert.equal((ranking.root.innerHTML.match(/<card/g)||[]).length,30);
+  assert.equal(rs.matches.length, 545);
+  assert.equal((ranking.root.innerHTML.match(/<card/g)||[]).length,500);
   ranking.booksPage.rankings = 2;
   rs = await run(ranking, 'rankings');
-  assert.equal(rs.matches.length,45); assert.equal(rs.cursor,100);
-  assert.equal((ranking.root.innerHTML.match(/<card/g)||[]).length,15);
-  assert.equal(ranking.calls.length,100);
+  assert.equal(rs.matches.length,545); assert.equal(rs.cursor,1000);
+  assert.equal((ranking.root.innerHTML.match(/<card/g)||[]).length,45);
+  assert.equal(ranking.calls.length,1000);
   // Growing ranking results reuse resolved scores and expose cards while sources run.
   ranking.ctx.fqRankingBatch = { running: true };
-  ranking.rows.push({id:'100',book:{book_id:'100'},catId:'__rankings',minimum:8.4});
+  ranking.rows.push({id:'1000',book:{book_id:'1000'},catId:'__rankings',minimum:8.4});
   ranking.booksPage.rankings = 1;
   await run(ranking, 'rankings');
-  assert.equal(ranking.calls.length,101);
-  assert.equal(ranking.state('rankings').cursor,101);
+  assert.equal(ranking.calls.length,1001);
+  assert.equal(ranking.state('rankings').cursor,1001);
   assert([...ranking.ctx.document.getElementById('fq-ranking-info').textContent.matchAll(/đang lấy thêm bảng/g)].length);
   const blank = harness(10,10);
   blank.rows.forEach(row=>row.minimum=null);
@@ -110,6 +110,7 @@ async function run(h, tab = 'daily') {
   assert.equal(hidden.calls.length, 501);
   console.log('PASS: 400/1754 exhaustive fill, 502/1754 lazy next page, all tabs, cached return, failed-score retry, pause/resume');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
 
 
 
