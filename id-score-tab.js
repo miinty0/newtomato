@@ -18,7 +18,7 @@ function fqIdScoreCleanupHidden(row) {
 
 function fqIdScoreSorted() {
   const group = row => row.status === 'done' ? (row.score === null ? 1 : 0) : row.status === 'error' ? 2 : 3;
-  return fqIdScoreState.rows.filter(row => !fqIdScoreCleanupHidden(row)).sort((a, b) =>
+  return fqIdScoreState.rows.filter(row => !row.manuallyHidden && !fqIdScoreCleanupHidden(row)).sort((a, b) =>
     group(a) - group(b) || (group(a) === 0 ? b.score - a.score : 0) || a.order - b.order);
 }
 
@@ -77,7 +77,7 @@ function fqIdScoreRender() {
   fqIdScoreEl('pages').innerHTML = sorted.length ? `<button class="pagination-btn" onclick="fqIdScorePage(-1)" ${state.page === 1 ? 'disabled' : ''}>←</button><span class="pagination-info">Trang ${state.page}/${pages} · ${sorted.length} ID</span><button class="pagination-btn" onclick="fqIdScorePage(1)" ${state.page === pages ? 'disabled' : ''}>→</button>` : '';
   fqIdScoreEl('results').innerHTML = sorted.slice(start, start + 200).map((row, index) => {
     const status = row.status === 'done' ? (row.score === null ? 'Chưa có điểm' : 'Xong') : row.status === 'error' ? row.error : row.status === 'loading' ? 'Đang lấy…' : row.status === 'deferred' ? 'Chờ Fanqie Bridge ở pha cuối' : 'Chờ';
-    return `<tr style="vertical-align:top;border-bottom:1px solid var(--border)"><td style="padding:12px 8px">${start + index + 1}</td><td style="padding:12px 8px;min-width:300px;max-width:750px">${fqIdScoreBookHTML(row)}</td><td style="padding:12px 8px;font-weight:700;white-space:nowrap">${row.status === 'done' ? (row.score === null ? 'N/A' : escapeHTML(row.display)) : '—'}</td><td style="padding:12px 8px;font-size:12px">${escapeHTML(status)}</td></tr>`;
+    return `<tr style="vertical-align:top;border-bottom:1px solid var(--border)"><td style="padding:12px 8px">${start + index + 1}<button type="button" class="btn btn-outline btn-sm" style="display:block;margin-top:8px" onclick="fqIdScoreHide(${htmlJSString(row.id)})" title="Ẩn truyện và bỏ qua khi copy ID">Ẩn</button></td><td style="padding:12px 8px;min-width:300px;max-width:750px">${fqIdScoreBookHTML(row)}</td><td style="padding:12px 8px;font-weight:700;white-space:nowrap">${row.status === 'done' ? (row.score === null ? 'N/A' : escapeHTML(row.display)) : '—'}</td><td style="padding:12px 8px;font-size:12px">${escapeHTML(status)}</td></tr>`;
   }).join('');
 }
 
@@ -87,6 +87,13 @@ function fqIdScoreScheduleRender() {
     fqIdScoreState.timer = null;
     fqIdScoreRender();
   }, 150);
+}
+
+function fqIdScoreHide(id) {
+  const row = fqIdScoreState.rows.find(row => row.id === String(id));
+  if (!row) return;
+  row.manuallyHidden = true;
+  fqIdScoreRender();
 }
 
 function fqIdScorePage(delta) { fqIdScoreState.page += delta; fqIdScoreRender(); }
@@ -195,7 +202,7 @@ async function fqIdScoreCopy(withScore) {
     : rows.map(row => row.id).join('\n');
   try {
     await navigator.clipboard.writeText(text);
-    toast(`Đã copy ${rows.length} ID theo score; gồm ID lỗi; đã bỏ truyện khớp cleanup và ID chưa chạy.`, 'ok');
+    toast(`Đã copy ${rows.length} ID theo score; gồm ID lỗi; đã bỏ truyện ẩn, truyện khớp cleanup và ID chưa chạy.`, 'ok');
   } catch (error) { toast('Không copy được: ' + error.message, 'err'); }
 }
 

@@ -113,3 +113,29 @@ test('ID copy hides cleanup matches and includes failed scores in both formats',
   assert.equal(copied[1], 'ID\tScore\n2\t8.4\n5\tN/A\n3\tERROR');
   assert(!h.ctx.document.getElementById('idscore-results').innerHTML.includes('双男'));
 });
+
+test('manual hide removes a row from display and both copy formats, including after a redraw', async () => {
+  const h = harness(async () => ({}));
+  const copied = [];
+  h.ctx.toast = () => {};
+  h.ctx.navigator = {clipboard: {writeText: async text => copied.push(text)}};
+  vm.runInContext(`fqIdScoreState.rows = [
+    {id:'101', order:0, status:'done', score:9, display:'9'},
+    {id:'102', order:1, status:'error', score:null, error:'timeout'},
+    {id:'103', order:2, status:'done', score:8, display:'8'}
+  ]`, h.ctx);
+  h.ctx.fqIdScoreRender();
+  assert.match(h.ctx.document.getElementById('idscore-results').innerHTML, /fqIdScoreHide/);
+  h.ctx.fqIdScoreHide('101');
+  h.ctx.fqIdScoreRender(); // Simulate a score update or page change.
+  assert.deepEqual(Array.from(h.ctx.fqIdScoreSorted(), row => row.id), ['103', '102']);
+  assert(!h.ctx.document.getElementById('idscore-results').innerHTML.includes('/page/101'));
+  await h.ctx.fqIdScoreCopy(false);
+  await h.ctx.fqIdScoreCopy(true);
+  assert.equal(copied[0], '103\n102');
+  assert.equal(copied[1], 'ID\tScore\n103\t8\n102\tERROR');
+  h.ctx.fqIdScoreHide('102');
+  h.ctx.fqIdScoreHide('103');
+  assert.equal(h.ctx.document.getElementById('idscore-copy').disabled, true);
+  assert.equal(h.ctx.document.getElementById('idscore-copy-table').disabled, true);
+});
