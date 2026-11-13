@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-11T12:37:37.827Z",
+  "updated_at": "2026-11-13T08:02:58.896Z",
   "books": {
     "7134583389499165731": {
       "status": "Completed",
@@ -6237,6 +6237,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-23T06:41:14.455Z"
     },
+    "7599456598729165886": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:50:55.906Z"
+    },
     "7599468304087927870": {
       "status": "Ongoing",
       "creation_status": 1,
@@ -8442,6 +8447,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-21T08:03:21.186Z"
     },
+    "7613387142500191294": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:45:55.897Z"
+    },
     "7613391961826806846": {
       "status": "Completed",
       "creation_status": 0,
@@ -8891,6 +8901,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-23T06:42:27.455Z"
+    },
+    "7615057234556374041": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:47:29.894Z"
     },
     "7615100363724573758": {
       "status": "Completed",
@@ -13197,6 +13212,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-05T03:26:17.956Z"
     },
+    "7628784984580443198": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:53:20.904Z"
+    },
     "7628807952110980120": {
       "status": "Completed",
       "creation_status": 0,
@@ -15871,6 +15891,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-08T10:17:03.695Z"
+    },
+    "7635566031313849406": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:53:31.900Z"
     },
     "7635570695472172094": {
       "status": "Completed",
@@ -22627,6 +22652,11 @@
       "creation_status": 0,
       "checked_at": "2026-11-01T14:10:34.040Z"
     },
+    "7651176432588049433": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:46:30.903Z"
+    },
     "7651181972923878425": {
       "status": "Completed",
       "creation_status": 0,
@@ -23357,6 +23387,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-21T07:27:55.490Z"
     },
+    "7653451658042559513": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:51:19.897Z"
+    },
     "7653451811952528409": {
       "status": "Completed",
       "creation_status": 0,
@@ -23918,9 +23953,9 @@
       "checked_at": "2026-11-05T09:50:14.807Z"
     },
     "7654959861825817662": {
-      "status": "Ongoing",
-      "creation_status": 1,
-      "checked_at": "2026-10-23T03:40:21.459Z"
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T08:01:53.901Z"
     },
     "7654970520495983641": {
       "status": "Completed",
@@ -25116,6 +25151,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-11-04T07:00:40.441Z"
+    },
+    "7657871503421082686": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:58:46.901Z"
     },
     "7657883898751224857": {
       "status": "Completed",
@@ -27357,6 +27397,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-02T10:15:36.608Z"
     },
+    "7663755559333530686": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:46:14.899Z"
+    },
     "7663759343199734808": {
       "status": "Completed",
       "creation_status": 0,
@@ -28837,6 +28882,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-20T06:19:00.788Z"
     },
+    "7669419389451504664": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:47:16.905Z"
+    },
     "7669427089036037182": {
       "status": "Ongoing",
       "creation_status": 1,
@@ -29672,6 +29722,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-21T07:22:57.492Z"
     },
+    "7672743573460093977": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:50:46.899Z"
+    },
     "7672743966562864152": {
       "status": "Completed",
       "creation_status": 0,
@@ -29748,9 +29803,9 @@
       "checked_at": "2026-11-03T03:39:04.942Z"
     },
     "7673312625672850457": {
-      "status": "Ongoing",
-      "creation_status": 1,
-      "checked_at": "2026-10-23T03:40:51.750Z"
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:58:20.910Z"
     },
     "7673325011653905470": {
       "status": "Completed",
@@ -30172,6 +30227,11 @@
       "creation_status": 0,
       "checked_at": "2026-11-05T06:42:05.809Z"
     },
+    "7674987046045240345": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:46:43.902Z"
+    },
     "7675001368372857881": {
       "status": "Completed",
       "creation_status": 0,
@@ -30362,6 +30422,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-24T12:18:38.400Z"
     },
+    "7675974428773059646": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:46:01.906Z"
+    },
     "7675992082204331070": {
       "status": "Completed",
       "creation_status": 0,
@@ -30411,6 +30476,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-06T14:10:36.673Z"
+    },
+    "7676077968254307390": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:48:13.008Z"
     },
     "7676085978120850494": {
       "status": "Completed",
@@ -30747,6 +30817,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-27T09:27:29.823Z"
     },
+    "7678036387832007742": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:52:58.892Z"
+    },
     "7678205519122680856": {
       "status": "Completed",
       "creation_status": 0,
@@ -30817,6 +30892,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-21T07:22:44.489Z"
     },
+    "7678605721591630910": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:54:19.894Z"
+    },
     "7678623221154860057": {
       "status": "Completed",
       "creation_status": 0,
@@ -30881,6 +30961,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-20T09:31:25.786Z"
+    },
+    "7679045203868535832": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:48:55.909Z"
     },
     "7679045836025646105": {
       "status": "Completed",
@@ -32032,6 +32117,11 @@
       "creation_status": 0,
       "checked_at": "2026-11-10T14:03:24.135Z"
     },
+    "7685772934538873918": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:48:54.905Z"
+    },
     "7685776153839143998": {
       "status": "Completed",
       "creation_status": 0,
@@ -32122,6 +32212,11 @@
       "creation_status": 0,
       "checked_at": "2026-10-31T14:40:22.984Z"
     },
+    "7686379168535153688": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:48:55.909Z"
+    },
     "7686429876370279449": {
       "status": "Completed",
       "creation_status": 0,
@@ -32176,6 +32271,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-10-26T05:02:25.271Z"
+    },
+    "7686873814063402008": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:53:17.907Z"
     },
     "7687095164157840409": {
       "status": "Completed",
@@ -32496,6 +32596,11 @@
       "status": "Completed",
       "creation_status": 0,
       "checked_at": "2026-11-09T07:59:26.706Z"
+    },
+    "7691951258919242814": {
+      "status": "Completed",
+      "creation_status": 0,
+      "checked_at": "2026-11-13T07:47:10.896Z"
     },
     "7692069271102295065": {
       "status": "Completed",
