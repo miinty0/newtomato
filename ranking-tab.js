@@ -11,6 +11,66 @@ let fqRankingCategories = { male: [], female: [] };
 let fqRankingSnapshot = null;
 const fqRankEl = id => document.getElementById(id);
 
+const FQ_RANK_FIRST_TIME_KEY = 'fq_ranking_first_chapter_times_v1';
+const fqRankingFirstTimeCache = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FQ_RANK_FIRST_TIME_KEY) || '{}');
+    return saved && typeof saved === 'object' && !Array.isArray(saved) ? saved : {};
+  } catch (_) { return {}; }
+})();
+const fqRankingFirstTimePending = new Set();
+let fqRankingFirstTimeWorker = null;
+function fqRankingValidFirstTime(time) {
+  const n = Number(time);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n >= 1e12 ? n / 1000 : n) : null;
+}
+function fqRankingApplyFirstTime(book) {
+  const id = String(book.book_id ?? book.bookId ?? '');
+  const time = fqRankingValidFirstTime(book.first_chapter_time) || fqRankingValidFirstTime(fqRankingFirstTimeCache[id]);
+  if (time) { book.first_chapter_time = time; fqRankingFirstTimeCache[id] = time; }
+  return book;
+}
+function fqRankingPersistFirstTimes() {
+  try { localStorage.setItem(FQ_RANK_FIRST_TIME_KEY, JSON.stringify(fqRankingFirstTimeCache)); }
+  catch (error) { console.warn('Không lưu được cache ngày chương đầu:', error); }
+}
+function fqQueueRankingFirstTimes(books) {
+  if (!fqRankingState.worker || fqRankingState.worker.closed) return;
+  for (const book of books || []) {
+    fqRankingApplyFirstTime(book);
+    const id = String(book.book_id ?? '');
+    if (/^\\d{10,}$/.test(id) && !book.first_chapter_time) fqRankingFirstTimePending.add(id);
+  }
+  if (fqRankingFirstTimeWorker || !fqRankingFirstTimePending.size) return;
+  fqRankingFirstTimeWorker = (async () => {
+    while (fqRankingFirstTimePending.size && fqRankingState.worker && !fqRankingState.worker.closed) {
+      const ids = [...fqRankingFirstTimePending].slice(0, 9);
+      ids.forEach(id => fqRankingFirstTimePending.delete(id));
+      try {
+        const data = await fqRankRequest('first-chapter-times', { bookIds: ids });
+        let changed = false;
+        for (const row of data.results || []) {
+          const id = String(row.book_id ?? '');
+          const time = fqRankingValidFirstTime(row.first_chapter_time);
+          if (!time) continue; // Missing / blocked results can be retried on another scan.
+          fqRankingFirstTimeCache[id] = time;
+          changed = true;
+        }
+        if (changed) {
+          fqRankingPersistFirstTimes();
+          fqRankingState.books.forEach(fqRankingApplyFirstTime);
+          fqRankingState.sections.forEach(section => (section.books || []).forEach(fqRankingApplyFirstTime));
+          renderRankings();
+        }
+      } catch (error) {
+        console.warn('Bảng Fanqie: chưa thể lấy ngày chương đầu:', error.message);
+        break; // Avoid retrying endlessly with an outdated/disconnected bridge.
+      }
+    }
+  })().finally(() => { fqRankingFirstTimeWorker = null; });
+}
+
+
 const FQ_RANK_TITLES = { peak: 'Đỉnh cao trên web', editor: 'Đề cử nữ tần trên web', reading: 'Đang đọc trên web', new: 'Truyện mới trên web' };
 const fqRankHasHan = value => /[\u3400-\u9fff]/.test(String(value || ''));
 function fqRankSectionName(title, i = 0) {
@@ -247,7 +307,7 @@ function fqRankingChanged(resetCategory = false) {
   booksPage.rankings = 1;
   if (fqRankingSnapshot?.[type]) {
     const snapshot = fqRankingSnapshot[type];
-    fqRankingState.books = FqRankings.unique(snapshot.books);
+    fqRankingState.books = FqRankings.unique(snapshot.books).map(fqRankingApplyFirstTime);
     fqRankEl('fq-ranking-info').textContent = `${FQ_RANK_TITLES[type] || fqRankSectionName(snapshot.title)} · Snapshot ${fqRankingSnapshot.fetched_at} · ${fqRankingState.books.length} truyện. Kết nối Fanqie để làm mới.`;
   } else fqRankEl('fq-ranking-info').textContent = 'Kết nối tab Fanqie rồi bấm “Lấy danh sách mới”.';
   fqRenderRankingChecks();
@@ -307,7 +367,7 @@ async function fqFetchRankings(append, targetOverride) {
       if (!Array.isArray(result.books)) throw new Error('Phản hồi thiếu danh sách; giữ dữ liệu cũ.');
       const entries = Array.isArray(result.entries) ? result.entries : [];
       const entryMode = entries.length > 0 || continuation && fqRankingState.entries.length > 0;
-      const incoming = entryMode ? entries : FqRankings.unique(result.books, offset);
+      const incoming = entryMode ? entries : FqRankings.unique(result.books, offset).map(fqRankingApplyFirstTime);
       const signature = (entryMode ? 'entries:' : 'books:') + incoming.map(row => row.id || row.book_id).join('|');
       if (incoming.length && signatures.has(signature)) {
         fqRankingState.more = false; failure = 'API lặp lại trang; đã dừng tải.'; break;
@@ -325,6 +385,7 @@ async function fqFetchRankings(append, targetOverride) {
       fqRankingState.version = version = result.rank_version || version;
       fqRankingState.signatures = signatures;
       fqRankingState.loaded = true;
+      if (!entryMode) fqQueueRankingFirstTimes(fqRankingState.books);
       fqRankingState.title = isApp ? result.title : FQ_RANK_TITLES[type] || fqRankSectionName(result.title) || type;
       fqRankingState.fetchedAt = result.fetched_at || '';
       if (!continuation) booksPage.rankings = 1;
@@ -353,7 +414,8 @@ function fqSelectRankingSection(index) {
   if (!section) return;
   fqRankingState.section = index;
   fqRankingState.entries = [];
-  fqRankingState.books = FqRankings.unique(section.books || []);
+  fqRankingState.books = FqRankings.unique(section.books || []).map(fqRankingApplyFirstTime);
+  fqQueueRankingFirstTimes(fqRankingState.books);
   booksPage.rankings = 1;
   fqRankEl('fq-ranking-info').textContent = `${fqRankSectionName(section.title, index)} · ${fqRankingState.books.length} truyện · danh sách rút gọn từ trang tìm kiếm`;
   fqRankEl('fq-ranking-words').replaceChildren(...(section.words || []).map(word => {
@@ -586,12 +648,13 @@ async function fqRunRankingBatch(mode) {
   const failures = [];
   let completed = 0, index = 0;
   const addBooks = async raw => {
-    for (const book of FqRankings.unique(raw || [])) {
+    for (const book of FqRankings.unique(raw || []).map(fqRankingApplyFirstTime)) {
       const previous = union.get(book.book_id);
       // Do not discard a verified abstract when another ranking lacks it.
       union.set(book.book_id, previous?.abstract_verified && !book.abstract_verified ? previous : book);
     }
     fqRankingState.books = [...union.values()];
+    fqQueueRankingFirstTimes(fqRankingState.books);
     renderRankings();
     // Score and draw each received page before requesting the next source page.
     // Keep the page visible and reuse the same scan as the union grows.
