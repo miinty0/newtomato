@@ -20,6 +20,8 @@ const fqRankingFirstTimeCache = (() => {
 })();
 const fqRankingFirstTimePending = new Set();
 let fqRankingFirstTimeWorker = null;
+let fqRankingFirstTimeError = '';
+let fqRankingFirstTimeFailures = [];
 function fqRankingValidFirstTime(time) {
   const n = Number(time);
   return Number.isFinite(n) && n > 0 ? Math.floor(n >= 1e12 ? n / 1000 : n) : null;
@@ -34,48 +36,83 @@ function fqRankingPersistFirstTimes() {
   try { localStorage.setItem(FQ_RANK_FIRST_TIME_KEY, JSON.stringify(fqRankingFirstTimeCache)); }
   catch (error) { console.warn('Không lưu được cache ngày chương đầu:', error); }
 }
+function fqRankingFirstTimeReport() {
+  return {
+    loaded: fqRankingState.books.length,
+    cached: Object.keys(fqRankingFirstTimeCache).length,
+    withTime: fqRankingState.books.filter(book => !!fqRankingValidFirstTime(book.first_chapter_time)).length,
+    pending: fqRankingFirstTimePending.size,
+    running: !!fqRankingFirstTimeWorker,
+    batchRunning: fqRankingBatch.running,
+    bridgeConnected: !!fqRankingState.worker && !fqRankingState.worker.closed,
+    lastError: fqRankingFirstTimeError,
+    recentFailures: fqRankingFirstTimeFailures.slice(0, 5)
+  };
+}
+window.fqRankingFirstTimeReport = fqRankingFirstTimeReport;
 function fqQueueRankingFirstTimes(books) {
-  if (!fqRankingState.worker || fqRankingState.worker.closed) return;
   for (const book of books || []) {
     fqRankingApplyFirstTime(book);
-    const id = String(book.book_id ?? '');
+    const id = String(book.book_id ?? book.bookId ?? '');
     if (/^\d{10,}$/.test(id) && !book.first_chapter_time) fqRankingFirstTimePending.add(id);
   }
+  // Never compete with the many ranking/score API calls made by "Chạy tất cả bảng".
+  // Finish collecting the unique IDs first; then hydrate them in small batches.
+  if (fqRankingBatch.running || !fqRankingState.worker || fqRankingState.worker.closed) return;
   if (fqRankingFirstTimeWorker || !fqRankingFirstTimePending.size) return;
-  console.info('[Bảng Fanqie] Đang bổ sung first_chapter_time cho', fqRankingFirstTimePending.size, 'ID chưa có cache');
+  fqRankingFirstTimeError = '';
+  fqRankingFirstTimeFailures = [];
   fqRankingFirstTimeWorker = (async () => {
-    while (fqRankingFirstTimePending.size && fqRankingState.worker && !fqRankingState.worker.closed) {
+    console.info('[Bảng Fanqie] Bắt đầu lấy ngày chương đầu, chờ:', fqRankingFirstTimePending.size);
+    while (fqRankingFirstTimePending.size && !fqRankingBatch.running &&
+      fqRankingState.worker && !fqRankingState.worker.closed) {
       const ids = [...fqRankingFirstTimePending].slice(0, 9);
       ids.forEach(id => fqRankingFirstTimePending.delete(id));
+      let data;
       try {
-        const data = await fqRankRequest('first-chapter-times', { bookIds: ids });
+        data = await fqRankRequest('first-chapter-times', { bookIds: ids });
         if (!Array.isArray(data?.results)) throw new Error('Bridge không trả danh sách ngày chương đầu');
-        let changed = false;
-        for (const row of data.results || []) {
-          const id = String(row.book_id ?? '');
-          const time = fqRankingValidFirstTime(row.first_chapter_time);
-          if (!time) continue; // Missing / blocked results can be retried on another scan.
-          fqRankingFirstTimeCache[id] = time;
-          changed = true;
-        }
-        console.info('[Bảng Fanqie] first_chapter_time:', data.results.filter(row => fqRankingValidFirstTime(row.first_chapter_time)).length,
-          '/', ids.length, 'ID; lỗi:', data.results.filter(row => row.error).slice(0, 3));
-        if (changed) {
-          fqRankingPersistFirstTimes();
-          fqRankingState.books.forEach(fqRankingApplyFirstTime);
-          fqRankingState.sections.forEach(section => (section.books || []).forEach(fqRankingApplyFirstTime));
-          for (const row of qualifiedScoreScans.get('rankings')?.candidates || []) fqRankingApplyFirstTime(row.book);
-          renderRankings();
-        }
       } catch (error) {
-        console.warn('Bảng Fanqie: chưa thể lấy ngày chương đầu:', error.message);
-        const info = fqRankEl('fq-ranking-info');
-        if (info) info.title = 'Lỗi bổ sung first_chapter_time: ' + error.message;
-        break; // Avoid retrying endlessly with an outdated/disconnected bridge.
+        ids.forEach(id => fqRankingFirstTimePending.add(id));
+        fqRankingFirstTimeError = String(error.message || error);
+        console.warn('[Bảng Fanqie] Lỗi lấy ngày chương đầu; giữ nguyên queue:', fqRankingFirstTimeError);
+        break;
       }
+      let changed = false;
+      const success = new Set();
+      const failures = [];
+      for (const row of data.results) {
+        const id = String(row.book_id ?? '');
+        if (!ids.includes(id)) continue;
+        const time = fqRankingValidFirstTime(row.first_chapter_time);
+        if (time) {
+          fqRankingFirstTimeCache[id] = time;
+          success.add(id);
+          changed = true;
+        } else failures.push({ book_id: id, error: String(row.error || 'Thiếu firstPassTime') });
+      }
+      for (const id of ids) if (!success.has(id) && !failures.some(x => x.book_id === id))
+        failures.push({ book_id: id, error: 'Bridge không trả kết quả' });
+      if (failures.length) {
+        fqRankingFirstTimeFailures.push(...failures);
+        fqRankingFirstTimeError = failures[0].error;
+        console.warn('[Bảng Fanqie] Ngày chương đầu bị lỗi:', failures.slice(0, 5));
+      }
+      if (changed) {
+        fqRankingPersistFirstTimes();
+        fqRankingState.books.forEach(fqRankingApplyFirstTime);
+        fqRankingState.sections.forEach(section => (section.books || []).forEach(fqRankingApplyFirstTime));
+        for (const row of qualifiedScoreScans.get('rankings')?.candidates || []) fqRankingApplyFirstTime(row.book);
+        renderRankings();
+      }
+      console.info('[Bảng Fanqie] Đã lấy', success.size, '/', ids.length, 'ngày; cache:', Object.keys(fqRankingFirstTimeCache).length);
+      // If every request failed, stop rather than flood Fanqie with hundreds of requests.
+      // Failed IDs may be retried on the next explicit scan/connection.
+      if (!success.size && failures.length) break;
     }
   })().finally(() => { fqRankingFirstTimeWorker = null; });
 }
+window.fqRetryRankingFirstTimes = () => fqQueueRankingFirstTimes(fqRankingState.books);
 
 
 const FQ_RANK_TITLES = { peak: 'Đỉnh cao trên web', editor: 'Đề cử nữ tần trên web', reading: 'Đang đọc trên web', new: 'Truyện mới trên web' };
@@ -720,6 +757,7 @@ async function fqRunRankingBatch(mode) {
     fqRankingState.loaded = true;
     fqRankingState.paused = true;
     fqRankingBatchControls(false);
+    fqQueueRankingFirstTimes(fqRankingState.books);
     fqRankEl('fq-ranking-batch-info').textContent = `${fqRankingBatch.stop ? 'Đã dừng' : 'Kết thúc lượt chạy'} · thành công ${completed}/${scopes.length} mục · ${union.size} ID duy nhất · ${fqRankingBatch.remaining.length} mục lỗi/chưa xong` + fqRankingFailureSummary(failures);
     window.fqRankingBatchErrors = failures;
     if (failures.length) console.warn('Bảng Fanqie — chi tiết lỗi:', failures);
