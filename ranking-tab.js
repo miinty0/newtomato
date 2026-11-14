@@ -48,6 +48,7 @@ function fqQueueRankingFirstTimes(books) {
       ids.forEach(id => fqRankingFirstTimePending.delete(id));
       try {
         const data = await fqRankRequest('first-chapter-times', { bookIds: ids });
+        if (!Array.isArray(data?.results)) throw new Error('Bridge không trả danh sách ngày chương đầu');
         let changed = false;
         for (const row of data.results || []) {
           const id = String(row.book_id ?? '');
@@ -60,6 +61,7 @@ function fqQueueRankingFirstTimes(books) {
           fqRankingPersistFirstTimes();
           fqRankingState.books.forEach(fqRankingApplyFirstTime);
           fqRankingState.sections.forEach(section => (section.books || []).forEach(fqRankingApplyFirstTime));
+          for (const row of qualifiedScoreScans.get('rankings')?.candidates || []) fqRankingApplyFirstTime(row.book);
           renderRankings();
         }
       } catch (error) {
@@ -109,6 +111,7 @@ async function fqConnectRankings() {
     try {
       const result = await fqRankRequest('ping', {}, 2500);
       if (!result.capabilities?.includes('rank-filter-meta')) throw new Error('Kết nối Fanqie chưa hỗ trợ chức năng cần thiết.');
+      fqQueueRankingFirstTimes(fqRankingState.books);
       fqRankEl('fq-ranking-info').textContent = 'Đã kết nối Fanqie. Bấm “Lấy danh sách mới”.';
       return;
     } catch (error) {
@@ -270,6 +273,7 @@ async function initRankings() {
     ]);
     fqRankingCategories = categories; fqRankingSnapshot = snapshot;
     fqRankingChanged(true);
+    if (fqRankingState.worker && !fqRankingState.worker.closed) fqQueueRankingFirstTimes(fqRankingState.books);
   } catch (error) { fqRankingState.initialized = false; fqRankEl('fq-ranking-info').textContent = error.message; }
 }
 
