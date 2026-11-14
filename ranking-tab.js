@@ -42,6 +42,7 @@ function fqQueueRankingFirstTimes(books) {
     if (/^\d{10,}$/.test(id) && !book.first_chapter_time) fqRankingFirstTimePending.add(id);
   }
   if (fqRankingFirstTimeWorker || !fqRankingFirstTimePending.size) return;
+  console.info('[Bảng Fanqie] Đang bổ sung first_chapter_time cho', fqRankingFirstTimePending.size, 'ID chưa có cache');
   fqRankingFirstTimeWorker = (async () => {
     while (fqRankingFirstTimePending.size && fqRankingState.worker && !fqRankingState.worker.closed) {
       const ids = [...fqRankingFirstTimePending].slice(0, 9);
@@ -57,6 +58,8 @@ function fqQueueRankingFirstTimes(books) {
           fqRankingFirstTimeCache[id] = time;
           changed = true;
         }
+        console.info('[Bảng Fanqie] first_chapter_time:', data.results.filter(row => fqRankingValidFirstTime(row.first_chapter_time)).length,
+          '/', ids.length, 'ID; lỗi:', data.results.filter(row => row.error).slice(0, 3));
         if (changed) {
           fqRankingPersistFirstTimes();
           fqRankingState.books.forEach(fqRankingApplyFirstTime);
@@ -66,6 +69,8 @@ function fqQueueRankingFirstTimes(books) {
         }
       } catch (error) {
         console.warn('Bảng Fanqie: chưa thể lấy ngày chương đầu:', error.message);
+        const info = fqRankEl('fq-ranking-info');
+        if (info) info.title = 'Lỗi bổ sung first_chapter_time: ' + error.message;
         break; // Avoid retrying endlessly with an outdated/disconnected bridge.
       }
     }
@@ -111,6 +116,7 @@ async function fqConnectRankings() {
     try {
       const result = await fqRankRequest('ping', {}, 2500);
       if (!result.capabilities?.includes('rank-filter-meta')) throw new Error('Kết nối Fanqie chưa hỗ trợ chức năng cần thiết.');
+      if (!result.capabilities?.includes('first-chapter-times')) throw new Error('Fanqie Bridge quá cũ: cập nhật bản 4.2.11 trong Tampermonkey, tải lại tab Fanqie rồi kết nối lại để hiện năm chương đầu.');
       fqQueueRankingFirstTimes(fqRankingState.books);
       fqRankEl('fq-ranking-info').textContent = 'Đã kết nối Fanqie. Bấm “Lấy danh sách mới”.';
       return;
