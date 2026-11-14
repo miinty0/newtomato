@@ -39,7 +39,7 @@ function fqQueueRankingFirstTimes(books) {
   for (const book of books || []) {
     fqRankingApplyFirstTime(book);
     const id = String(book.book_id ?? '');
-    if (/^\\d{10,}$/.test(id) && !book.first_chapter_time) fqRankingFirstTimePending.add(id);
+    if (/^\d{10,}$/.test(id) && !book.first_chapter_time) fqRankingFirstTimePending.add(id);
   }
   if (fqRankingFirstTimeWorker || !fqRankingFirstTimePending.size) return;
   fqRankingFirstTimeWorker = (async () => {
