@@ -7,6 +7,7 @@ const FQ_RANK_PAGE_SIZE = 500;
 const fqRankingState = { initialized: false, worker: null, pending: new Map(), books: [], entries: [], sections: [], section: 0, next: 0, more: false, version: '', session: '', generation: 0, busy: false, loaded: false, paused: false, signatures: new Set(), title: '', fetchedAt: '' };
 const FQ_RANK_ORIGIN = 'https://fanqienovel.com';
 const FQ_RANK_CHANNEL = 'wd-fq-bridge-v2';
+const FQ_RANK_FIRST_TIME_CHANNEL = 'wd-fq-ranking-first-time-v1';
 let fqRankingCategories = { male: [], female: [] };
 let fqRankingSnapshot = null;
 const fqRankEl = id => document.getElementById(id);
@@ -123,9 +124,9 @@ function fqRankSectionName(title, i = 0) {
 }
 window.addEventListener('message', event => {
   const data = event.data;
-  if (event.origin !== FQ_RANK_ORIGIN || event.source !== fqRankingState.worker || data?.__wdFqBridge !== FQ_RANK_CHANNEL || data.kind !== 'response') return;
+  if (event.origin !== FQ_RANK_ORIGIN || event.source !== fqRankingState.worker || ![FQ_RANK_CHANNEL, FQ_RANK_FIRST_TIME_CHANNEL].includes(data?.__wdFqBridge) || data.kind !== 'response') return;
   const request = fqRankingState.pending.get(data.id);
-  if (!request) return;
+  if (!request || data.__wdFqBridge !== request.channel) return;
   clearTimeout(request.timer); fqRankingState.pending.delete(data.id);
   if (data.ok) request.resolve(data.result);
   else request.reject(new Error(data.error || 'Fanqie request lỗi'));
@@ -140,8 +141,9 @@ function fqRankRequest(action, payload = {}, timeout = 90000) {
       fqRankingState.pending.delete(id);
       reject(new Error('Fanqie không phản hồi. Kiểm tra kết nối và đợi tab Fanqie tải xong; dữ liệu cũ được giữ lại.'));
     }, timeout);
-    fqRankingState.pending.set(id, { resolve, reject, timer });
-    worker.postMessage({ __wdFqBridge: FQ_RANK_CHANNEL, kind: 'request', id, action, payload }, FQ_RANK_ORIGIN);
+    const channel = action === 'first-chapter-times' ? FQ_RANK_FIRST_TIME_CHANNEL : FQ_RANK_CHANNEL;
+    fqRankingState.pending.set(id, { resolve, reject, timer, channel });
+    worker.postMessage({ __wdFqBridge: channel, kind: 'request', id, action, payload }, FQ_RANK_ORIGIN);
   });
 }
 
@@ -153,7 +155,7 @@ async function fqConnectRankings() {
     try {
       const result = await fqRankRequest('ping', {}, 2500);
       if (!result.capabilities?.includes('rank-filter-meta')) throw new Error('Kết nối Fanqie chưa hỗ trợ chức năng cần thiết.');
-      if (!result.capabilities?.includes('first-chapter-times')) throw new Error('Fanqie Bridge quá cũ: cập nhật bản 4.2.11 trong Tampermonkey, tải lại tab Fanqie rồi kết nối lại để hiện năm chương đầu.');
+      if (!result.capabilities?.includes('first-chapter-times')) throw new Error('Fanqie Bridge quá cũ: cập nhật bản 4.2.12 trong Tampermonkey, tải lại tab Fanqie rồi kết nối lại để hiện năm chương đầu.');
       fqQueueRankingFirstTimes(fqRankingState.books);
       fqRankEl('fq-ranking-info').textContent = 'Đã kết nối Fanqie. Bấm “Lấy danh sách mới”.';
       return;
