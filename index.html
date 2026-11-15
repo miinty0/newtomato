@@ -1985,10 +1985,11 @@ function qualifiesForAutomaticRead(firstChapterTime, score, now = Date.now()) {
 
 const READ_QUEUE_STORAGE_KEY = 'newtomato:read-queue:' + CFG.user + '/' + CFG.repo;
 function persistAutomaticReadQueue() {
-  try { localStorage.setItem(READ_QUEUE_STORAGE_KEY, JSON.stringify([...automaticReadQueue])); }
+  try { localStorage.setItem(READ_QUEUE_STORAGE_KEY, JSON.stringify([...new Set([...automaticReadQueue, ...automaticReadInFlight])])); }
   catch (error) { console.warn('Read queue persistence failed:', error); }
 }
 const automaticReadQueue = new Set();
+const automaticReadInFlight = new Set();
 try {
   const restored = JSON.parse(localStorage.getItem(READ_QUEUE_STORAGE_KEY) || '[]');
   if (Array.isArray(restored)) for (const id of restored) {
@@ -2141,6 +2142,7 @@ async function flushAutomaticRead() {
   const copiedCount = [...batch].filter(id => copiedReadQueued.has(id)).length;
   const cleanupCount = [...batch].filter(id => cleanupKeywordReadIds.has(id)).length;
   automaticReadQueue.clear();
+  for (const id of batch) automaticReadInFlight.add(id);
   persistAutomaticReadQueue();
   automaticReadQueuedAt = 0;
   automaticReadActive = (async () => {
@@ -2148,7 +2150,11 @@ async function flushAutomaticRead() {
       const result = await mergeReadIds(batch, copiedCount
         ? 'mark queued copied book IDs and automatic read candidates as read'
         : 'auto read: cleanup keywords or older than 300 days with score below 7.5');
-      for (const id of batch) automaticReadSaved.add(id);
+      for (const id of batch) {
+        automaticReadSaved.add(id);
+        automaticReadInFlight.delete(id);
+      }
+      persistAutomaticReadQueue();
       applyReadIdsLocally(result.ids);
       toast(copiedCount ? '✓ Đã lưu ' + result.added + ' ID mới từ hàng đợi read.' :
         '✓ Tự đưa ' + result.added + ' truyện vào read' + (cleanupCount ? ' (có từ khóa cleanup).' : ' (trên 300 ngày, score <7.5).'), 'ok');
@@ -2160,7 +2166,10 @@ async function flushAutomaticRead() {
         toast('Read đã lưu; dọn dữ liệu lỗi: ' + error.message, 'err');
       });
     } catch (error) {
-      for (const id of batch) automaticReadQueue.add(id);
+      for (const id of batch) {
+        automaticReadInFlight.delete(id);
+        automaticReadQueue.add(id);
+      }
       persistAutomaticReadQueue();
       throw error;
     }
