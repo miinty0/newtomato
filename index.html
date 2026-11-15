@@ -1878,98 +1878,46 @@ function updateHomeReadPreview() {
   preview.classList.toggle('invalid', invalid.length > 0);
   preview.textContent = invalid.length
     ? `Có ${invalid.length} giá trị không phải fanqie_id: ${invalid.slice(0, 3).join(', ')}`
-    : ids.length ? `${ids.length} ID duy nhất sẽ được lưu và dọn.` : 'Dán ID để lưu và dọn khỏi dữ liệu.';
+    : ids.length ? `${ids.length} ID duy nhất sẽ vào queue read và ẩn ngay.` : 'Dán ID để đưa vào queue read.';
   button.disabled = homeReadSaving || ids.length === 0 || invalid.length > 0;
 }
 
-async function saveHomeReadIds() {
-  if (homeReadSaving) return;
-  const input = document.getElementById('home-read-ids');
-  const button = document.getElementById('home-read-save');
-  const { ids, invalid } = parseHomeReadIds(input.value);
-  if (invalid.length || ids.length === 0) { updateHomeReadPreview(); return; }
-
-  homeReadSaving = true;
-  button.disabled = true;
-  button.textContent = '⏳ Đang lưu…';
-  let readSaved = false;
-  try {
-    const result = await mergeReadIds(new Set(ids), `mark pasted books as read`);
-    const added = { length: result.added };
-    readSaved = true;
-
-    const selected = new Set(ids);
-    for (const id of selected) {
-      dailyReadSet.add(id);
-      rcReadSet.add(id);
-      specialReadSet.add(id);
-      if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
-      for (const cat of Object.values(catData)) cat.readSet.add(id);
-    }
-    if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
-    button.textContent = '🧹 Đang dọn dữ liệu…';
-    await cleanupAfterRead(selected);
-    dailyRawBooks = dailyRawBooks.filter(book => !selected.has(normalizedBookId(book)));
-    if (dailyLoaded) renderDaily();
-    if (Object.keys(catData).length) renderCatPanels();
-    if (Object.keys(rcData).length) renderRcPanels();
-    if (specialLoaded) {
-      specialBooks = specialBooks.filter(book => !selected.has(normalizedBookId(book)));
-      renderSpecial();
-    }
-    input.value = '';
-    toast(`✓ Đã lưu ${added.length} ID mới và dọn ${ids.length} ID khỏi dữ liệu.`, 'ok');
-  } catch (error) {
-    toast((readSaved ? 'ID đã lưu, dọn chưa hoàn tất: ' : 'Không lưu được ID: ') + error.message, 'err');
-  } finally {
-    homeReadSaving = false;
-    button.textContent = '✓ Lưu danh sách đã đọc';
-    updateHomeReadPreview();
+function queueReadIds(ids) {
+  let added = 0;
+  for (const rawId of ids) {
+    const id = String(rawId);
+    if (!/^\\d{15,20}$/.test(id)) continue;
+    if (!automaticReadQueue.has(id) && !automaticReadSaved.has(id)) added++;
+    automaticReadHidden.add(id);
+    if (!automaticReadSaved.has(id)) automaticReadQueue.add(id);
   }
+  persistAutomaticReadQueue();
+  if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+  document.querySelectorAll('.book-card[data-id]').forEach(card => {
+    if (automaticReadHidden.has(String(card.dataset.id))) card.classList.add('automatic-read-hidden');
+  });
+  applyReadIdsLocally(new Set([...ids].map(String)));
+  scheduleAutomaticRead();
+  return added;
+}
+
+async function saveHomeReadIds() {
+  const input = document.getElementById('home-read-ids');
+  const { ids, invalid } = parseHomeReadIds(input.value);
+  if (invalid.length || !ids.length) { updateHomeReadPreview(); return; }
+  const added = queueReadIds(ids);
+  input.value = '';
+  updateHomeReadPreview();
+  toast('✓ Đã thêm ' + added + ' ID vào queue read và ẩn ngay. Hệ thống sẽ lưu read.json rồi dọn dữ liệu riêng.', 'ok');
 }
 
 async function submitRead(tab) {
-  if (pendingRead[tab].size === 0) return;
-  const prefix = tab === 'category' ? 'cat' : tab;
-  const btn = document.querySelector(`#${prefix}-read-bar .btn-success`);
-  btn.disabled = true; btn.textContent = '⏳ Đang lưu…';
-  try {
-    await mergeReadIds(new Set(pendingRead[tab]), `mark ${pendingRead[tab].size} book(s) as read`);
-
-    // Update in-memory readSets so re-renders stay correct
-    const justRead = new Set(pendingRead[tab]);
-    for (const id of justRead) {
-      dailyReadSet.add(id);
-      rcReadSet.add(id);
-      specialReadSet.add(id);
-      if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
-      for (const cat of Object.values(catData)) cat.readSet.add(id);
-    }
-    pendingRead[tab].clear();
-    updateReadBar(tab);
-    // Keep this save operation open until every related data file has been
-    // cleaned. This prevents a normal tab switch/close from silently cutting
-    // off the old background cleanup halfway through.
-    if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
-    btn.textContent = '🧹 Đang dọn dữ liệu…';
-    await cleanupAfterRead(justRead);
-    if (specialLoaded) {
-      specialBooks = specialBooks.filter(book => !justRead.has(normalizedBookId(book)));
-      renderSpecial();
-    }
-    // Mark cards visually
-    document.querySelectorAll('.book-card[data-pending-read="1"]').forEach(c => {
-      c.dataset.pendingRead = '';
-      c.classList.remove('pending-read');
-      c.classList.add('is-read');
-    });
-    if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
-    toast('Đã lưu danh sách đọc thành công ✓', 'ok');
-  } catch(e) {
-    toast('Lỗi: ' + e.message, 'err');
-  } finally {
-    btn.disabled = false; btn.textContent = '✓ Lưu danh sách đã đọc';
-  }
+  if (!pendingRead[tab].size) return;
+  const ids = new Set(pendingRead[tab]);
+  pendingRead[tab].clear();
+  updateReadBar(tab);
+  const added = queueReadIds(ids);
+  toast('✓ Đã đưa ' + added + ' ID vào queue read và ẩn ngay.', 'ok');
 }
 
 function toggleRead(bookId, btn, tab) {
@@ -2035,12 +1983,23 @@ function qualifiesForAutomaticRead(firstChapterTime, score, now = Date.now()) {
     now - timestamp * 1000 > 300 * 86400000;
 }
 
+const READ_QUEUE_STORAGE_KEY = 'newtomato:read-queue:' + CFG.user + '/' + CFG.repo;
+function persistAutomaticReadQueue() {
+  try { localStorage.setItem(READ_QUEUE_STORAGE_KEY, JSON.stringify([...automaticReadQueue])); }
+  catch (error) { console.warn('Read queue persistence failed:', error); }
+}
 const automaticReadQueue = new Set();
+try {
+  const restored = JSON.parse(localStorage.getItem(READ_QUEUE_STORAGE_KEY) || '[]');
+  if (Array.isArray(restored)) for (const id of restored) {
+    if (/^\\d{15,20}$/.test(String(id))) automaticReadQueue.add(String(id));
+  }
+} catch (error) { console.warn('Cannot restore read queue:', error); }
 const automaticReadSaved = new Set();
 const copiedReadQueued = new Set();
 // Keep hiding independent of queue clearing and slow GitHub cleanup. Failed
 // saves remain queued for retry, rather than making the cards flicker back.
-const automaticReadHidden = new Set();
+const automaticReadHidden = new Set(automaticReadQueue);
 let automaticReadTimer = null;
 let automaticReadActive = null;
 let automaticReadQueuedAt = 0;
@@ -2083,6 +2042,7 @@ function considerCleanupRead(book, bookId = normalizedBookId(book || {})) {
   if (!automaticReadSaved.has(bookId)) {
     automaticReadQueue.add(bookId);
     if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+    persistAutomaticReadQueue();
     scheduleAutomaticRead();
   }
   return true;
@@ -2101,6 +2061,7 @@ function considerAutomaticRead(bookId, score, metadata) {
   automaticReadQueue.add(bookId);
   if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
   if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+  persistAutomaticReadQueue();
   scheduleAutomaticRead();
 }
 
@@ -2180,6 +2141,7 @@ async function flushAutomaticRead() {
   const copiedCount = [...batch].filter(id => copiedReadQueued.has(id)).length;
   const cleanupCount = [...batch].filter(id => cleanupKeywordReadIds.has(id)).length;
   automaticReadQueue.clear();
+  persistAutomaticReadQueue();
   automaticReadQueuedAt = 0;
   automaticReadActive = (async () => {
     try {
@@ -2190,14 +2152,21 @@ async function flushAutomaticRead() {
       applyReadIdsLocally(result.ids);
       toast(copiedCount ? '✓ Đã lưu ' + result.added + ' ID mới từ hàng đợi read.' :
         '✓ Tự đưa ' + result.added + ' truyện vào read' + (cleanupCount ? ' (có từ khóa cleanup).' : ' (trên 300 ngày, score <7.5).'), 'ok');
-      await cleanupAfterRead(batch);
       for (const id of batch) copiedReadQueued.delete(id);
+      // Cleanup is independent: a slow multi-file cleanup must never block
+      // subsequent read.json writes or cause a successful read to be retried.
+      cleanupAfterRead(batch).catch(error => {
+        console.warn('Read saved but cleanup failed:', error);
+        toast('Read đã lưu; dọn dữ liệu lỗi: ' + error.message, 'err');
+      });
     } catch (error) {
       for (const id of batch) automaticReadQueue.add(id);
+      persistAutomaticReadQueue();
       throw error;
     }
   })().finally(() => {
     automaticReadActive = null;
+    persistAutomaticReadQueue();
     // A failed batch stays queued for an explicit retry rather than looping
     // GitHub writes indefinitely. New scores can also schedule a retry.
   });
@@ -2208,6 +2177,9 @@ async function flushAutomaticRead() {
   }
   scheduleAutomaticRead();
 }
+
+// Restored queue survives a reload; do not wait for another score event.
+if (automaticReadQueue.size) scheduleAutomaticRead();
 
 window.fqRetryAutomaticRead = () => {
   clearTimeout(automaticReadTimer);
@@ -2977,6 +2949,7 @@ function queueCopiedIdsAsRead(ids) {
     if (selected.has(String(card.dataset.id))) card.classList.add('automatic-read-hidden');
   });
   if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+  persistAutomaticReadQueue();
   scheduleAutomaticRead();
   // Refill qualifying pages immediately; queued IDs are excluded even while
   // saving or cleanup is in flight.
@@ -4102,9 +4075,9 @@ document.addEventListener('click', (e) => {
 // and wait for the operation to finish.
 window.addEventListener('beforeunload', (e) => {
   const hasUnsaved = Object.keys(pendingRead).some(t => pendingRead[t].size > 0);
-  const cleanupBusy = homeReadSaving || cleanupActivePromise !== null || cleanupQueuedIds.size > 0;
+  const cleanupBusy = homeReadSaving;
   const statusSyncBusy = statusSyncActivePromise !== null || pendingStatusOverrides.size > 0;
-  if (hasUnsaved || cleanupBusy || statusSyncBusy || automaticReadQueue.size || automaticReadActive) {
+  if (hasUnsaved || cleanupBusy || statusSyncBusy || automaticReadActive) {
     e.preventDefault();
     e.returnValue = '';
   }
