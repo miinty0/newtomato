@@ -59,6 +59,7 @@ function applyUnreadIdsLocally(ids) {
       updateReadBar(tab);
     }
   }
+  persistAutomaticReadQueue();
   if (dailyLoaded) renderDaily();
   if (Object.keys(catData).length) renderCatPanels();
   if (Object.keys(rcData).length) renderRcPanels();
