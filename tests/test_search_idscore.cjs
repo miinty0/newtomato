@@ -82,6 +82,29 @@ test('ID results show chapter years from Share API and saved ranking metadata', 
   assert.doesNotMatch(h.ctx.fqIdScoreBookHTML({id: '1'}), /book-time|NaN/);
 });
 
+test('missing chapter dates are loaded from Fanqie and retried independently of score', async () => {
+  const id = '7319098631070420030';
+  let scoresFetched = 0;
+  const h = harness(async () => {
+    scoresFetched++;
+    return {score: '8.8', book_info: {book_name: '重生港岛，家大业大', serial_count: 1126}};
+  });
+  h.ctx.document.getElementById('idscore-input').value = id;
+  h.ctx.console = {warn() {}};
+  h.ctx.window.fqShareApiFetchChapterTimes = async () => {throw new Error('timeout');};
+  await h.ctx.fqIdScoreStart();
+  assert.match(h.ctx.document.getElementById('idscore-info').textContent, /1 ID thiếu năm/);
+  assert.equal(h.ctx.document.getElementById('idscore-retry').disabled, false);
+  h.ctx.window.fqShareApiFetchChapterTimes = async bookId => {
+    assert.equal(bookId, id);
+    return {first_chapter_time: 1704207399, last_chapter_time: 1795112277};
+  };
+  await h.ctx.fqIdScoreStart(true);
+  assert.equal(scoresFetched, 1);
+  assert.match(h.ctx.document.getElementById('idscore-results').innerHTML, /class="book-time notranslate">2026-2024</);
+  assert.equal(h.ctx.document.getElementById('idscore-retry').disabled, true);
+});
+
 test('stop skips automatic final retry and manual retry can recover', async () => {
   let calls = 0;
   const h = harness(async () => {
