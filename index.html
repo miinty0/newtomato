@@ -1485,6 +1485,7 @@ function switchTab(id, btn) {
   if (id === 'daily' && hadDaily) renderDaily();
   if (id === 'category' && hadCategory) renderCatPanels();
   if (id === 'rankcat' && hadRankCat) renderRcPanels();
+  if (id === 'special' && specialLoaded) renderSpecial();
 }
 
 // Programmatic navigation from the Home tab's nav cards (they have no <button> element to pass in).
@@ -1864,10 +1865,14 @@ async function performCleanup(ids) {
   }
 }
 
+function isReadBookId(id) {
+  return /^\d{15,20}$/.test(id);
+}
+
 function parseHomeReadIds(value) {
   const tokens = String(value || '').split(/[|\r\n]+/).map(s => s.trim()).filter(Boolean);
-  const invalid = tokens.filter(id => !/^\d{15,20}$/.test(id));
-  return { ids: [...new Set(tokens.filter(id => /^\d{15,20}$/.test(id)))], invalid };
+  const invalid = tokens.filter(id => !isReadBookId(id));
+  return { ids: [...new Set(tokens.filter(isReadBookId))], invalid };
 }
 
 function updateHomeReadPreview() {
@@ -1883,41 +1888,51 @@ function updateHomeReadPreview() {
 }
 
 function queueReadIds(ids) {
+  const selected = new Set([...ids].map(String).filter(isReadBookId));
   let added = 0;
-  for (const rawId of ids) {
-    const id = String(rawId);
-    if (!/^\\d{15,20}$/.test(id)) continue;
-    if (!automaticReadQueue.has(id) && !automaticReadSaved.has(id)) added++;
+  for (const id of selected) {
+    // Manually marking an unread book again overrides the automatic-read suppression.
+    if (!automaticReadHidden.has(id)) automaticReadSaved.delete(id);
     automaticReadHidden.add(id);
-    if (!automaticReadSaved.has(id)) automaticReadQueue.add(id);
+    if (automaticReadQueue.has(id) || automaticReadInFlight.has(id) || automaticReadSaved.has(id)) continue;
+    automaticReadQueue.add(id);
+    added++;
   }
-  persistAutomaticReadQueue();
-  if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
-  document.querySelectorAll('.book-card[data-id]').forEach(card => {
-    if (automaticReadHidden.has(String(card.dataset.id))) card.classList.add('automatic-read-hidden');
-  });
-  applyReadIdsLocally(new Set([...ids].map(String)));
+  if (added) {
+    persistAutomaticReadQueue();
+    if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
+  }
+  if (selected.size) {
+    document.querySelectorAll('.book-card[data-id]').forEach(card => {
+      if (selected.has(String(card.dataset.id))) card.classList.add('automatic-read-hidden');
+    });
+    applyReadIdsLocally(selected);
+  }
   scheduleAutomaticRead();
-  return added;
+  return { added, existing: selected.size - added, invalid: ids.size - selected.size };
+}
+
+function showReadQueueResult({ added, existing, invalid }) {
+  const messages = [];
+  if (added) messages.push(`Đã đưa ${added} ID vào hàng chờ lưu read.json`);
+  if (existing) messages.push(`${existing} ID đã lưu hoặc đang chờ lưu`);
+  if (invalid) messages.push(`${invalid} ID không hợp lệ`);
+  toast(messages.join('. ') + '.', invalid ? 'err' : 'ok');
 }
 
 async function saveHomeReadIds() {
   const input = document.getElementById('home-read-ids');
   const { ids, invalid } = parseHomeReadIds(input.value);
   if (invalid.length || !ids.length) { updateHomeReadPreview(); return; }
-  const added = queueReadIds(ids);
+  const result = queueReadIds(new Set(ids));
   input.value = '';
   updateHomeReadPreview();
-  toast('✓ Đã thêm ' + added + ' ID vào queue read và ẩn ngay. Hệ thống sẽ lưu read.json rồi dọn dữ liệu riêng.', 'ok');
+  showReadQueueResult(result);
 }
 
 async function submitRead(tab) {
   if (!pendingRead[tab].size) return;
-  const ids = new Set(pendingRead[tab]);
-  pendingRead[tab].clear();
-  updateReadBar(tab);
-  const added = queueReadIds(ids);
-  toast('✓ Đã đưa ' + added + ' ID vào queue read và ẩn ngay.', 'ok');
+  showReadQueueResult(queueReadIds(new Set(pendingRead[tab])));
 }
 
 function toggleRead(bookId, btn, tab) {
@@ -1993,7 +2008,7 @@ const automaticReadInFlight = new Set();
 try {
   const restored = JSON.parse(localStorage.getItem(READ_QUEUE_STORAGE_KEY) || '[]');
   if (Array.isArray(restored)) for (const id of restored) {
-    if (/^\\d{15,20}$/.test(String(id))) automaticReadQueue.add(String(id));
+    if (isReadBookId(String(id))) automaticReadQueue.add(String(id));
   }
 } catch (error) { console.warn('Cannot restore read queue:', error); }
 const automaticReadSaved = new Set();
@@ -2040,7 +2055,7 @@ function considerCleanupRead(book, bookId = normalizedBookId(book || {})) {
   document.querySelectorAll('.book-card[data-id]').forEach(card => {
     if (String(card.dataset.id) === bookId) card.classList.add('automatic-read-hidden');
   });
-  if (!automaticReadSaved.has(bookId)) {
+  if (!automaticReadSaved.has(bookId) && !automaticReadQueue.has(bookId) && !automaticReadInFlight.has(bookId)) {
     automaticReadQueue.add(bookId);
     if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
     persistAutomaticReadQueue();
@@ -2107,7 +2122,7 @@ async function mergeReadIds(ids, message) {
       const merged = [...new Set([...current, ...added])];
       try {
         if (added.length) await ghPutFile('data/read.json', JSON.stringify(merged, null, 2), message, sha);
-        return { ids: new Set(merged), added: added.length };
+        return { added: added.length };
       } catch (error) {
         if (!isStatusShaConflict(error) || attempt === 5) throw error;
         await statusSyncDelay(attempt);
@@ -2120,26 +2135,36 @@ async function mergeReadIds(ids, message) {
   return write();
 }
 
+let readRedrawScheduled = false;
 function applyReadIdsLocally(ids) {
+  const categoryEntries = [...Object.values(catData), ...Object.values(rcData)];
+  const changedTabs = new Set();
   for (const id of ids) {
     dailyReadSet.add(id);
     rcReadSet.add(id);
     specialReadSet.add(id);
     if (typeof fqRankingReadSet !== 'undefined') fqRankingReadSet.add(id);
-    for (const cat of Object.values(catData)) cat.readSet.add(id);
-    for (const rc of Object.values(rcData)) rc.readSet.add(id);
+    for (const entry of categoryEntries) entry.readSet.add(id);
     for (const [tab, pending] of Object.entries(pendingRead)) {
-      pending.delete(id);
-      updateReadBar(tab);
+      if (!pending.delete(id)) continue;
+      changedTabs.add(tab);
+      if (typeof fqSetPendingReadOrigin === 'function') fqSetPendingReadOrigin(id, tab, false);
     }
   }
+  for (const tab of changedTabs) updateReadBar(tab);
   dailyRawBooks = dailyRawBooks.filter(book => !ids.has(normalizedBookId(book)));
   specialBooks = specialBooks.filter(book => !ids.has(normalizedBookId(book)));
-  if (dailyLoaded) renderDaily();
-  if (Object.keys(catData).length) renderCatPanels();
-  if (Object.keys(rcData).length) renderRcPanels();
-  if (specialLoaded) renderSpecial();
-  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
+  if (readRedrawScheduled) return;
+  readRedrawScheduled = true;
+  requestAnimationFrame(() => {
+    readRedrawScheduled = false;
+    const activeId = document.querySelector('.tab-panel.active')?.id;
+    if (activeId === 'tab-daily' && dailyLoaded) renderDaily();
+    else if (activeId === 'tab-category') renderCatPanels();
+    else if (activeId === 'tab-rankcat') renderRcPanels();
+    else if (activeId === 'tab-special' && specialLoaded) renderSpecial();
+    else if (activeId === 'tab-rankings' && typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
+  });
 }
 
 async function flushAutomaticRead() {
@@ -2147,7 +2172,6 @@ async function flushAutomaticRead() {
   if (!automaticReadQueue.size) return;
   const batch = new Set(automaticReadQueue);
   const copiedCount = [...batch].filter(id => copiedReadQueued.has(id)).length;
-  const cleanupCount = [...batch].filter(id => cleanupKeywordReadIds.has(id)).length;
   automaticReadQueue.clear();
   for (const id of batch) automaticReadInFlight.add(id);
   persistAutomaticReadQueue();
@@ -2156,15 +2180,17 @@ async function flushAutomaticRead() {
     try {
       const result = await mergeReadIds(batch, copiedCount
         ? 'mark queued copied book IDs and automatic read candidates as read'
-        : 'auto read: cleanup keywords or older than 300 days with score below 7.5');
+        : 'save queued book IDs as read');
       for (const id of batch) {
         automaticReadSaved.add(id);
         automaticReadInFlight.delete(id);
       }
       persistAutomaticReadQueue();
-      applyReadIdsLocally(result.ids);
-      toast(copiedCount ? '✓ Đã lưu ' + result.added + ' ID mới từ hàng đợi read.' :
-        '✓ Tự đưa ' + result.added + ' truyện vào read' + (cleanupCount ? ' (có từ khóa cleanup).' : ' (trên 300 ngày, score <7.5).'), 'ok');
+      applyReadIdsLocally(batch);
+      const existing = batch.size - result.added;
+      toast(result.added
+        ? `Đã thêm ${result.added} ID vào read.json.` + (existing ? ` ${existing} ID đã có trong file.` : '')
+        : `Cả ${existing} ID trong lượt lưu đã có trong read.json.`, 'ok');
       for (const id of batch) copiedReadQueued.delete(id);
       // Cleanup is independent: a slow multi-file cleanup must never block
       // subsequent read.json writes or cause a successful read to be retried.
