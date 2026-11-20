@@ -29,16 +29,52 @@ function fqIdScoreCoverUrl(value) {
   } catch (_) { return ''; }
 }
 
+function fqIdScoreChapterYears(row) {
+  const knownBook = _bookRegistry[row.id];
+  const lastYear = row.lastChapterYear || fmtTime(knownBook?.last_chapter_time);
+  const firstYear = row.firstChapterYear || fmtTime(knownBook?.first_chapter_time) ||
+    fmtTime(fqRankingFirstTimeCache[row.id]);
+  return [lastYear, firstYear];
+}
+
+function fqIdScoreNeedsYears(row) {
+  return (row.status === 'done' || row.status === 'error') && fqIdScoreChapterYears(row).some(year => !year);
+}
+
+async function fqIdScoreLoadYears() {
+  const state = fqIdScoreState;
+  const rows = fqIdScoreSorted().filter(fqIdScoreNeedsYears);
+  const fetchTimes = window.fqShareApiFetchChapterTimes;
+  if (!rows.length || typeof fetchTimes !== 'function') return;
+
+  state.phase = 'dates';
+  fqIdScoreRender();
+  let next = 0;
+  const worker = async () => {
+    while (!state.stopped && next < rows.length) {
+      const row = rows[next++];
+      if (row.manuallyHidden || fqIdScoreCleanupHidden(row)) continue;
+      try {
+        const dates = await fetchTimes(row.id);
+        const [lastYear, firstYear] = fqIdScoreChapterYears(row);
+        row.lastChapterYear = lastYear || fmtTime(dates?.last_chapter_time);
+        row.firstChapterYear = firstYear || fmtTime(dates?.first_chapter_time);
+        fqIdScoreScheduleRender();
+      } catch (error) {
+        console.warn('[Score theo ID] Lỗi lấy ngày chương', row.id, error);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));
+}
+
 function fqIdScoreBookHTML(row) {
   const book = row.book || {};
   const cover = fqIdScoreCoverUrl(book.thumb_url);
   const fieldText = value => value && typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '');
   const title = book.book_name || book.book_short_name || row.shareInfo?.text || row.id;
   const abstract = book.abstract || row.shareInfo?.sub_text || '';
-  const knownBook = _bookRegistry[row.id];
-  const lastYear = row.lastChapterYear || fmtTime(knownBook?.last_chapter_time);
-  const firstYear = row.firstChapterYear || fmtTime(knownBook?.first_chapter_time) ||
-    fmtTime(fqRankingFirstTimeCache[row.id]);
+  const [lastYear, firstYear] = fqIdScoreChapterYears(row);
   const years = [lastYear, firstYear].filter(Boolean).join('-');
   const stats = [
     ['Tác giả', book.author],
@@ -68,12 +104,18 @@ function fqIdScoreRender() {
   const done = sorted.filter(row => row.status === 'done').length;
   const errors = sorted.filter(row => row.status === 'error').length;
   const numeric = sorted.filter(row => row.status === 'done' && row.score !== null).length;
-  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : state.phase === 'bridge' ? 'Pha cuối: lấy score còn thiếu qua Fanqie Bridge…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note}`;
+  const missingYears = sorted.filter(fqIdScoreNeedsYears).length;
+  const yearNote = missingYears && !state.running
+    ? typeof window.fqShareApiFetchChapterTimes !== 'function'
+      ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.1 rồi tải lại trang để lấy đủ năm.'
+      : `${missingYears} ID thiếu năm chương. Có thể thử lại.`
+    : '';
+  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : state.phase === 'dates' ? 'Đang lấy năm chương từ Fanqie…' : state.phase === 'bridge' ? 'Đang lấy score còn thiếu qua Fanqie Bridge…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote}`.trim();
   fqIdScoreEl('start').disabled = state.running;
   fqIdScoreEl('input').disabled = state.running;
   fqIdScoreEl('clear').disabled = state.running;
   fqIdScoreEl('stop').disabled = !state.running || state.stopped;
-  fqIdScoreEl('retry').disabled = state.running || !sorted.some(row => row.status !== 'done');
+  fqIdScoreEl('retry').disabled = state.running || !(missingYears || sorted.some(row => row.status !== 'done'));
   const copyable = sorted.some(row => row.status === 'done' || row.status === 'error');
   fqIdScoreEl('copy').disabled = !copyable;
   fqIdScoreEl('copy-table').disabled = !copyable;
@@ -127,7 +169,7 @@ async function fqIdScoreStart(retry = false) {
     state.page = 1;
   }
   const queue = state.rows.filter(row => row.status !== 'done');
-  if (!queue.length) return;
+  if (!queue.length && !fqIdScoreSorted().some(fqIdScoreNeedsYears)) return;
   state.running = true;
   state.stopped = false;
   state.phase = 'initial';
@@ -192,6 +234,7 @@ async function fqIdScoreStart(retry = false) {
         await worker();
       }
     }
+    if (!state.stopped) await fqIdScoreLoadYears();
   } finally {
     state.running = false;
     state.phase = '';
