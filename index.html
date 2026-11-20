@@ -2049,9 +2049,10 @@ function considerCleanupRead(book, bookId = normalizedBookId(book || {})) {
   return true;
 }
 
+let automaticReadRankingRenderPending = false;
 function considerAutomaticRead(bookId, score, metadata) {
   bookId = String(bookId);
-  if (automaticReadSaved.has(bookId)) return;
+  if (automaticReadSaved.has(bookId) || automaticReadQueue.has(bookId) || automaticReadInFlight.has(bookId)) return;
   const firstChapterTime = metadata?.first_chapter_time ??
     _bookRegistry[bookId]?.first_chapter_time;
   if (!qualifiesForAutomaticRead(firstChapterTime, score)) return;
@@ -2060,7 +2061,13 @@ function considerAutomaticRead(bookId, score, metadata) {
     if (String(card.dataset.id) === bookId) card.classList.add('automatic-read-hidden');
   });
   automaticReadQueue.add(bookId);
-  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized) renderRankings();
+  if (typeof fqRankingState !== 'undefined' && fqRankingState.initialized && !automaticReadRankingRenderPending) {
+    automaticReadRankingRenderPending = true;
+    queueMicrotask(() => {
+      automaticReadRankingRenderPending = false;
+      renderRankings();
+    });
+  }
   if (!automaticReadQueuedAt) automaticReadQueuedAt = Date.now();
   persistAutomaticReadQueue();
   scheduleAutomaticRead();
@@ -4739,7 +4746,7 @@ setInterval(refreshScoreTabIndicator, 400);
 loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
-<script src="ranking-tab.js?v=20261114-isolated-first-time"></script>
+<script src="ranking-tab.js?v=20261120-first-time-queue"></script>
 <script src="id-score-tab.js?v=7"></script>
 <script src="read-removal.js"></script>
 </body>

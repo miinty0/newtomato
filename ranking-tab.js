@@ -55,7 +55,9 @@ function fqQueueRankingFirstTimes(books) {
   for (const book of books || []) {
     fqRankingApplyFirstTime(book);
     const id = String(book.book_id ?? book.bookId ?? '');
-    if (/^\d{10,}$/.test(id) && !book.first_chapter_time) fqRankingFirstTimePending.add(id);
+    if (/^\d{10,}$/.test(id) && !fqRankingValidFirstTime(book.first_chapter_time)) {
+      fqRankingFirstTimePending.add(id);
+    }
   }
   // Never compete with the many ranking/score API calls made by "Chạy tất cả bảng".
   // Finish collecting the unique IDs first; then hydrate them in small batches.
@@ -63,12 +65,25 @@ function fqQueueRankingFirstTimes(books) {
   if (fqRankingFirstTimeWorker || !fqRankingFirstTimePending.size) return;
   fqRankingFirstTimeError = '';
   fqRankingFirstTimeFailures = [];
+  const failedIds = new Set();
+  let consecutiveEmptyBatches = 0;
   fqRankingFirstTimeWorker = (async () => {
     console.info('[Bảng Fanqie] Bắt đầu lấy ngày chương đầu, chờ:', fqRankingFirstTimePending.size);
     while (fqRankingFirstTimePending.size && !fqRankingBatch.running &&
       fqRankingState.worker && !fqRankingState.worker.closed) {
-      const ids = [...fqRankingFirstTimePending].slice(0, 9);
-      ids.forEach(id => fqRankingFirstTimePending.delete(id));
+      const batch = new Set();
+      // Show dates on the current page before processing the rest of the rankings.
+      for (const card of fqRankEl('rankings-books').querySelectorAll('.book-card[data-id]')) {
+        const id = card.dataset.id;
+        if (fqRankingFirstTimePending.has(id)) batch.add(id);
+        if (batch.size === 9) break;
+      }
+      for (const id of fqRankingFirstTimePending) {
+        if (batch.size === 9) break;
+        batch.add(id);
+      }
+      const ids = [...batch];
+      for (const id of ids) fqRankingFirstTimePending.delete(id);
       let data;
       try {
         data = await fqRankRequest('first-chapter-times', { bookIds: ids });
@@ -95,7 +110,8 @@ function fqQueueRankingFirstTimes(books) {
       for (const id of ids) if (!success.has(id) && !failures.some(x => x.book_id === id))
         failures.push({ book_id: id, error: 'Bridge không trả kết quả' });
       if (failures.length) {
-        fqRankingFirstTimeFailures.push(...failures);
+        for (const row of failures) failedIds.add(row.book_id);
+        fqRankingFirstTimeFailures = [...failures, ...fqRankingFirstTimeFailures].slice(0, 5);
         fqRankingFirstTimeError = failures[0].error;
         console.warn('[Bảng Fanqie] Ngày chương đầu bị lỗi:', failures.slice(0, 5));
       }
@@ -107,11 +123,18 @@ function fqQueueRankingFirstTimes(books) {
         renderRankings();
       }
       console.info('[Bảng Fanqie] Đã lấy', success.size, '/', ids.length, 'ngày; cache:', Object.keys(fqRankingFirstTimeCache).length);
-      // If every request failed, stop rather than flood Fanqie with hundreds of requests.
-      // Failed IDs may be retried on the next explicit scan/connection.
-      if (!success.size && failures.length) break;
+      consecutiveEmptyBatches = success.size ? 0 : consecutiveEmptyBatches + 1;
+      if (consecutiveEmptyBatches >= 3) break;
     }
-  })().finally(() => { fqRankingFirstTimeWorker = null; });
+  })().catch(error => {
+    fqRankingFirstTimeError = String(error.message || error);
+    console.error('[Bảng Fanqie] Không thể tiếp tục cập nhật ngày chương đầu:', error);
+  }).finally(() => {
+    for (const id of failedIds) {
+      if (!fqRankingValidFirstTime(fqRankingFirstTimeCache[id])) fqRankingFirstTimePending.add(id);
+    }
+    fqRankingFirstTimeWorker = null;
+  });
 }
 window.fqRetryRankingFirstTimes = () => fqQueueRankingFirstTimes(fqRankingState.books);
 
@@ -759,11 +782,14 @@ async function fqRunRankingBatch(mode) {
     fqRankingState.loaded = true;
     fqRankingState.paused = true;
     fqRankingBatchControls(false);
-    fqQueueRankingFirstTimes(fqRankingState.books);
     fqRankEl('fq-ranking-batch-info').textContent = `${fqRankingBatch.stop ? 'Đã dừng' : 'Kết thúc lượt chạy'} · thành công ${completed}/${scopes.length} mục · ${union.size} ID duy nhất · ${fqRankingBatch.remaining.length} mục lỗi/chưa xong` + fqRankingFailureSummary(failures);
     window.fqRankingBatchErrors = failures;
     if (failures.length) console.warn('Bảng Fanqie — chi tiết lỗi:', failures);
-    renderRankings();
+    try {
+      renderRankings();
+    } finally {
+      fqQueueRankingFirstTimes(fqRankingState.books);
+    }
   }
 }
 
