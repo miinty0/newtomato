@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync(__dirname + '/../index.html', 'utf8');
 const source = fs.readFileSync(__dirname + '/../id-score-tab.js', 'utf8');
+const cleanupPolicy = require('../cleanup-policy.json');
 const helpers = html.slice(html.indexOf('function escapeHTML'), html.indexOf('function rankChangeHTML'));
 
 test('search requires every keyword across title, tags and abstract', () => {
@@ -22,7 +23,7 @@ function harness(fetchScore) {
   const ids = ['7569431547728645182', '7676513996333124632', '7676513996333124633'];
   const elements = new Map();
   const queued = [];
-  const ctx = vm.createContext({URL, queueReadIds: ids => queued.push(...ids), _bookRegistry: {}, fqRankingFirstTimeCache: {}, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
+  const ctx = vm.createContext({URL, fetch: async () => ({ok: true, json: async () => cleanupPolicy}), queueReadIds: ids => queued.push(...ids), _bookRegistry: {}, fqRankingFirstTimeCache: {}, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
     document: {getElementById(id) {
       if (!elements.has(id)) elements.set(id, {value: ids.join('\n')});
       return elements.get(id);
@@ -236,4 +237,27 @@ test('date lookups overlap the direct score pass and hide both year cleanup case
   h.ctx.toast = () => {};
   await h.ctx.fqIdScoreCopy(false);
   assert.deepEqual(copied, [h.ids[2]]);
+});
+
+test('a new score run reads the changed cleanup year cutoffs', async () => {
+  const h = harness(async () => ({
+    score: '8.8',
+    book_info: {first_chapter_time: Date.UTC(2024, 5, 1) / 1000, last_chapter_time: Date.UTC(2026, 5, 1) / 1000},
+  }));
+  h.ctx.document.getElementById('idscore-input').value = h.ids[0];
+  let policy = {firstYear: 2022, lastYear: 2024};
+  const requests = [];
+  h.ctx.fetch = async (url, options) => {
+    requests.push(url);
+    assert.equal(options.cache, 'no-store');
+    return {ok: true, json: async () => policy};
+  };
+  await h.ctx.fqIdScoreStart();
+  assert.equal(h.ctx.fqIdScoreSorted().length, 1);
+
+  policy = {firstYear: 2024, lastYear: 2024};
+  await h.ctx.fqIdScoreStart();
+  assert.equal(h.ctx.fqIdScoreSorted().length, 0);
+  assert.deepEqual(h.queued, [h.ids[0]]);
+  assert.deepEqual(requests, ['./cleanup-policy.json', './cleanup-policy.json']);
 });

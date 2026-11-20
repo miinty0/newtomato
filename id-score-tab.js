@@ -1,11 +1,8 @@
 'use strict';
 
-// Match the combined cleanup in .github/workflows/refetch-missing-details.yml.
-const ID_SCORE_CLEANUP_FIRST_YEAR = 2023;
-const ID_SCORE_CLEANUP_LAST_YEAR = 2025;
 const fqIdScoreYearFormat = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric' });
 const fqIdScoreYear = time => fmtTime(time, fqIdScoreYearFormat);
-const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '', phase: '', yearsRunning: false };
+const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '', phase: '', yearsRunning: false, cleanupPolicy: null };
 const fqIdScoreEl = id => document.getElementById('idscore-' + id);
 
 function fqIdScoreParse(text) {
@@ -15,14 +12,25 @@ function fqIdScoreParse(text) {
   return { ids, duplicates: valid.length - ids.length };
 }
 
+async function fqIdScoreLoadCleanupPolicy() {
+  const response = await fetch('./cleanup-policy.json', { cache: 'no-store' });
+  if (!response.ok) throw new Error('cleanup-policy.json HTTP ' + response.status);
+  const policy = await response.json();
+  if (![policy?.firstYear, policy?.lastYear].every(year => Number.isInteger(year) && year >= 1900 && year <= 2100)) {
+    throw new Error('cleanup-policy.json cần có firstYear và lastYear từ 1900 đến 2100.');
+  }
+  return policy;
+}
+
 function fqIdScoreCleanupHidden(row) {
   if (row.cleanupByYear || cleanupKeywordReadIds.has(row.id)) return true;
   if (considerCleanupRead(row.book, row.id) || considerCleanupRead({ abstract: row.shareInfo?.sub_text }, row.id)) return true;
   // Use dates from this run. Cached last-update dates may predate a new chapter.
-  if (row.chapterYearsLoading) return false;
+  const policy = fqIdScoreState.cleanupPolicy;
+  if (row.chapterYearsLoading || !policy) return false;
   const { firstChapterYear, lastChapterYear } = row;
-  const oldFirst = firstChapterYear && Number(firstChapterYear) <= ID_SCORE_CLEANUP_FIRST_YEAR;
-  const oldLast = lastChapterYear && Number(lastChapterYear) <= ID_SCORE_CLEANUP_LAST_YEAR;
+  const oldFirst = firstChapterYear && Number(firstChapterYear) <= policy.firstYear;
+  const oldLast = lastChapterYear && Number(lastChapterYear) <= policy.lastYear;
   if (!oldFirst && !oldLast) return false;
   row.cleanupByYear = true;
   queueReadIds(new Set([row.id]));
@@ -141,10 +149,11 @@ function fqIdScoreRender() {
     state.phase === 'bridge' ? 'Đang lấy score qua Fanqie Bridge' : state.phase ? 'Đang lấy score' : '',
     state.yearsRunning ? 'Đang lấy năm chương' : '',
   ].filter(Boolean).join(' · ');
+  const policyNote = state.rows.length && !state.cleanupPolicy ? 'Chưa tải được cấu hình cleanup theo năm.' : '';
   const statusText = state.running
     ? state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : progress || 'Đang xử lý…'
     : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.';
-  fqIdScoreEl('info').textContent = `${statusText} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote}`.trim();
+  fqIdScoreEl('info').textContent = `${statusText} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote} ${policyNote}`.trim();
   fqIdScoreEl('start').disabled = state.running;
   fqIdScoreEl('input').disabled = state.running;
   fqIdScoreEl('clear').disabled = state.running;
@@ -191,8 +200,19 @@ function fqIdScoreClear() {
 async function fqIdScoreStart(retry = false) {
   const state = fqIdScoreState;
   if (state.running) return;
-  try { await ensureCleanupKeywords(true); }
-  catch (error) { toast('Không tải được từ khóa cleanup: ' + error.message, 'err'); return; }
+  let policy;
+  try {
+    [, policy] = await Promise.all([
+      ensureCleanupKeywords(true),
+      fqIdScoreLoadCleanupPolicy().catch(error => {
+        console.warn('[Score theo ID] Lỗi tải cấu hình cleanup', error);
+        return null;
+      }),
+    ]);
+  } catch (error) {
+    toast('Không tải được từ khóa cleanup: ' + error.message, 'err');
+    return;
+  }
   if (state.running) return;
   const fetchScore = window.fqShareApiFetchShareInfo;
   if (typeof fetchScore !== 'function') { toast('Cập nhật công cụ Fanqie score lên 1.5.1 rồi tải lại trang để lấy trực tiếp Share API.', 'err'); return; }
@@ -203,8 +223,12 @@ async function fqIdScoreStart(retry = false) {
     state.note = parsed.duplicates ? `Đã bỏ ${parsed.duplicates} ID trùng.` : '';
     state.page = 1;
   }
+  state.cleanupPolicy = policy;
   const queue = fqIdScoreSorted().filter(row => row.status !== 'done');
-  if (!queue.length && !fqIdScoreSorted().some(fqIdScoreNeedsYears)) return;
+  if (!queue.length && !fqIdScoreSorted().some(fqIdScoreNeedsYears)) {
+    fqIdScoreRender();
+    return;
+  }
   state.running = true;
   state.stopped = false;
   state.phase = queue.length ? 'initial' : '';
