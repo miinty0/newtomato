@@ -10,7 +10,7 @@ const SCRIPT_VERSION = '2026-08-18.4-pipe';
 //   node cleanup-books.js --mode last_chapter_time --year 2024 --data-dir ./data
 //   node cleanup-books.js --mode abstract --keyword "双男|主攻|主受" --data-dir ./data
 //   node cleanup-books.js --mode abstract --data-dir ./data
-//   node cleanup-books.js --mode combined --last-year 2024 --first-year 2023 --data-dir ./data
+//   node cleanup-books.js --mode combined --data-dir ./data
 
 function parseArgs(argv = process.argv.slice(2)) {
   const options = {
@@ -45,13 +45,14 @@ Cách dùng:
   node cleanup-books.js --mode first_chapter_time --year 2024 [--data-dir ./data] [--dry-run]
   node cleanup-books.js --mode last_chapter_time --year 2024 [--data-dir ./data] [--dry-run]
   node cleanup-books.js --mode abstract [--keyword "双男"] [--data-dir ./data] [--dry-run]
-  node cleanup-books.js --mode combined --last-year 2024 --first-year 2023 [--data-dir ./data] [--dry-run]
+  node cleanup-books.js --mode combined [--last-year 2024] [--first-year 2023] [--data-dir ./data] [--dry-run]
 
 Chế độ:
   first_chapter_time  Dọn theo năm của first_chapter_time ("year" vẫn là bí danh cũ).
   last_chapter_time   Dọn theo năm của last_chapter_time.
   abstract            Dùng mọi từ khóa đã lưu và có thể thêm từ mới bằng --keyword.
   combined            Dọn nếu khớp abstract hoặc từng mốc thời gian riêng.
+                      Mốc để trống lấy từ cleanup-policy.json.
 
 Có thể nhập nhiều từ khóa mới trong --keyword, ngăn cách bằng dấu | hoặc xuống
 dòng. Danh sách được lưu tại data/cleanup_abstract_keywords.json sau lần chạy
@@ -68,10 +69,15 @@ function validateOptions(options) {
   }
 
   if (options.mode === 'combined') {
+    const policy = options.lastYear === '' || options.firstYear === ''
+      ? readJson(path.join(__dirname, 'cleanup-policy.json'), {})
+      : {};
     for (const [key, flag] of [['lastYear', '--last-year'], ['firstYear', '--first-year']]) {
-      const year = Number(options[key]);
-      if (options[key] === '' || !Number.isInteger(year) || year < 1900 || year > 2100) {
-        throw new Error(`${flag} phải là một năm hợp lệ từ 1900 đến 2100.`);
+      const fromPolicy = options[key] === '';
+      const year = fromPolicy ? policy?.[key] : Number(options[key]);
+      if (!Number.isInteger(year) || year < 1900 || year > 2100) {
+        const source = fromPolicy ? `cleanup-policy.json (${key})` : flag;
+        throw new Error(`${source} phải là một năm hợp lệ từ 1900 đến 2100.`);
       }
       options[key] = year;
     }
