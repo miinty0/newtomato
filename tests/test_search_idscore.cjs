@@ -94,6 +94,7 @@ test('missing chapter dates are loaded from Fanqie and retried independently of 
   h.ctx.window.fqShareApiFetchChapterTimes = async () => {throw new Error('timeout');};
   await h.ctx.fqIdScoreStart();
   assert.match(h.ctx.document.getElementById('idscore-info').textContent, /1 ID thiếu năm/);
+  assert.match(h.ctx.document.getElementById('idscore-results').innerHTML, /Y-Y: lỗi, truyện ẩn/);
   assert.equal(h.ctx.document.getElementById('idscore-retry').disabled, false);
   h.ctx.window.fqShareApiFetchChapterTimes = async bookId => {
     assert.equal(bookId, id);
@@ -101,6 +102,7 @@ test('missing chapter dates are loaded from Fanqie and retried independently of 
   };
   await h.ctx.fqIdScoreStart(true);
   assert.equal(scoresFetched, 1);
+  assert.doesNotMatch(h.ctx.document.getElementById('idscore-results').innerHTML, /Y-Y: lỗi, truyện ẩn/);
   assert.match(h.ctx.document.getElementById('idscore-results').innerHTML, /class="book-time notranslate">2026-2024</);
   assert.equal(h.ctx.document.getElementById('idscore-retry').disabled, true);
 });
@@ -180,4 +182,19 @@ test('manual hide removes a row from display and both copy formats, including af
   h.ctx.fqIdScoreHide('103');
   assert.equal(h.ctx.document.getElementById('idscore-copy').disabled, true);
   assert.equal(h.ctx.document.getElementById('idscore-copy-table').disabled, true);
+});
+
+test('ID cards use Fanqie thumbnails and shorten chapter counts over 1000', () => {
+  const h = harness(async () => ({}));
+  const card = h.ctx.fqIdScoreBookHTML({
+    id: h.ids[0], status: 'done',
+    book: {thumb_url: 'https://p3-reading-sign.fqnovelpic.com/novel-pic/cover123~tplv-original.image?x=1', serial_count: '1126'},
+  });
+  assert.match(card, /src="https:\/\/p6-novel\.byteimg\.com\/thumb\/novel-pic\/cover123"/);
+  assert.ok(card.includes('Số chương: +1k'));
+  const atLimit = h.ctx.fqIdScoreBookHTML({id: h.ids[0], status: 'done', book: {serial_count: 1000}});
+  assert.ok(atLimit.includes('Số chương: 1000'));
+  assert.doesNotMatch(atLimit, /Y-Y: lỗi, truyện ẩn/);
+  assert.equal(h.ctx.fqIdScoreCoverUrl('https://example.org/cover.jpg'), 'https://example.org/cover.jpg');
+  assert.equal(h.ctx.fqIdScoreCoverUrl('javascript:alert(1)'), '');
 });

@@ -25,7 +25,9 @@ function fqIdScoreSorted() {
 function fqIdScoreCoverUrl(value) {
   try {
     const url = new URL(String(value || ''));
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
+    const cover = url.pathname.match(/(?:^|\/)novel-pic\/([^/~]+)/);
+    return cover ? 'https://p6-novel.byteimg.com/thumb/novel-pic/' + cover[1] : url.href;
   } catch (_) { return ''; }
 }
 
@@ -59,10 +61,11 @@ async function fqIdScoreLoadYears() {
         const [lastYear, firstYear] = fqIdScoreChapterYears(row);
         row.lastChapterYear = lastYear || fmtTime(dates?.last_chapter_time);
         row.firstChapterYear = firstYear || fmtTime(dates?.first_chapter_time);
-        fqIdScoreScheduleRender();
       } catch (error) {
         console.warn('[Score theo ID] Lỗi lấy ngày chương', row.id, error);
       }
+      row.chapterYearsChecked = true;
+      fqIdScoreScheduleRender();
     }
   };
   await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));
@@ -75,10 +78,12 @@ function fqIdScoreBookHTML(row) {
   const title = book.book_name || book.book_short_name || row.shareInfo?.text || row.id;
   const abstract = book.abstract || row.shareInfo?.sub_text || '';
   const [lastYear, firstYear] = fqIdScoreChapterYears(row);
-  const years = [lastYear, firstYear].filter(Boolean).join('-');
+  const years = row.chapterYearsChecked && (!lastYear || !firstYear)
+    ? 'Y-Y: lỗi, truyện ẩn'
+    : [lastYear, firstYear].filter(Boolean).join('-');
   const stats = [
     ['Tác giả', book.author],
-    ['Số chương', book.serial_count],
+    ['Số chương', Number(book.serial_count) > 1000 ? '+1k' : book.serial_count],
     ['Trạng thái', book.creation_status == null ? null : String(book.creation_status) === '0' ? 'Hoàn thành' : String(book.creation_status) === '1' ? 'Còn tiếp' : book.creation_status],
     ['Tag', book.tags],
     ['Số chữ', book.word_number],
