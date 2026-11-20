@@ -3402,11 +3402,12 @@ function authorLinkHTML(author) {
   return `<a href="https://wikicv.org/tac-gia/${encodeURIComponent(name)}" target="_blank" rel="noopener noreferrer">${escapeHTML(author)}</a>`;
 }
 
-function fmtTime(ts) {
+function fmtTime(ts, formatter) {
   const time = Number(ts);
   if (!Number.isFinite(time) || time <= 0) return '';
-  const year = new Date(time >= 1e12 ? time : time * 1000).getFullYear();
-  return Number.isFinite(year) ? String(year) : '';
+  const date = new Date(time >= 1e12 ? time : time * 1000);
+  if (!Number.isFinite(date.getTime())) return '';
+  return formatter ? formatter.format(date) : String(date.getFullYear());
 }
 
 function rankChangeHTML(rc) {
@@ -4774,7 +4775,7 @@ loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
 <script src="ranking-tab.js?v=20261120-app-pagination"></script>
-<script src="id-score-tab.js?v=10"></script>
+<script src="id-score-tab.js?v=11"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>
