@@ -651,7 +651,7 @@ window.fqDiagnoseRankingCategory = fqDiagnoseRankingCategory;
 function fqRankingErrorMessage(error) {
   const message = String(error?.message || error || 'Lỗi tải');
   if (/chưa trả truyện|thiếu danh sách/.test(message)) return 'Chưa có dữ liệu';
-  if (/trang tiếp theo|next_offset/.test(message)) return 'Lỗi phân trang';
+  if (/trang tiếp theo|next_offset|phân trang/i.test(message)) return 'Lỗi phân trang';
   if (/lặp lại trang/.test(message)) return 'Trang bị lặp';
   if (/bảng khác/.test(message)) return 'Sai bảng';
   if (/không phản hồi|timeout/i.test(message)) return 'Fanqie không phản hồi';
@@ -668,6 +668,10 @@ function fqRankingFailureSummary(failures) {
 
 // Batch results stay separate from the selector values: switching a selector
 // returns to its individual board; score/status/read redraws preserve the union.
+// These APP boards have been observed to return next_offset: 0 while still accepting offsets.
+const FQ_RANK_ZERO_OFFSET_BOARDS = new Set(['app-146', 'app-135', 'app-201', 'app-116']);
+const FQ_RANK_APP_PAGE_STEP = 12; // Match the page size requested by Fanqie Bridge.
+const FQ_RANK_MAX_ESTIMATED_PAGES = 8;
 const fqRankingBatch = {
   running: false, controller: null, aggregate: false, serial: 0,
   remaining: [], checkpoints: new Map(), total: 0, completed: 0
@@ -766,8 +770,12 @@ async function fqRunRankingBatch(mode) {
       const scope = scopes[index];
       const scopeKey = fqRankingScopeKey(scope);
       const checkpoint = fqRankingBatch.checkpoints.get(scopeKey);
-      let { offset, session, version, signatures } = checkpoint || { offset: 0, session: '', version: '', signatures: new Set() };
-      let scopeComplete = false;
+      let { offset, session, version, signatures, seenItems, estimatedOffset } = checkpoint || {
+        offset: 0, session: '', version: '', signatures: new Set(),
+        seenItems: FQ_RANK_ZERO_OFFSET_BOARDS.has(scope.type) ? new Set() : null,
+        estimatedOffset: false
+      };
+      let scopeComplete = false, estimatedPages = 0;
       try {
         do {
           fqRankEl('fq-ranking-batch-info').textContent = `${mode === 'retry' ? 'Đang chạy tiếp' : 'Đang chạy'} ${index + 1}/${scopes.length} · ${fqRankingBatchLabel(scope)} · offset ${offset} · ${union.size} ID duy nhất`;
@@ -786,20 +794,39 @@ async function fqRunRankingBatch(mode) {
           }
           if (!Array.isArray(result.books)) throw new Error('Phản hồi thiếu danh sách');
           const entries = Array.isArray(result.entries) ? result.entries : [];
-          const signature = JSON.stringify([result.books.map(book => String(book.book_id ?? book.bookId)), entries.map(row => row.id || row.query || row.title)]);
+          const bookIds = result.books.map(book => book.book_id ?? book.bookId);
+          const entryIds = entries.map(row => row.id || row.query || row.title);
+          const signature = JSON.stringify([bookIds.map(String), entryIds]);
+          const next = Number(result.next_offset);
+          const nextSession = result.session_id || session;
+          const estimateNext = Boolean(seenItems && result.has_more && next === 0 && nextSession);
+          const itemKeys = seenItems ? [
+            ...bookIds.filter(Boolean).map(id => 'book:' + id),
+            ...entryIds.filter(Boolean).map(id => 'entry:' + id)
+          ] : [];
+          if (result.has_more && (estimatedOffset || estimateNext) && !itemKeys.some(key => !seenItems.has(key))) {
+            throw new Error('Phân trang: Fanqie vẫn báo còn trang nhưng offset ' + offset + ' không trả mục mới; đã giữ kết quả tìm được');
+          }
           if ((result.books.length || entries.length) && signatures.has(signature)) throw new Error('API lặp lại trang; chưa lấy hết mục này');
           await addBooks(result.books);
           if (!result.has_more) {
             scopeComplete = true;
             break;
           }
-          const next = Number(result.next_offset);
-          if (!Number.isFinite(next) || next <= offset || !result.books.length && !entries.length) throw new Error('API báo còn dữ liệu nhưng không trả trang tiếp theo hợp lệ');
+          if ((!estimateNext && (!Number.isFinite(next) || next <= offset)) || (!result.books.length && !entries.length)) {
+            throw new Error('API báo còn dữ liệu nhưng không trả trang tiếp theo hợp lệ');
+          }
           signatures.add(signature);
-          offset = next;
-          session = result.session_id || session;
+          if (seenItems) for (const key of itemKeys) seenItems.add(key);
+          if (estimatedOffset) estimatedPages++;
+          offset = estimateNext ? offset + FQ_RANK_APP_PAGE_STEP : next;
+          estimatedOffset = estimateNext;
+          session = nextSession;
           version = result.rank_version || version;
-          fqRankingBatch.checkpoints.set(scopeKey, { offset, session, version, signatures });
+          fqRankingBatch.checkpoints.set(scopeKey, { offset, session, version, signatures, seenItems, estimatedOffset });
+          if (estimateNext && estimatedPages >= FQ_RANK_MAX_ESTIMATED_PAGES) {
+            throw new Error('Phân trang: đã đạt giới hạn lượt thử offset; có thể chạy tiếp từ offset ' + offset);
+          }
         } while (!signal.aborted);
         if (!scopeComplete) break;
         fqMarkRankingRun(scope, runDay);
