@@ -150,23 +150,36 @@ window.addEventListener('message', event => {
   if (event.origin !== FQ_RANK_ORIGIN || event.source !== fqRankingState.worker || ![FQ_RANK_CHANNEL, FQ_RANK_FIRST_TIME_CHANNEL].includes(data?.__wdFqBridge) || data.kind !== 'response') return;
   const request = fqRankingState.pending.get(data.id);
   if (!request || data.__wdFqBridge !== request.channel) return;
-  clearTimeout(request.timer); fqRankingState.pending.delete(data.id);
   if (data.ok) request.resolve(data.result);
   else request.reject(new Error(data.error || 'Fanqie request lỗi'));
 });
 
-function fqRankRequest(action, payload = {}, timeout = 90000) {
+function fqRankRequest(action, payload = {}, timeout = 90000, signal) {
+  if (signal?.aborted) return Promise.reject(signal.reason);
   const worker = fqRankingState.worker;
   if (!worker || worker.closed) return Promise.reject(new Error('Bấm “Kết nối tab Fanqie”, đợi tab tải xong rồi lấy danh sách.'));
   const id = 'rank-' + crypto.randomUUID();
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
+    const settle = callback => value => {
+      clearTimeout(timer);
       fqRankingState.pending.delete(id);
-      reject(new Error('Fanqie không phản hồi. Kiểm tra kết nối và đợi tab Fanqie tải xong; dữ liệu cũ được giữ lại.'));
+      signal?.removeEventListener('abort', abort);
+      callback(value);
+    };
+    const succeed = settle(resolve);
+    const fail = settle(reject);
+    const abort = () => fail(signal.reason);
+    const timer = setTimeout(() => {
+      fail(new Error('Fanqie không phản hồi. Kiểm tra kết nối và đợi tab Fanqie tải xong; dữ liệu cũ được giữ lại.'));
     }, timeout);
     const channel = action === 'first-chapter-times' ? FQ_RANK_FIRST_TIME_CHANNEL : FQ_RANK_CHANNEL;
-    fqRankingState.pending.set(id, { resolve, reject, timer, channel });
-    worker.postMessage({ __wdFqBridge: channel, kind: 'request', id, action, payload }, FQ_RANK_ORIGIN);
+    fqRankingState.pending.set(id, { resolve: succeed, reject: fail, channel });
+    signal?.addEventListener('abort', abort, { once: true });
+    try {
+      worker.postMessage({ __wdFqBridge: channel, kind: 'request', id, action, payload }, FQ_RANK_ORIGIN);
+    } catch (error) {
+      fail(error);
+    }
   });
 }
 
@@ -656,7 +669,7 @@ function fqRankingFailureSummary(failures) {
 // Batch results stay separate from the selector values: switching a selector
 // returns to its individual board; score/status/read redraws preserve the union.
 const fqRankingBatch = {
-  running: false, stop: false, aggregate: false, serial: 0,
+  running: false, controller: null, aggregate: false, serial: 0,
   remaining: [], checkpoints: new Map(), total: 0, completed: 0
 };
 function fqRankingBatchScopes(mode) {
@@ -688,8 +701,9 @@ function fqRankingBatchControls(running) {
   fqRankEl('fq-ranking-retry').hidden = running || !fqRankingBatch.remaining.length;
 }
 function fqStopRankingBatch() {
-  fqRankingBatch.stop = true;
-  fqRankEl('fq-ranking-batch-info').textContent = 'Đang dừng sau phản hồi hiện tại; kết quả đã lấy được giữ lại.';
+  if (!fqRankingBatch.controller) return;
+  fqRankEl('fq-ranking-batch-info').textContent = 'Đang dừng lấy bảng để chuyển sang lấy năm chương đầu…';
+  fqRankingBatch.controller.abort();
 }
 async function fqRunRankingBatch(mode) {
   if (fqRankingBatch.running || fqRankingState.busy) return;
@@ -700,7 +714,9 @@ async function fqRunRankingBatch(mode) {
   const scopes = fqRankingBatchScopes(mode);
   if (!scopes.length) { toast('Không có mục để chạy.', 'err'); return; }
   fqRankingBatch.running = true;
-  fqRankingBatch.stop = false;
+  fqRankingBatch.controller = new AbortController();
+  const { signal } = fqRankingBatch.controller;
+  const stopped = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
   fqRankingBatch.aggregate = true;
   fqRankingBatch.remaining = [];
   fqRankingState.generation++;
@@ -742,11 +758,11 @@ async function fqRunRankingBatch(mode) {
     renderRankings();
     // Score and draw each received page before requesting the next source page.
     // Keep the page visible and reuse the same scan as the union grows.
-    await qualifiedScoreScans.get('rankings')?.scanPromise;
+    await Promise.race([qualifiedScoreScans.get('rankings')?.scanPromise, stopped]);
   };
   try {
-    await fqLoadRankingFilters();
-    for (; index < scopes.length && !fqRankingBatch.stop; index++) {
+    await Promise.race([fqLoadRankingFilters(), stopped]);
+    for (; index < scopes.length && !signal.aborted; index++) {
       const scope = scopes[index];
       const scopeKey = fqRankingScopeKey(scope);
       const checkpoint = fqRankingBatch.checkpoints.get(scopeKey);
@@ -761,7 +777,7 @@ async function fqRunRankingBatch(mode) {
             period: scope.type === 'app-200' ? 'daily' : scope.period,
             ...(scope.type === 'app-200' ? { subTab: Number(scope.subTab) } : {}),
             sessionId: session, requireAbstract: fqRankingKeywords.length > 0
-          } : { type: scope.type, offset, categoryId: scope.categoryId || '0', gender: scope.gender || '1', rankVersion: version, requireAbstract: fqRankingKeywords.length > 0 });
+          } : { type: scope.type, offset, categoryId: scope.categoryId || '0', gender: scope.gender || '1', rankVersion: version, requireAbstract: fqRankingKeywords.length > 0 }, undefined, signal);
           if (scope.type === 'landing') {
             if (!Array.isArray(result.sections) || !result.sections.length) throw new Error('Trang tìm kiếm thiếu danh sách');
             for (const section of result.sections) await addBooks(section.books);
@@ -784,12 +800,13 @@ async function fqRunRankingBatch(mode) {
           session = result.session_id || session;
           version = result.rank_version || version;
           fqRankingBatch.checkpoints.set(scopeKey, { offset, session, version, signatures });
-        } while (!fqRankingBatch.stop);
+        } while (!signal.aborted);
         if (!scopeComplete) break;
         fqMarkRankingRun(scope, runDay);
         fqRankingBatch.completed++;
         fqRankingBatch.checkpoints.delete(scopeKey);
       } catch (error) {
+        if (signal.aborted && error === signal.reason) break;
         const reason = fqRankingErrorMessage(error);
         failures.push({ scope: { ...scope }, offset, error: error.message, reason });
         if (!fqRankingState.worker || fqRankingState.worker.closed || reason === 'Fanqie không phản hồi') {
@@ -804,11 +821,12 @@ async function fqRunRankingBatch(mode) {
     // Resume the interrupted scope and untouched scopes before retrying earlier errors.
     fqRankingBatch.remaining = [...scopes.slice(index), ...fqRankingBatch.remaining];
     fqRankingBatch.running = false;
+    fqRankingBatch.controller = null;
     fqRankingState.busy = false;
     fqRankingState.loaded = true;
     fqRankingState.paused = true;
     fqRankingBatchControls(false);
-    const status = connectionPaused ? 'Đã tạm dừng do mất phản hồi' : fqRankingBatch.stop ? 'Đã dừng' : 'Kết thúc lượt chạy';
+    const status = connectionPaused ? 'Đã tạm dừng do mất phản hồi' : signal.aborted ? 'Đã dừng lấy bảng' : 'Kết thúc lượt chạy';
     fqRankEl('fq-ranking-batch-info').textContent = `${status} · thành công ${fqRankingBatch.completed}/${fqRankingBatch.total} mục · ${union.size} ID duy nhất · ${fqRankingBatch.remaining.length} mục lỗi/chưa xong` + fqRankingFailureSummary(failures) +
       (connectionPaused ? ' · Khi kết nối ổn định, bấm “Thử lại mục lỗi / chưa xong” để chạy tiếp.' : '');
     window.fqRankingBatchErrors = failures;
