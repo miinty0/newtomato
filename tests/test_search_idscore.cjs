@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const html = fs.readFileSync(__dirname + '/../index.html', 'utf8');
 const source = fs.readFileSync(__dirname + '/../id-score-tab.js', 'utf8');
-const helpers = html.slice(html.indexOf('function escapeHTML'), html.indexOf('function fmtTime'));
+const helpers = html.slice(html.indexOf('function escapeHTML'), html.indexOf('function rankChangeHTML'));
 
 test('search requires every keyword across title, tags and abstract', () => {
   const ctx = vm.createContext({});
@@ -21,7 +21,7 @@ test('search requires every keyword across title, tags and abstract', () => {
 function harness(fetchScore) {
   const ids = ['7569431547728645182', '7676513996333124632', '7676513996333124633'];
   const elements = new Map();
-  const ctx = vm.createContext({URL, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
+  const ctx = vm.createContext({URL, _bookRegistry: {}, fqRankingFirstTimeCache: {}, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
     document: {getElementById(id) {
       if (!elements.has(id)) elements.set(id, {value: ids.join('\n')});
       return elements.get(id);
@@ -61,6 +61,25 @@ test('Bridge errors stay retryable and do not erase Share API display metadata',
   h.ctx.window.fqShareApiFetchBookMeta = async () => ({score: '8.8'});
   await h.ctx.fqIdScoreStart(true);
   assert.equal(h.rows().every(row => row.status === 'done' && row.score === 8.8 && row.book.author === '作者'), true);
+});
+
+test('ID results show chapter years from Share API and saved ranking metadata', async () => {
+  const first = Date.UTC(2024, 5, 1) / 1000;
+  const last = Date.UTC(2026, 5, 1) / 1000;
+  const h = harness(async id => ({
+    score: id === h.ids[0] ? 'N/A' : '8.8',
+    book_info: {book_name: '测试', last_chapter_update_time: id === h.ids[2] ? 'invalid' : String(last * 1000)},
+    first_chapter_time: id === h.ids[0] ? String(first) : null,
+  }));
+  h.ctx.window.fqShareApiFetchBookMeta = async () => ({score: '9'});
+  h.ctx.fqRankingFirstTimeCache[h.ids[1]] = first;
+  h.ctx._bookRegistry[h.ids[2]] = {last_chapter_time: last};
+  await h.ctx.fqIdScoreStart();
+  const cards = h.rows().map(h.ctx.fqIdScoreBookHTML);
+  assert.match(cards[0], /class="book-time notranslate">2026-2024</);
+  assert.match(cards[1], /class="book-time notranslate">2026-2024</);
+  assert.match(cards[2], /class="book-time notranslate">2026</);
+  assert.doesNotMatch(h.ctx.fqIdScoreBookHTML({id: '1'}), /book-time|NaN/);
 });
 
 test('stop skips automatic final retry and manual retry can recover', async () => {

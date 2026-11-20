@@ -35,6 +35,11 @@ function fqIdScoreBookHTML(row) {
   const fieldText = value => value && typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '');
   const title = book.book_name || book.book_short_name || row.shareInfo?.text || row.id;
   const abstract = book.abstract || row.shareInfo?.sub_text || '';
+  const knownBook = _bookRegistry[row.id];
+  const lastYear = row.lastChapterYear || fmtTime(knownBook?.last_chapter_time);
+  const firstYear = row.firstChapterYear || fmtTime(knownBook?.first_chapter_time) ||
+    fmtTime(fqRankingFirstTimeCache[row.id]);
+  const years = [lastYear, firstYear].filter(Boolean).join('-');
   const stats = [
     ['Tác giả', book.author],
     ['Số chương', book.serial_count],
@@ -50,6 +55,7 @@ function fqIdScoreBookHTML(row) {
       <a href="https://fanqienovel.com/page/${row.id}" target="_blank" rel="noopener noreferrer" style="font-weight:600;font-size:16px">${escapeHTML(title)}</a>
       <div style="font:11px monospace;color:var(--muted);margin:3px 0 8px">${row.id}</div>
       <div style="font-size:12px;color:var(--muted)">${stats.map(([label, value]) => `${label}: ${label === 'Tác giả' ? authorLinkHTML(value) : escapeHTML(fieldText(value))}`).join(' · ')}</div>
+      ${years ? `<div class="book-time notranslate">${years}</div>` : ''}
       ${abstract ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0">${escapeHTML(abstract)}</p>` : ''}
       ${metadataMissing ? '<p style="color:var(--muted);font-size:12px">Share API không trả thông tin truyện cho ID này.</p>' : ''}
     </div>
@@ -143,6 +149,10 @@ async function fqIdScoreStart(retry = false) {
         const response = bridgePhase ? await fetchMeta(row.id, {deferBridge: false}) : await fetchScore(row.id);
         const book = response?.book_info || response?.data?.book_info;
         if (book && typeof book === 'object' && !Array.isArray(book) && Object.keys(book).length) row.book = book;
+        row.firstChapterYear = fmtTime(book?.first_chapter_time) || fmtTime(response?.first_chapter_time) || row.firstChapterYear;
+        row.lastChapterYear = fmtTime(book?.last_chapter_time) || fmtTime(response?.last_chapter_time) ||
+          fmtTime(book?.last_chapter_first_pass_time) || fmtTime(book?.last_chapter_update_time) ||
+          fmtTime(book?.last_publish_time) || row.lastChapterYear;
         const shareInfo = response?.share_info || response?.data;
         if (shareInfo) row.shareInfo = shareInfo;
         fqIdScoreCleanupHidden(row);

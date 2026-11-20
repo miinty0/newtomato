@@ -3403,9 +3403,10 @@ function authorLinkHTML(author) {
 }
 
 function fmtTime(ts) {
-  if (!ts) return '';
-  const d = new Date(ts * 1000);
-  return String(d.getFullYear());
+  const time = Number(ts);
+  if (!Number.isFinite(time) || time <= 0) return '';
+  const year = new Date(time >= 1e12 ? time : time * 1000).getFullYear();
+  return Number.isFinite(year) ? String(year) : '';
 }
 
 function rankChangeHTML(rc) {
@@ -4773,7 +4774,7 @@ loadConfig();
 </script>
 <script src="ranking-utils.js?v=20261023-bulk"></script>
 <script src="ranking-tab.js?v=20261120-app-pagination"></script>
-<script src="id-score-tab.js?v=7"></script>
+<script src="id-score-tab.js?v=8"></script>
 <script src="read-removal.js"></script>
 </body>
 </html>
