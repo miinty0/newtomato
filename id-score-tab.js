@@ -1,7 +1,11 @@
 'use strict';
 
-// Score lookup keeps its own cache and status; abstract cleanup uses the shared read queue.
-const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '', phase: '' };
+// Match the combined cleanup in .github/workflows/refetch-missing-details.yml.
+const ID_SCORE_CLEANUP_FIRST_YEAR = 2023;
+const ID_SCORE_CLEANUP_LAST_YEAR = 2025;
+const fqIdScoreYearFormat = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', year: 'numeric' });
+const fqIdScoreYear = time => fmtTime(time, fqIdScoreYearFormat);
+const fqIdScoreState = { rows: [], running: false, stopped: false, page: 1, timer: null, note: '', phase: '', yearsRunning: false };
 const fqIdScoreEl = id => document.getElementById('idscore-' + id);
 
 function fqIdScoreParse(text) {
@@ -12,8 +16,17 @@ function fqIdScoreParse(text) {
 }
 
 function fqIdScoreCleanupHidden(row) {
-  const matched = considerCleanupRead(row.book, row.id) || considerCleanupRead({ abstract: row.shareInfo?.sub_text }, row.id);
-  return matched || cleanupKeywordReadIds.has(row.id);
+  if (row.cleanupByYear || cleanupKeywordReadIds.has(row.id)) return true;
+  if (considerCleanupRead(row.book, row.id) || considerCleanupRead({ abstract: row.shareInfo?.sub_text }, row.id)) return true;
+  // Use dates from this run. Cached last-update dates may predate a new chapter.
+  if (row.chapterYearsLoading) return false;
+  const { firstChapterYear, lastChapterYear } = row;
+  const oldFirst = firstChapterYear && Number(firstChapterYear) <= ID_SCORE_CLEANUP_FIRST_YEAR;
+  const oldLast = lastChapterYear && Number(lastChapterYear) <= ID_SCORE_CLEANUP_LAST_YEAR;
+  if (!oldFirst && !oldLast) return false;
+  row.cleanupByYear = true;
+  queueReadIds(new Set([row.id]));
+  return true;
 }
 
 function fqIdScoreSorted() {
@@ -33,9 +46,9 @@ function fqIdScoreCoverUrl(value) {
 
 function fqIdScoreChapterYears(row) {
   const knownBook = _bookRegistry[row.id];
-  const lastYear = row.lastChapterYear || fmtTime(knownBook?.last_chapter_time);
-  const firstYear = row.firstChapterYear || fmtTime(knownBook?.first_chapter_time) ||
-    fmtTime(fqRankingFirstTimeCache[row.id]);
+  const lastYear = row.lastChapterYear || fqIdScoreYear(knownBook?.last_chapter_time);
+  const firstYear = row.firstChapterYear || fqIdScoreYear(knownBook?.first_chapter_time) ||
+    fqIdScoreYear(fqRankingFirstTimeCache[row.id]);
   return [lastYear, firstYear];
 }
 
@@ -45,30 +58,39 @@ function fqIdScoreNeedsYears(row) {
 
 async function fqIdScoreLoadYears() {
   const state = fqIdScoreState;
-  const rows = fqIdScoreSorted().filter(fqIdScoreNeedsYears);
+  const rows = fqIdScoreSorted().filter(row => !row.firstChapterYear || !row.lastChapterYear);
   const fetchTimes = window.fqShareApiFetchChapterTimes;
   if (!rows.length || typeof fetchTimes !== 'function') return;
 
-  state.phase = 'dates';
-  fqIdScoreRender();
+  state.yearsRunning = true;
+  fqIdScoreScheduleRender();
   let next = 0;
   const worker = async () => {
     while (!state.stopped && next < rows.length) {
       const row = rows[next++];
-      if (row.manuallyHidden || fqIdScoreCleanupHidden(row)) continue;
+      if (row.manuallyHidden || fqIdScoreCleanupHidden(row) || row.firstChapterYear && row.lastChapterYear) continue;
+      row.chapterYearsLoading = true;
       try {
         const dates = await fetchTimes(row.id);
-        const [lastYear, firstYear] = fqIdScoreChapterYears(row);
-        row.lastChapterYear = lastYear || fmtTime(dates?.last_chapter_time);
-        row.firstChapterYear = firstYear || fmtTime(dates?.first_chapter_time);
+        row.fanqieLastYear = fqIdScoreYear(dates?.last_chapter_time) || row.fanqieLastYear;
+        row.fanqieFirstYear = fqIdScoreYear(dates?.first_chapter_time) || row.fanqieFirstYear;
+        row.lastChapterYear = row.fanqieLastYear || row.lastChapterYear;
+        row.firstChapterYear = row.fanqieFirstYear || row.firstChapterYear;
       } catch (error) {
         console.warn('[Score theo ID] Lỗi lấy ngày chương', row.id, error);
       }
       row.chapterYearsChecked = true;
+      row.chapterYearsLoading = false;
+      fqIdScoreCleanupHidden(row);
       fqIdScoreScheduleRender();
     }
   };
-  await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));
+  try {
+    await Promise.all(Array.from({ length: Math.min(3, rows.length) }, worker));
+  } finally {
+    state.yearsRunning = false;
+    fqIdScoreScheduleRender();
+  }
 }
 
 function fqIdScoreBookHTML(row) {
@@ -78,7 +100,7 @@ function fqIdScoreBookHTML(row) {
   const title = book.book_name || book.book_short_name || row.shareInfo?.text || row.id;
   const abstract = book.abstract || row.shareInfo?.sub_text || '';
   const [lastYear, firstYear] = fqIdScoreChapterYears(row);
-  const years = row.chapterYearsChecked && (!lastYear || !firstYear)
+  const years = row.chapterYearsChecked && fqIdScoreNeedsYears(row)
     ? 'Y-Y: lỗi, truyện ẩn'
     : [lastYear, firstYear].filter(Boolean).join('-');
   const stats = [
@@ -115,7 +137,14 @@ function fqIdScoreRender() {
       ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.1 rồi tải lại trang để lấy đủ năm.'
       : `${missingYears} ID thiếu năm chương. Có thể thử lại.`
     : '';
-  fqIdScoreEl('info').textContent = `${state.running ? (state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : state.phase === 'dates' ? 'Đang lấy năm chương từ Fanqie…' : state.phase === 'bridge' ? 'Đang lấy score còn thiếu qua Fanqie Bridge…' : 'Đang lấy score…') : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.'} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote}`.trim();
+  const progress = [
+    state.phase === 'bridge' ? 'Đang lấy score qua Fanqie Bridge' : state.phase ? 'Đang lấy score' : '',
+    state.yearsRunning ? 'Đang lấy năm chương' : '',
+  ].filter(Boolean).join(' · ');
+  const statusText = state.running
+    ? state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : progress || 'Đang xử lý…'
+    : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.';
+  fqIdScoreEl('info').textContent = `${statusText} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote}`.trim();
   fqIdScoreEl('start').disabled = state.running;
   fqIdScoreEl('input').disabled = state.running;
   fqIdScoreEl('clear').disabled = state.running;
@@ -164,6 +193,7 @@ async function fqIdScoreStart(retry = false) {
   if (state.running) return;
   try { await ensureCleanupKeywords(true); }
   catch (error) { toast('Không tải được từ khóa cleanup: ' + error.message, 'err'); return; }
+  if (state.running) return;
   const fetchScore = window.fqShareApiFetchShareInfo;
   if (typeof fetchScore !== 'function') { toast('Cập nhật công cụ Fanqie score lên 1.5.1 rồi tải lại trang để lấy trực tiếp Share API.', 'err'); return; }
   if (!retry) {
@@ -173,16 +203,17 @@ async function fqIdScoreStart(retry = false) {
     state.note = parsed.duplicates ? `Đã bỏ ${parsed.duplicates} ID trùng.` : '';
     state.page = 1;
   }
-  const queue = state.rows.filter(row => row.status !== 'done');
+  const queue = fqIdScoreSorted().filter(row => row.status !== 'done');
   if (!queue.length && !fqIdScoreSorted().some(fqIdScoreNeedsYears)) return;
   state.running = true;
   state.stopped = false;
-  state.phase = 'initial';
+  state.phase = queue.length ? 'initial' : '';
   let next = 0;
   fqIdScoreRender();
   const worker = async () => {
     while (!state.stopped && next < queue.length) {
       const row = queue[next++];
+      if (row.manuallyHidden || fqIdScoreCleanupHidden(row)) continue;
       row.status = 'loading';
       fqIdScoreScheduleRender();
       try {
@@ -196,10 +227,10 @@ async function fqIdScoreStart(retry = false) {
         const response = bridgePhase ? await fetchMeta(row.id, {deferBridge: false}) : await fetchScore(row.id);
         const book = response?.book_info || response?.data?.book_info;
         if (book && typeof book === 'object' && !Array.isArray(book) && Object.keys(book).length) row.book = book;
-        row.firstChapterYear = fmtTime(book?.first_chapter_time) || fmtTime(response?.first_chapter_time) || row.firstChapterYear;
-        row.lastChapterYear = fmtTime(book?.last_chapter_time) || fmtTime(response?.last_chapter_time) ||
-          fmtTime(book?.last_chapter_first_pass_time) || fmtTime(book?.last_chapter_update_time) ||
-          fmtTime(book?.last_publish_time) || row.lastChapterYear;
+        row.firstChapterYear = row.fanqieFirstYear || fqIdScoreYear(book?.first_chapter_time) || fqIdScoreYear(response?.first_chapter_time) || row.firstChapterYear;
+        row.lastChapterYear = row.fanqieLastYear || fqIdScoreYear(book?.last_chapter_time) || fqIdScoreYear(response?.last_chapter_time) ||
+          fqIdScoreYear(book?.last_chapter_first_pass_time) || fqIdScoreYear(book?.last_chapter_update_time) ||
+          fqIdScoreYear(book?.last_publish_time) || row.lastChapterYear;
         const shareInfo = response?.share_info || response?.data;
         if (shareInfo) row.shareInfo = shareInfo;
         fqIdScoreCleanupHidden(row);
@@ -225,7 +256,7 @@ async function fqIdScoreStart(retry = false) {
       fqIdScoreScheduleRender();
     }
   };
-  try {
+  const runScores = async () => {
     await Promise.all(Array.from({ length: Math.min(5, queue.length) }, worker));
     // Like Daily: complete the direct pass before invoking Bridge for errors
     // and missing scores. Only the final fallback can resolve an ID as N/A.
@@ -239,7 +270,11 @@ async function fqIdScoreStart(retry = false) {
         await worker();
       }
     }
-    if (!state.stopped) await fqIdScoreLoadYears();
+    state.phase = '';
+    fqIdScoreScheduleRender();
+  };
+  try {
+    await Promise.all([fqIdScoreLoadYears(), runScores()]);
   } finally {
     state.running = false;
     state.phase = '';

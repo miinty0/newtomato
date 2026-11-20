@@ -21,13 +21,14 @@ test('search requires every keyword across title, tags and abstract', () => {
 function harness(fetchScore) {
   const ids = ['7569431547728645182', '7676513996333124632', '7676513996333124633'];
   const elements = new Map();
-  const ctx = vm.createContext({URL, _bookRegistry: {}, fqRankingFirstTimeCache: {}, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
+  const queued = [];
+  const ctx = vm.createContext({URL, queueReadIds: ids => queued.push(...ids), _bookRegistry: {}, fqRankingFirstTimeCache: {}, ensureCleanupKeywords: async () => {}, considerCleanupRead: () => false, cleanupKeywordReadIds: new Set(), window: {fqShareApiFetchShareInfo: fetchScore},
     document: {getElementById(id) {
       if (!elements.has(id)) elements.set(id, {value: ids.join('\n')});
       return elements.get(id);
     }}, setTimeout: () => 1, clearTimeout() {}, toast() {assert.fail('unexpected toast');}});
   vm.runInContext(helpers + source, ctx);
-  return {ctx, ids, rows: () => vm.runInContext('fqIdScoreState.rows', ctx)};
+  return {ctx, ids, queued, rows: () => vm.runInContext('fqIdScoreState.rows', ctx)};
 }
 
 test('ID scores defer errors and N/A to the same Bridge helper as Daily after the direct pass', async () => {
@@ -197,4 +198,42 @@ test('ID cards use Fanqie thumbnails and shorten chapter counts over 1000', () =
   assert.doesNotMatch(atLimit, /Y-Y: lỗi, truyện ẩn/);
   assert.equal(h.ctx.fqIdScoreCoverUrl('https://example.org/cover.jpg'), 'https://example.org/cover.jpg');
   assert.equal(h.ctx.fqIdScoreCoverUrl('javascript:alert(1)'), '');
+});
+
+test('date lookups overlap the direct score pass and hide both year cleanup cases', async () => {
+  let releaseScore, releaseYears;
+  const scores = new Promise(resolve => { releaseScore = resolve; });
+  const years = new Promise(resolve => { releaseYears = resolve; });
+  const calls = [];
+  const h = harness(async id => {
+    calls.push('score:' + id);
+    await scores;
+    return {score: '8.8'};
+  });
+  const last2025 = Date.UTC(2025, 11, 31, 15, 59, 59) / 1000;
+  const first2023 = Date.UTC(2023, 11, 31, 15, 59, 59) / 1000;
+  h.ctx.window.fqShareApiFetchChapterTimes = async id => {
+    calls.push('year:' + id);
+    if (id === h.ids[0]) return {first_chapter_time: first2023, last_chapter_time: last2025 + 1};
+    if (id === h.ids[1]) return {last_chapter_time: last2025};
+    await years;
+    return {first_chapter_time: first2023 + 1, last_chapter_time: last2025 + 1};
+  };
+
+  const run = h.ctx.fqIdScoreStart();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls.filter(call => call.startsWith('score:')).length, 3);
+  assert.equal(calls.filter(call => call.startsWith('year:')).length, 3);
+  assert.deepEqual(h.queued, h.ids.slice(0, 2));
+  assert.deepEqual(Array.from(h.ctx.fqIdScoreSorted(), row => row.id), [h.ids[2]]);
+  releaseScore();
+  releaseYears();
+  await run;
+  assert.deepEqual(h.queued, h.ids.slice(0, 2));
+  assert.match(h.ctx.document.getElementById('idscore-results').innerHTML, /2026-2024/);
+  const copied = [];
+  h.ctx.navigator = {clipboard: {writeText: async value => copied.push(value)}};
+  h.ctx.toast = () => {};
+  await h.ctx.fqIdScoreCopy(false);
+  assert.deepEqual(copied, [h.ids[2]]);
 });
