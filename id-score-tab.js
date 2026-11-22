@@ -111,21 +111,22 @@ function fqIdScoreBookHTML(row) {
   const years = row.chapterYearsChecked && fqIdScoreNeedsYears(row)
     ? 'Y-Y: lỗi, truyện ẩn'
     : [lastYear, firstYear].filter(Boolean).join('-');
+  const chapters = Number(book.serial_count) > 1000 ? '+1k' : book.serial_count;
+  const status = String(book.creation_status) === '0' ? 'Hoàn thành' : String(book.creation_status) === '1' ? 'Còn tiếp' : book.creation_status;
   const stats = [
-    ['Tác giả', book.author],
-    ['Số chương', Number(book.serial_count) > 1000 ? '+1k' : book.serial_count],
-    ['Trạng thái', book.creation_status == null ? null : String(book.creation_status) === '0' ? 'Hoàn thành' : String(book.creation_status) === '1' ? 'Còn tiếp' : book.creation_status],
-    ['Tag', book.tags],
-    ['Số chữ', book.word_number],
-    ['Lượt đọc', book.read_count],
-  ].filter(([, value]) => value != null && value !== '');
+    book.author ? authorLinkHTML(book.author) : '',
+    chapters != null && chapters !== '' ? `${escapeHTML(fieldText(chapters))} chương` : '',
+    escapeHTML(fieldText(status)),
+  ].filter(Boolean).join(' · ');
+  const tags = Array.isArray(book.tags) ? book.tags.join(',') : fieldText(book.tags);
   const metadataMissing = row.status === 'done' && !Object.keys(book).length;
   return `<div style="display:flex;gap:14px;align-items:flex-start">
     <div style="width:76px;flex-shrink:0">${cover ? `<img src="${escapeHTML(cover)}" alt="Bìa ${escapeHTML(title)}" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:76px;height:108px;object-fit:cover;border-radius:6px;background:var(--tag-bg)" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><span hidden>Không tải được bìa</span>` : '<span style="font-size:12px;color:var(--muted)">Chưa có bìa</span>'}</div>
     <div style="flex:1;min-width:0">
       <a href="https://fanqienovel.com/page/${row.id}" target="_blank" rel="noopener noreferrer" style="font-weight:600;font-size:16px">${escapeHTML(title)}</a>
       <div style="font:11px monospace;color:var(--muted);margin:3px 0 8px">${row.id}</div>
-      <div style="font-size:12px;color:var(--muted)">${stats.map(([label, value]) => `${label}: ${label === 'Tác giả' ? authorLinkHTML(value) : escapeHTML(fieldText(value))}`).join(' · ')}</div>
+      ${stats ? `<div style="font-size:12px;color:var(--muted)">${stats}${tags ? ' ·' : ''}</div>` : ''}
+      ${tags ? `<div style="font-size:12px;color:var(--muted);overflow-wrap:anywhere">Tag: ${escapeHTML(tags)}</div>` : ''}
       ${years ? `<div class="book-time notranslate">${years}</div>` : ''}
       ${abstract ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0">${escapeHTML(abstract)}</p>` : ''}
       ${metadataMissing ? '<p style="color:var(--muted);font-size:12px">Share API không trả thông tin truyện cho ID này.</p>' : ''}
