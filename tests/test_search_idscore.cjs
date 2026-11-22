@@ -109,6 +109,28 @@ test('missing chapter dates are loaded from Fanqie and retried independently of 
   assert.equal(h.ctx.document.getElementById('idscore-retry').disabled, true);
 });
 
+test('full page tags take priority over Share API tags and fall back when absent', async () => {
+  const calls = [];
+  const h = harness(async () => ({
+    score: '8.8',
+    book_info: {book_name: '测试', tags: '快穿,穿越'},
+  }));
+  h.ctx.window.fqShareApiFetchBookPage = async id => {
+    calls.push(id);
+    return {
+      first_chapter_time: Date.UTC(2026, 5, 1),
+      last_chapter_time: Date.UTC(2026, 6, 1),
+      tags: id === h.ids[0] ? ['快穿', '系统', '幻想言情', '穿越', '穿书', '魂穿'] : [],
+    };
+  };
+  await h.ctx.fqIdScoreStart();
+  assert.deepEqual(calls, h.ids);
+  assert.match(h.ctx.fqIdScoreBookHTML(h.rows()[0]), /Tag: 快穿,系统,幻想言情,穿越,穿书,魂穿<\/div>/);
+  assert.match(h.ctx.fqIdScoreBookHTML(h.rows()[1]), /Tag: 快穿,穿越<\/div>/);
+  assert.match(h.ctx.fqIdScoreBookHTML(h.rows()[0]), /class="book-time notranslate">2026-2026</);
+  assert.equal(h.rows()[0].book.tags, '快穿,穿越');
+});
+
 test('stop skips automatic final retry and manual retry can recover', async () => {
   let calls = 0;
   const h = harness(async () => {
@@ -193,9 +215,9 @@ test('ID cards use Fanqie thumbnails and shorten chapter counts over 1000', () =
     book: {thumb_url: 'https://p3-reading-sign.fqnovelpic.com/novel-pic/cover123~tplv-original.image?x=1', serial_count: '1126'},
   });
   assert.match(card, /src="https:\/\/p6-novel\.byteimg\.com\/thumb\/novel-pic\/cover123"/);
-  assert.ok(card.includes('Số chương: +1k'));
+  assert.ok(card.includes('+1k chương'));
   const atLimit = h.ctx.fqIdScoreBookHTML({id: h.ids[0], status: 'done', book: {serial_count: 1000}});
-  assert.ok(atLimit.includes('Số chương: 1000'));
+  assert.ok(atLimit.includes('1000 chương'));
   assert.doesNotMatch(atLimit, /Y-Y: lỗi, truyện ẩn/);
   assert.equal(h.ctx.fqIdScoreCoverUrl('https://example.org/cover.jpg'), 'https://example.org/cover.jpg');
   assert.equal(h.ctx.fqIdScoreCoverUrl('javascript:alert(1)'), '');

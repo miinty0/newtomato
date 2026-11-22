@@ -66,9 +66,12 @@ function fqIdScoreNeedsYears(row) {
 
 async function fqIdScoreLoadYears() {
   const state = fqIdScoreState;
-  const rows = fqIdScoreSorted().filter(row => !row.firstChapterYear || !row.lastChapterYear);
-  const fetchTimes = window.fqShareApiFetchChapterTimes;
-  if (!rows.length || typeof fetchTimes !== 'function') return;
+  const fetchPage = window.fqShareApiFetchBookPage;
+  const fetchDetails = fetchPage || window.fqShareApiFetchChapterTimes;
+  if (typeof fetchDetails !== 'function') return;
+  const needsPage = row => !row.firstChapterYear || !row.lastChapterYear || (fetchPage && !row.chapterYearsChecked);
+  const rows = fqIdScoreSorted().filter(needsPage);
+  if (!rows.length) return;
 
   state.yearsRunning = true;
   fqIdScoreScheduleRender();
@@ -76,16 +79,17 @@ async function fqIdScoreLoadYears() {
   const worker = async () => {
     while (!state.stopped && next < rows.length) {
       const row = rows[next++];
-      if (row.manuallyHidden || fqIdScoreCleanupHidden(row) || row.firstChapterYear && row.lastChapterYear) continue;
+      if (row.manuallyHidden || fqIdScoreCleanupHidden(row) || !needsPage(row)) continue;
       row.chapterYearsLoading = true;
       try {
-        const dates = await fetchTimes(row.id);
-        row.fanqieLastYear = fqIdScoreYear(dates?.last_chapter_time) || row.fanqieLastYear;
-        row.fanqieFirstYear = fqIdScoreYear(dates?.first_chapter_time) || row.fanqieFirstYear;
+        const details = await fetchDetails(row.id);
+        if (Array.isArray(details?.tags) && details.tags.length) row.fullTags = details.tags;
+        row.fanqieLastYear = fqIdScoreYear(details?.last_chapter_time) || row.fanqieLastYear;
+        row.fanqieFirstYear = fqIdScoreYear(details?.first_chapter_time) || row.fanqieFirstYear;
         row.lastChapterYear = row.fanqieLastYear || row.lastChapterYear;
         row.firstChapterYear = row.fanqieFirstYear || row.firstChapterYear;
       } catch (error) {
-        console.warn('[Score theo ID] Lỗi lấy ngày chương', row.id, error);
+        console.warn('[Score theo ID] Lỗi tải trang truyện Fanqie', row.id, error);
       }
       row.chapterYearsChecked = true;
       row.chapterYearsLoading = false;
@@ -118,7 +122,8 @@ function fqIdScoreBookHTML(row) {
     chapters != null && chapters !== '' ? `${escapeHTML(fieldText(chapters))} chương` : '',
     escapeHTML(fieldText(status)),
   ].filter(Boolean).join(' · ');
-  const tags = Array.isArray(book.tags) ? book.tags.join(',') : fieldText(book.tags);
+  const bookTags = row.fullTags || book.tags;
+  const tags = Array.isArray(bookTags) ? bookTags.join(',') : fieldText(bookTags);
   const metadataMissing = row.status === 'done' && !Object.keys(book).length;
   return `<div style="display:flex;gap:14px;align-items:flex-start">
     <div style="width:76px;flex-shrink:0">${cover ? `<img src="${escapeHTML(cover)}" alt="Bìa ${escapeHTML(title)}" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:76px;height:108px;object-fit:cover;border-radius:6px;background:var(--tag-bg)" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><span hidden>Không tải được bìa</span>` : '<span style="font-size:12px;color:var(--muted)">Chưa có bìa</span>'}</div>
@@ -142,19 +147,22 @@ function fqIdScoreRender() {
   const numeric = sorted.filter(row => row.status === 'done' && row.score !== null).length;
   const missingYears = sorted.filter(fqIdScoreNeedsYears).length;
   const yearNote = missingYears && !state.running
-    ? typeof window.fqShareApiFetchChapterTimes !== 'function'
-      ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.1 rồi tải lại trang để lấy đủ năm.'
+    ? !window.fqShareApiFetchBookPage && !window.fqShareApiFetchChapterTimes
+      ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.2 rồi tải lại trang để lấy năm và tag.'
       : `${missingYears} ID thiếu năm chương. Có thể thử lại.`
+    : '';
+  const tagNote = state.rows.length && !state.running && window.fqShareApiFetchChapterTimes && !window.fqShareApiFetchBookPage
+    ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.2 để lấy đủ tag.'
     : '';
   const progress = [
     state.phase === 'bridge' ? 'Đang lấy score qua Fanqie Bridge' : state.phase ? 'Đang lấy score' : '',
-    state.yearsRunning ? 'Đang lấy năm chương' : '',
+    state.yearsRunning ? (window.fqShareApiFetchBookPage ? 'Đang lấy năm chương và tag' : 'Đang lấy năm chương') : '',
   ].filter(Boolean).join(' · ');
   const policyNote = state.rows.length && !state.cleanupPolicy ? 'Chưa tải được cấu hình cleanup theo năm.' : '';
   const statusText = state.running
     ? state.stopped ? 'Đang dừng, chờ yêu cầu đang gửi…' : progress || 'Đang xử lý…'
     : state.stopped ? 'Đã dừng.' : 'Sẵn sàng.';
-  fqIdScoreEl('info').textContent = `${statusText} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote} ${policyNote}`.trim();
+  fqIdScoreEl('info').textContent = `${statusText} ${done}/${sorted.length} ID xong · ${numeric} có điểm · ${done - numeric} N/A · ${errors} lỗi. ${state.note} ${yearNote} ${tagNote} ${policyNote}`.trim();
   fqIdScoreEl('start').disabled = state.running;
   fqIdScoreEl('input').disabled = state.running;
   fqIdScoreEl('clear').disabled = state.running;
