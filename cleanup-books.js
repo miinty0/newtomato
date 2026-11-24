@@ -58,6 +58,7 @@ Có thể nhập nhiều từ khóa mới trong --keyword, ngăn cách bằng d�
 dòng. Danh sách được lưu tại data/cleanup_abstract_keywords.json sau lần chạy
 thực thi thành công.
 
+Mọi chế độ cũng dọn các ID đã có trong data/read.json khỏi các file dữ liệu.
 --dry-run chỉ hiển thị kết quả, không sửa file.
 `);
 }
@@ -274,21 +275,20 @@ function stageCleanup(options) {
   const existingRead = readJson(readPath, []);
   if (!Array.isArray(existingRead)) throw new Error('data/read.json phải là một mảng ID.');
   const existingReadSet = new Set(existingRead.map(String));
-  const mergedRead = [];
-  const readSeen = new Set();
-  for (const id of [...existingRead, ...matchedIds]) {
-    const normalized = String(id);
-    if (!readSeen.has(normalized)) {
-      readSeen.add(normalized);
-      mergedRead.push(normalized);
-    }
+  const readIds = new Set([...existingReadSet, ...matchedIds]);
+  const cleanedIds = new Set();
+
+  function shouldRemove(id) {
+    if (!readIds.has(id)) return false;
+    cleanedIds.add(id);
+    return true;
   }
 
   const dataUpdates = [];
   const deletedHistoryFiles = [];
   for (const { filePath, data } of parsedDataFiles) {
     const originalBooks = data.books;
-    const books = originalBooks.filter(book => !matchedIds.has(normalizeBookId(book)));
+    const books = originalBooks.filter(book => !shouldRemove(normalizeBookId(book)));
     if (books.length === originalBooks.length) continue;
 
     const isHistory = path.dirname(filePath) === path.join(options.dataDir, 'history');
@@ -306,18 +306,17 @@ function stageCleanup(options) {
 
   const cacheUpdates = { ...cache };
   let cacheRemoved = 0;
-  for (const id of matchedIds) {
-    if (Object.prototype.hasOwnProperty.call(cacheUpdates, id)) {
-      delete cacheUpdates[id];
-      cacheRemoved++;
-    }
+  for (const id of Object.keys(cache)) {
+    if (!shouldRemove(id)) continue;
+    delete cacheUpdates[id];
+    cacheRemoved++;
   }
 
   const seenUpdates = [];
   for (const filePath of listSeenFiles(options.dataDir)) {
     const ids = readJson(filePath, []);
     if (!Array.isArray(ids)) throw new Error(`${filePath} phải là một mảng ID.`);
-    const filtered = ids.filter(id => !matchedIds.has(String(id)));
+    const filtered = ids.filter(id => !shouldRemove(String(id)));
     if (filtered.length !== ids.length) {
       seenUpdates.push({ filePath, value: filtered, removed: ids.length - filtered.length });
     }
@@ -341,7 +340,9 @@ function stageCleanup(options) {
     matchedBooks,
     sourceCounts,
     readPath,
-    mergedRead,
+    mergedRead: [...readIds],
+    cleanedCount: cleanedIds.size,
+    alreadyReadCount: [...cleanedIds].filter(id => existingReadSet.has(id)).length,
     readAdded: [...matchedIds].filter(id => !existingReadSet.has(id)).length,
     dataUpdates,
     deletedHistoryFiles,
@@ -372,7 +373,9 @@ function printPlan(plan) {
   console.log(`Điều kiện: ${criterion}`);
   console.log(`Thư mục:   ${plan.options.dataDir}`);
   console.log(`Chế độ:    ${plan.options.dryRun ? 'DRY RUN — không sửa file' : 'THỰC THI'}`);
-  console.log(`Khớp:      ${plan.matchedIds.size} book ID`);
+  console.log(`Khớp điều kiện: ${plan.matchedIds.size} ID`);
+  console.log(`Có sẵn trong Read và còn trong các file dữ liệu: ${plan.alreadyReadCount} ID`);
+  console.log(`Tổng số ID sẽ dọn: ${plan.cleanedCount}`);
   console.log('='.repeat(68));
 
   if (plan.options.mode === 'abstract' || plan.options.mode === 'combined') {
@@ -426,9 +429,7 @@ function printPlan(plan) {
 
 function applyPlan(plan) {
   if (plan.keywordFileChanged) writeJsonAtomic(plan.keywordFilePath, plan.abstractKeywords);
-  if (plan.matchedIds.size === 0) return;
-
-  writeJsonAtomic(plan.readPath, plan.mergedRead);
+  if (plan.readAdded > 0) writeJsonAtomic(plan.readPath, plan.mergedRead);
   for (const update of plan.dataUpdates) writeJsonAtomic(update.filePath, update.value);
   for (const filePath of plan.deletedHistoryFiles) fs.unlinkSync(filePath);
   if (plan.cacheRemoved > 0) writeJsonAtomic(plan.cachePath, plan.cacheUpdates);
@@ -448,21 +449,21 @@ function main() {
   printPlan(plan);
 
   if (options.dryRun) {
-    if (plan.matchedIds.size === 0) console.log('\nKhông tìm thấy book nào khớp điều kiện.');
+    if (plan.cleanedCount === 0) console.log('\nKhông có ID cần dọn khỏi các file dữ liệu.');
     console.log('\nDry run hoàn tất. Bỏ --dry-run để thực sự sửa dữ liệu.');
     return;
   }
 
   applyPlan(plan);
-  if (plan.matchedIds.size === 0) {
+  if (plan.cleanedCount === 0) {
     if (plan.keywordFileChanged) {
-      console.log(`\n✓ Đã lưu ${plan.addedKeywords.length} từ khóa mới; hiện chưa có book nào khớp.`);
+      console.log(`\n✓ Đã lưu ${plan.addedKeywords.length} từ khóa mới; hiện không có ID cần dọn.`);
     } else {
-      console.log('\nKhông tìm thấy book nào khớp điều kiện và không có thay đổi dữ liệu.');
+      console.log('\nKhông có ID cần dọn và không có thay đổi dữ liệu.');
     }
     return;
   }
-  console.log(`\n✓ Hoàn tất: đã thêm ${plan.readAdded} ID mới vào read.json và dọn ${plan.matchedIds.size} book ID.`);
+  console.log(`\n✓ Hoàn tất: đã thêm ${plan.readAdded} ID mới vào read.json và dọn ${plan.cleanedCount} ID.`);
 }
 
 if (require.main === module) {
