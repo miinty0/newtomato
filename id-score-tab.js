@@ -60,16 +60,20 @@ function fqIdScoreChapterYears(row) {
   return [lastYear, firstYear];
 }
 
-function fqIdScoreNeedsYears(row) {
-  return (row.status === 'done' || row.status === 'error') && fqIdScoreChapterYears(row).some(year => !year);
+function fqIdScoreMetadataMissing(row) {
+  return row.status === 'done' && !Object.keys(row.book || {}).length;
 }
 
-async function fqIdScoreLoadYears() {
+function fqIdScoreNeedsYears(row) {
+  return !fqIdScoreMetadataMissing(row) && (row.status === 'done' || row.status === 'error') && fqIdScoreChapterYears(row).some(year => !year);
+}
+
+async function fqIdScoreLoadYears(scoreReady = new Map()) {
   const state = fqIdScoreState;
   const fetchPage = window.fqShareApiFetchBookPage;
   const fetchDetails = fetchPage || window.fqShareApiFetchChapterTimes;
   if (typeof fetchDetails !== 'function') return;
-  const needsPage = row => !row.firstChapterYear || !row.lastChapterYear || (fetchPage && !row.chapterYearsChecked);
+  const needsPage = row => !fqIdScoreMetadataMissing(row) && (!row.firstChapterYear || !row.lastChapterYear || (fetchPage && !row.chapterYearsChecked));
   const rows = fqIdScoreSorted().filter(needsPage);
   if (!rows.length) return;
 
@@ -79,7 +83,8 @@ async function fqIdScoreLoadYears() {
   const worker = async () => {
     while (!state.stopped && next < rows.length) {
       const row = rows[next++];
-      if (row.manuallyHidden || fqIdScoreCleanupHidden(row) || !needsPage(row)) continue;
+      await scoreReady.get(row.id)?.promise;
+      if (state.stopped || row.manuallyHidden || fqIdScoreCleanupHidden(row) || !needsPage(row)) continue;
       row.chapterYearsLoading = true;
       try {
         const details = await fetchDetails(row.id);
@@ -107,6 +112,7 @@ async function fqIdScoreLoadYears() {
 }
 
 function fqIdScoreBookHTML(row) {
+  if (fqIdScoreMetadataMissing(row)) return `<a href="https://fanqienovel.com/page/${row.id}" target="_blank" rel="noopener noreferrer">${escapeHTML(row.id)}</a><p style="color:var(--muted);font-size:12px">Share API không trả thông tin truyện cho ID này.</p>`;
   const book = row.book || {};
   const cover = fqIdScoreCoverUrl(book.thumb_url);
   const fieldText = value => value && typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '');
@@ -126,7 +132,6 @@ function fqIdScoreBookHTML(row) {
   ].filter(Boolean).join(' · ');
   const bookTags = row.fullTags || book.tags;
   const tags = Array.isArray(bookTags) ? bookTags.join(',') : fieldText(bookTags);
-  const metadataMissing = row.status === 'done' && !Object.keys(book).length;
   return `<div style="display:flex;gap:14px;align-items:flex-start">
     <div style="width:76px;flex-shrink:0">${cover ? `<img src="${escapeHTML(cover)}" alt="Bìa ${escapeHTML(title)}" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:76px;height:108px;object-fit:cover;border-radius:6px;background:var(--tag-bg)" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><span hidden>Không tải được bìa</span>` : '<span style="font-size:12px;color:var(--muted)">Chưa có bìa</span>'}</div>
     <div style="flex:1;min-width:0">
@@ -136,7 +141,6 @@ function fqIdScoreBookHTML(row) {
       ${tags ? `<div style="font-size:12px;color:var(--muted);overflow-wrap:anywhere">Tag: ${escapeHTML(tags)}</div>` : ''}
       ${years ? `<div class="book-time notranslate">${years}</div>` : ''}
       ${abstract ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0">${escapeHTML(abstract)}</p>` : ''}
-      ${metadataMissing ? '<p style="color:var(--muted);font-size:12px">Share API không trả thông tin truyện cho ID này.</p>' : ''}
     </div>
   </div>`;
 }
@@ -243,6 +247,11 @@ async function fqIdScoreStart(retry = false) {
   state.running = true;
   state.stopped = false;
   state.phase = queue.length ? 'initial' : '';
+  const scoreReady = new Map(queue.map(row => {
+    let resolve;
+    const promise = new Promise(done => { resolve = done; });
+    return [row.id, {promise, resolve}];
+  }));
   let next = 0;
   fqIdScoreRender();
   const worker = async () => {
@@ -261,7 +270,10 @@ async function fqIdScoreStart(retry = false) {
         // shared-cache, automatic-read or persistent-status side effects.
         const response = bridgePhase ? await fetchMeta(row.id, {deferBridge: false}) : await fetchScore(row.id);
         const book = response?.book_info || response?.data?.book_info;
-        if (book && typeof book === 'object' && !Array.isArray(book) && Object.keys(book).length) row.book = book;
+        if (book && typeof book === 'object' && !Array.isArray(book) && Object.keys(book).length) {
+          row.book = book;
+          scoreReady.get(row.id)?.resolve();
+        }
         row.firstChapterYear = row.fanqieFirstYear || fqIdScoreYear(book?.first_chapter_time) || fqIdScoreYear(response?.first_chapter_time) || row.firstChapterYear;
         row.lastChapterYear = row.fanqieLastYear || fqIdScoreYear(book?.last_chapter_time) || fqIdScoreYear(response?.last_chapter_time) ||
           fqIdScoreYear(book?.last_chapter_first_pass_time) || fqIdScoreYear(book?.last_chapter_update_time) ||
@@ -309,7 +321,9 @@ async function fqIdScoreStart(retry = false) {
     fqIdScoreScheduleRender();
   };
   try {
-    await Promise.all([fqIdScoreLoadYears(), runScores()]);
+    await Promise.all([fqIdScoreLoadYears(scoreReady), runScores().finally(() => {
+      for (const gate of scoreReady.values()) gate.resolve();
+    })]);
   } finally {
     state.running = false;
     state.phase = '';
