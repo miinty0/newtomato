@@ -230,8 +230,8 @@ test('date lookups overlap the direct score pass and hide both year cleanup case
   const calls = [];
   const h = harness(async id => {
     calls.push('score:' + id);
-    await scores;
-    return {score: '8.8'};
+    if (id === h.ids[2]) await scores;
+    return {score: '8.8', book_info: {book_name: '测试'}};
   });
   const last2025 = Date.UTC(2025, 11, 31, 15, 59, 59) / 1000;
   const first2023 = Date.UTC(2023, 11, 31, 15, 59, 59) / 1000;
@@ -246,7 +246,7 @@ test('date lookups overlap the direct score pass and hide both year cleanup case
   const run = h.ctx.fqIdScoreStart();
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(calls.filter(call => call.startsWith('score:')).length, 3);
-  assert.equal(calls.filter(call => call.startsWith('year:')).length, 3);
+  assert.equal(calls.filter(call => call.startsWith('year:')).length, 2);
   assert.deepEqual(h.queued, h.ids.slice(0, 2));
   assert.deepEqual(Array.from(h.ctx.fqIdScoreSorted(), row => row.id), [h.ids[2]]);
   releaseScore();
@@ -259,6 +259,27 @@ test('date lookups overlap the direct score pass and hide both year cleanup case
   h.ctx.toast = () => {};
   await h.ctx.fqIdScoreCopy(false);
   assert.deepEqual(copied, [h.ids[2]]);
+});
+
+test('missing Share API metadata skips page requests and manual retry', async () => {
+  const calls = [];
+  const h = harness(async id => {
+    calls.push('score:' + id);
+    return {score: '8.8', book_info: id === h.ids[0] ? {} : {book_name: '测试'}};
+  });
+  h.ctx.window.fqShareApiFetchBookPage = async id => {
+    calls.push('page:' + id);
+    return {first_chapter_time: 1780000000, last_chapter_time: 1790000000, tags: ['测试'], gender: 0};
+  };
+  await h.ctx.fqIdScoreStart();
+  assert.deepEqual(calls.filter(call => call.startsWith('page:')), h.ids.slice(1).map(id => 'page:' + id));
+  const card = h.ctx.fqIdScoreBookHTML(h.rows()[0]);
+  assert.match(card, /Share API không trả thông tin truyện cho ID này/);
+  assert.doesNotMatch(card, /gender=|Tag:|book-time|Chưa có bìa/);
+  assert.equal(h.ctx.document.getElementById('idscore-retry').disabled, true);
+  const before = calls.length;
+  await h.ctx.fqIdScoreStart(true);
+  assert.equal(calls.length, before);
 });
 
 test('a new score run reads the changed cleanup year cutoffs', async () => {
