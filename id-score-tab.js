@@ -84,6 +84,7 @@ async function fqIdScoreLoadYears() {
       try {
         const details = await fetchDetails(row.id);
         if (Array.isArray(details?.tags) && details.tags.length) row.fullTags = details.tags;
+        if ([0, 1, 2].includes(details?.gender)) row.categoryGender = details.gender;
         row.fanqieLastYear = fqIdScoreYear(details?.last_chapter_time) || row.fanqieLastYear;
         row.fanqieFirstYear = fqIdScoreYear(details?.first_chapter_time) || row.fanqieFirstYear;
         row.lastChapterYear = row.fanqieLastYear || row.lastChapterYear;
@@ -121,6 +122,7 @@ function fqIdScoreBookHTML(row) {
     book.author ? authorLinkHTML(book.author) : '',
     chapters != null && chapters !== '' ? `${escapeHTML(fieldText(chapters))} chương` : '',
     escapeHTML(fieldText(status)),
+    row.categoryGender === 0 ? 'Nữ tần' : row.categoryGender === 1 ? 'Nam tần' : row.categoryGender === 2 ? 'gender=2' : '',
   ].filter(Boolean).join(' · ');
   const bookTags = row.fullTags || book.tags;
   const tags = Array.isArray(bookTags) ? bookTags.join(',') : fieldText(bookTags);
@@ -130,7 +132,7 @@ function fqIdScoreBookHTML(row) {
     <div style="flex:1;min-width:0">
       <a href="https://fanqienovel.com/page/${row.id}" target="_blank" rel="noopener noreferrer" style="font-weight:600;font-size:16px">${escapeHTML(title)}</a>
       <div style="font:11px monospace;color:var(--muted);margin:3px 0 8px">${row.id}</div>
-      ${stats ? `<div style="font-size:12px;color:var(--muted)">${stats}${tags ? ' ·' : ''}</div>` : ''}
+      ${stats ? `<div style="font-size:12px;color:var(--muted)">${stats}</div>` : ''}
       ${tags ? `<div style="font-size:12px;color:var(--muted);overflow-wrap:anywhere">Tag: ${escapeHTML(tags)}</div>` : ''}
       ${years ? `<div class="book-time notranslate">${years}</div>` : ''}
       ${abstract ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0">${escapeHTML(abstract)}</p>` : ''}
@@ -148,15 +150,15 @@ function fqIdScoreRender() {
   const missingYears = sorted.filter(fqIdScoreNeedsYears).length;
   const yearNote = missingYears && !state.running
     ? !window.fqShareApiFetchBookPage && !window.fqShareApiFetchChapterTimes
-      ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.2 rồi tải lại trang để lấy năm và tag.'
+      ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.3 rồi tải lại trang để lấy năm, tag và gender.'
       : `${missingYears} ID thiếu năm chương. Có thể thử lại.`
     : '';
   const tagNote = state.rows.length && !state.running && window.fqShareApiFetchChapterTimes && !window.fqShareApiFetchBookPage
-    ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.2 để lấy đủ tag.'
+    ? 'Cập nhật Fanqie Share API Score Bridge lên 1.6.3 để lấy đủ tag và gender.'
     : '';
   const progress = [
     state.phase === 'bridge' ? 'Đang lấy score qua Fanqie Bridge' : state.phase ? 'Đang lấy score' : '',
-    state.yearsRunning ? (window.fqShareApiFetchBookPage ? 'Đang lấy năm chương và tag' : 'Đang lấy năm chương') : '',
+    state.yearsRunning ? (window.fqShareApiFetchBookPage ? 'Đang lấy năm chương, tag và gender' : 'Đang lấy năm chương') : '',
   ].filter(Boolean).join(' · ');
   const policyNote = state.rows.length && !state.cleanupPolicy ? 'Chưa tải được cấu hình cleanup theo năm.' : '';
   const statusText = state.running
