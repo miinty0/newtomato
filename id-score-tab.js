@@ -122,7 +122,7 @@ function fqIdScoreBookHTML(row) {
     book.author ? authorLinkHTML(book.author) : '',
     chapters != null && chapters !== '' ? `${escapeHTML(fieldText(chapters))} chương` : '',
     escapeHTML(fieldText(status)),
-    row.categoryGender === 0 ? 'Nữ tần' : row.categoryGender === 1 ? 'Nam tần' : row.categoryGender === 2 ? 'gender=2' : '',
+    row.categoryGender === 0 ? 'Nữ tần' : row.categoryGender === 1 ? 'Nam tần' : row.categoryGender === 2 ? 'gender=2' : (row.chapterYearsChecked || (!window.fqShareApiFetchBookPage && (row.status === 'done' || row.status === 'error'))) ? 'gender=lỗi' : '',
   ].filter(Boolean).join(' · ');
   const bookTags = row.fullTags || book.tags;
   const tags = Array.isArray(bookTags) ? bookTags.join(',') : fieldText(bookTags);
