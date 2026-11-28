@@ -39,8 +39,14 @@ function fqIdScoreCleanupHidden(row) {
 
 function fqIdScoreSorted() {
   const group = row => row.status === 'done' ? (row.score === null ? 1 : 0) : row.status === 'error' ? 2 : 3;
+  const readCount = row => {
+    const raw = row.book?.read_count;
+    if (raw == null || String(raw).trim() === '') return -1;
+    const count = Number(raw);
+    return Number.isFinite(count) && count >= 0 ? count : -1;
+  };
   return fqIdScoreState.rows.filter(row => !row.manuallyHidden && !fqIdScoreCleanupHidden(row)).sort((a, b) =>
-    group(a) - group(b) || (group(a) === 0 ? b.score - a.score : 0) || a.order - b.order);
+    group(a) - group(b) || (group(a) === 0 ? (b.score - a.score || readCount(b) - readCount(a)) : 0) || a.order - b.order);
 }
 
 function fqIdScoreCoverUrl(value) {
