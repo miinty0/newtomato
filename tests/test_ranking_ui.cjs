@@ -15,7 +15,7 @@ const context = vm.createContext({
   booksPage: { rankings: 1 }, automaticReadHidden: new Set(),
   filterByStatus: books => books, registerBooks() {}, unobserveScoresIn() {}, loadScoresForCards() {}, updateReadBar() {},
   renderPagination: () => ({ start: 0, end: 500 }), bookCardHTML: book => book.book_id,
-  setTimeout: () => 1, clearTimeout() {}, ghRaw: async () => [],
+  setTimeout: () => 1, clearTimeout() {}, ghRaw: async path => path==='cleanup-policy.json'?{firstYear:2023,lastYear:2025}:[],
 });
 vm.runInContext(fs.readFileSync('ranking-tab.js', 'utf8'), context);
 const state = () => vm.runInContext('fqRankingState', context);
