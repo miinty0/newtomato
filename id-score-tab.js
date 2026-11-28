@@ -23,7 +23,12 @@ async function fqIdScoreLoadCleanupPolicy() {
 }
 
 function fqIdScoreCleanupHidden(row) {
-  if (row.cleanupByYear || cleanupKeywordReadIds.has(row.id)) return true;
+  if (row.cleanupByYear || row.cleanupByAgeScore || cleanupKeywordReadIds.has(row.id)) return true;
+  if (row.status === 'done' && !fqIdScoreMetadataMissing(row) && row.firstChapterTime != null && typeof qualifiesForAutomaticRead === 'function' && qualifiesForAutomaticRead(row.firstChapterTime, row.score)) {
+    row.cleanupByAgeScore = true;
+    queueReadIds(new Set([row.id]));
+    return true;
+  }
   if (considerCleanupRead(row.book, row.id) || considerCleanupRead({ abstract: row.shareInfo?.sub_text }, row.id)) return true;
   // Use dates from this run. Cached last-update dates may predate a new chapter.
   const policy = fqIdScoreState.cleanupPolicy;
@@ -98,6 +103,10 @@ async function fqIdScoreLoadYears(scoreReady = new Map()) {
         if ([0, 1, 2].includes(details?.gender)) row.categoryGender = details.gender;
         row.fanqieLastYear = fqIdScoreYear(details?.last_chapter_time) || row.fanqieLastYear;
         row.fanqieFirstYear = fqIdScoreYear(details?.first_chapter_time) || row.fanqieFirstYear;
+        if (row.fanqieFirstYear && Number(details?.first_chapter_time) > 0) {
+          const time = Number(details.first_chapter_time);
+          row.firstChapterTime = time >= 1e12 ? Math.floor(time / 1000) : time;
+        }
         row.lastChapterYear = row.fanqieLastYear || row.lastChapterYear;
         row.firstChapterYear = row.fanqieFirstYear || row.firstChapterYear;
       } catch (error) {
@@ -280,6 +289,8 @@ async function fqIdScoreStart(retry = false) {
           row.book = book;
           scoreReady.get(row.id)?.resolve();
         }
+        const firstTime = Number(book?.first_chapter_time || response?.first_chapter_time);
+        if (!row.fanqieFirstYear && Number.isFinite(firstTime) && firstTime > 0) row.firstChapterTime = firstTime >= 1e12 ? Math.floor(firstTime / 1000) : firstTime;
         row.firstChapterYear = row.fanqieFirstYear || fqIdScoreYear(book?.first_chapter_time) || fqIdScoreYear(response?.first_chapter_time) || row.firstChapterYear;
         row.lastChapterYear = row.fanqieLastYear || fqIdScoreYear(book?.last_chapter_time) || fqIdScoreYear(response?.last_chapter_time) ||
           fqIdScoreYear(book?.last_chapter_first_pass_time) || fqIdScoreYear(book?.last_chapter_update_time) ||
@@ -302,6 +313,7 @@ async function fqIdScoreStart(retry = false) {
         row.display = na ? 'N/A' : value;
         row.status = 'done';
         row.error = '';
+        fqIdScoreCleanupHidden(row);
       } catch (error) {
         row.status = 'error';
         row.error = String(error?.message || error);
