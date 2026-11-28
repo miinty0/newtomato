@@ -146,7 +146,8 @@ function fqIdScoreBookHTML(row) {
     row.categoryGender === 0 ? 'Nữ tần' : row.categoryGender === 1 ? 'Nam tần' : row.categoryGender === 2 ? 'gender=2' : (row.chapterYearsChecked || (!window.fqShareApiFetchBookPage && (row.status === 'done' || row.status === 'error'))) ? 'gender=lỗi' : '',
   ].filter(Boolean).join(' · ');
   const bookTags = row.fullTags || book.tags;
-  const tags = Array.isArray(bookTags) ? bookTags.join(',') : fieldText(bookTags);
+  const rawTags = Array.isArray(bookTags) ? bookTags : fieldText(bookTags).split(',').filter(Boolean);
+  const tags = rawTags.map(tag => typeof cleanupTagLabel === 'function' ? cleanupTagLabel(tag) : String(tag)).join(',');
   return `<div style="display:flex;gap:14px;align-items:flex-start">
     <div style="width:76px;flex-shrink:0">${cover ? `<img src="${escapeHTML(cover)}" alt="Bìa ${escapeHTML(title)}" loading="lazy" referrerpolicy="no-referrer" style="display:block;width:76px;height:108px;object-fit:cover;border-radius:6px;background:var(--tag-bg)" onerror="this.style.display='none';this.nextElementSibling.hidden=false"><span hidden>Không tải được bìa</span>` : '<span style="font-size:12px;color:var(--muted)">Chưa có bìa</span>'}</div>
     <div style="flex:1;min-width:0">
