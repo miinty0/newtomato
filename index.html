@@ -2025,6 +2025,48 @@ let cleanupAbstractKeywords = [];
 let cleanupKeywordsPromise = null;
 let cleanupKeywordsLoadedAt = 0;
 const cleanupKeywordReadIds = new Set();
+const cleanupYearReadIds = new Set();
+let sharedCleanupPolicy = null;
+let sharedCleanupPolicyPromise = null;
+let sharedCleanupPolicyLoadedAt = 0;
+async function ensureSharedCleanupPolicy(force = false) {
+  if (sharedCleanupPolicyPromise) return sharedCleanupPolicyPromise;
+  if (!force && sharedCleanupPolicy && Date.now() - sharedCleanupPolicyLoadedAt < 60000) return sharedCleanupPolicy;
+  sharedCleanupPolicyPromise = (async () => {
+    const policy = await ghRaw('cleanup-policy.json');
+    if (![policy?.firstYear, policy?.lastYear].every(year => Number.isInteger(year) && year >= 1900 && year <= 2100)) throw new Error('cleanup-policy.json cần có firstYear và lastYear từ 1900 đến 2100.');
+    sharedCleanupPolicy = policy;
+    sharedCleanupPolicyLoadedAt = Date.now();
+    for (const book of Object.values(_bookRegistry)) considerCleanupYearRead(book);
+    return policy;
+  })().finally(() => { sharedCleanupPolicyPromise = null; });
+  return sharedCleanupPolicyPromise;
+}
+function cleanupDateYear(value) {
+  if (value == null || String(value).trim() === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const date = new Date(n >= 1e12 ? n : n * 1000);
+  return Number.isFinite(date.getTime()) ? Number(new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Shanghai',year:'numeric'}).format(date)) : null;
+}
+function considerCleanupYearRead(book, bookId = normalizedBookId(book || {})) {
+  if (!bookId || !sharedCleanupPolicy) return false;
+  bookId = String(bookId);
+  if (cleanupYearReadIds.has(bookId)) return true;
+  const first = cleanupDateYear(book?.first_chapter_time);
+  const last = cleanupDateYear(book?.last_chapter_time);
+  if (!(first !== null && first <= sharedCleanupPolicy.firstYear) && !(last !== null && last <= sharedCleanupPolicy.lastYear)) return false;
+  cleanupYearReadIds.add(bookId);
+  if (!automaticReadHidden.has(bookId)) queueReadIds(new Set([bookId]));
+  return true;
+}
+function considerFetchedCleanup(bookId, metadata) {
+  const book = metadata?.book_info ?? metadata?.data?.book_info ?? metadata?.share_info?.book_info ?? {};
+  const first = metadata?.first_chapter_time ?? book.first_chapter_time;
+  const last = metadata?.last_chapter_time ?? book.last_chapter_time ?? book.last_chapter_first_pass_time ?? book.last_chapter_update_time ?? book.last_publish_time;
+  return considerCleanupRead({abstract: book.abstract ?? metadata?.share_info?.sub_text ?? metadata?.abstract}, bookId) ||
+    considerCleanupYearRead({first_chapter_time:first,last_chapter_time:last}, bookId);
+}
 async function ensureCleanupKeywords(force = false) {
   if (cleanupKeywordsPromise) return cleanupKeywordsPromise;
   if (!force && cleanupKeywordsLoadedAt && Date.now() - cleanupKeywordsLoadedAt < 60000) return;
@@ -2239,7 +2281,7 @@ function mappedFanqieStatus(creationStatus) {
 }
 
 async function ensureStatusOverrides() {
-  await ensureCleanupKeywords();
+  await Promise.all([ensureCleanupKeywords(), ensureSharedCleanupPolicy()]);
   if (statusOverridesLoadPromise) return statusOverridesLoadPromise;
   statusOverridesLoadPromise = ghRaw(STATUS_OVERRIDES_PATH)
     .then(data => {
@@ -2851,12 +2893,12 @@ async function scanQualifiedScorePage(state) {
   console.info(`[Score scan:${state.tab}] Share API: đã xét ${state.cursor}/${state.candidates.length}; tiếp tục ID chưa xét hoặc retry ID thiếu.`);
   const fetchRow = async row => {
     try {
-      if ((row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) await requestScoreDirect(row.id);
+      if (!automaticReadHidden.has(row.id) && (row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) await requestScoreDirect(row.id);
     } catch (_) {
       // Retain the ID for explicit retry without rewinding the source cursor.
     } finally {
       state.examinedIds.add(row.id);
-      if ((row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) state.pendingScoreIds.add(row.id);
+      if (!automaticReadHidden.has(row.id) && (row.minimum !== null || state.tab === 'rankings') && !scoreCache.has(row.id)) state.pendingScoreIds.add(row.id);
       else state.pendingScoreIds.delete(row.id);
       scheduleQualifiedDraw(state);
     }
@@ -2885,12 +2927,12 @@ async function scanQualifiedScorePage(state) {
     holdingSharePhase = false;
     if (qualifiedScanIsCurrent(state)) {
       const activeIds = new Set(state.candidates.map(row => row.id));
-      const tail = [...state.pendingScoreIds].filter(id => activeIds.has(id) && !scoreCache.has(id));
+      const tail = [...state.pendingScoreIds].filter(id => activeIds.has(id) && !automaticReadHidden.has(id) && !scoreCache.has(id));
       state.phase = 'bridge';
       drawQualifiedScorePage(state);
       if (tail.length) console.info(`[Score scan:${state.tab}] Bridge cuối lượt: ${tail.length} ID thiếu score; giữ tiến độ ${state.cursor}/${state.candidates.length}.`);
       await runDeferredScoreBridge(tail, () => qualifiedScanIsCurrent(state));
-      state.pendingScoreIds = new Set(tail.filter(id => !scoreCache.has(id)));
+      state.pendingScoreIds = new Set(tail.filter(id => !automaticReadHidden.has(id) && !scoreCache.has(id)));
       state.errors = state.pendingScoreIds.size;
       console.info(`[Score scan:${state.tab}] Kết thúc: đã xét ${state.cursor}/${state.candidates.length}; còn ${state.errors} ID thiếu. Retry chỉ xử lý các ID này.`);
     }
@@ -3090,6 +3132,9 @@ function requestScore(bookId, options = {}) {
     .then(() => fetchFn(bookId, options))
     .then(metadata => {
       const score = metadata && typeof metadata === 'object' ? metadata.score : metadata;
+      const cleaned = considerFetchedCleanup(bookId, metadata);
+      if (cleaned) deferredScoreIds.delete(bookId);
+      if (metadata?.bridge_deferred && cleaned) return null;
       if (metadata?.bridge_deferred) {
         handleFetchedBookStatus(bookId, metadata);
         deferredScoreIds.add(bookId);
@@ -3163,7 +3208,7 @@ async function runDeferredScoreBridge(ids = [...deferredScoreIds], isCurrent = (
   try {
     for (const id of ids) {
       if (!isCurrent() || scoreSharePhaseDepth || scoreRetryState.cancelled) break;
-      if (scoreCache.has(id)) { deferredScoreIds.delete(id); continue; }
+      if (scoreCache.has(id) || automaticReadHidden.has(id)) { deferredScoreIds.delete(id); continue; }
       // On failure leave the badge unresolved for explicit Retry score.
       deferredScoreIds.delete(id);
       try { await requestScore(id); } catch (_) {}
@@ -4142,6 +4187,7 @@ function registerBooks(books) {
     // modal lookup and score fetching all refer to the same ID.
     b.book_id = bookId;
     considerCleanupRead(b, bookId);
+    considerCleanupYearRead(b, bookId);
     applyStatusOverride(b);
     _bookRegistry[bookId] = b;
     if (!_bookInstances.has(bookId)) _bookInstances.set(bookId, new Set());
