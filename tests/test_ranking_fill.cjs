@@ -12,7 +12,8 @@ function harness() {
     FqRankings, crypto, Option: function(text,value){return {text,value};}, CATEGORY_NAMES: {},
     qualifiedScoreScans: new Map(), syncCategoryScoreControl(){}, renderQualifiedScorePage(){return false;}, booksPage: { rankings: 1 }, automaticReadHidden: new Set(),
     ensureCleanupKeywords: async () => {}, cleanupAbstractKeywords: ['blocked'],
-    ghRaw: async path => path.includes('read.json') ? read : ['blocked'],
+    ghRaw: async path => path === 'cleanup-policy.json' ? {firstYear:2023,lastYear:2025} : path.includes('read.json') ? read : ['blocked'],
+    queueReadIds(ids){ for(const id of ids) context.automaticReadHidden.add(id); },
     filterByStatus: books => books, registerBooks(){}, unobserveScoresIn(){}, loadScoresForCards(){}, updateReadBar(){},
     renderPagination: (_,count) => { const page = context.booksPage.rankings; return { start:(page-1)*500, end:Math.min(page*500,count) }; },
     bookCardHTML: book => '<b>' + book.book_id + '</b>', setTimeout, clearTimeout
@@ -48,6 +49,25 @@ function harness() {
   h.setRead(['1','2','3','4','10','11','12','13','14']);
   await h.context.fqLoadRankingFilters();
   assert(!h.context.fqFilteredRankingBooks().some(book=>book.book_id==='10'));
+
+  const policy = harness();
+  await policy.context.fqLoadRankingFilters();
+  const rows = FqRankings.unique([
+    {book_id:'10000000001',abstract:'safe',first_chapter_time:1640995200,last_chapter_time:1770000000},
+    {book_id:'10000000002',abstract:'safe',last_chapter_time:1735689600},
+    {book_id:'10000000003',abstract:'blocked phrase'},
+    {book_id:'10000000004',abstract:'safe',first_chapter_time:1770000000,last_chapter_time:1770000000}
+  ]);
+  policy.context.fqQueueRankingFirstTimes(rows);
+  assert.deepEqual([...policy.context.automaticReadHidden], ['10000000001','10000000002','10000000003']);
+  assert.equal(vm.runInContext('fqRankingFirstTimePending.size',policy.context),0);
+  const late = FqRankings.unique([{book_id:'10000000005',abstract:'safe',last_chapter_time:1770000000}]);
+  policy.context.fqQueueRankingFirstTimes(late);
+  assert.equal(vm.runInContext('fqRankingFirstTimePending.size',policy.context),1);
+  late[0].first_chapter_time=1640995200;
+  policy.context.fqQueueRankingFirstTimes(late);
+  assert(policy.context.automaticReadHidden.has('10000000005'));
+  assert.equal(vm.runInContext('fqRankingFirstTimePending.size',policy.context),0);
 
   const auto = harness(); let autoCalls = 0;
   auto.context.fqRankRequest = async (_,p) => { autoCalls++; return { books:Array.from({length:500},(_,i)=>({book_id:String(100+p.offset+i),abstract:'okay'})),has_more:true,next_offset:p.offset+500 }; };
