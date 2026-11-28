@@ -28,7 +28,8 @@ function environment(storage=new Map()) {
     ensureCleanupKeywords:async()=>{},cleanupAbstractKeywords:[],
     FqRankings:utils,pendingRead:{rankings:new Set()},automaticReadHidden:new Set(),
     filterByStatus:books=>books,console:{warn(){},log:message=>logs.push(message)},
-    ghRaw:async file=>file.includes('ranking-categories')?{male:[{id:'24',name:'快穿'}],female:[{id:'24',name:'快穿'}]}:file.includes('ranking-snapshot')?{peak:{books:[]},fetched_at:'old'}:[],
+    queueReadIds(ids){for(const id of ids) this.automaticReadHidden?.add(id);},
+    ghRaw:async file=>file==='cleanup-policy.json'?{firstYear:2023,lastYear:2025}:file.includes('ranking-categories')?{male:[{id:'24',name:'快穿'}],female:[{id:'24',name:'快穿'}]}:file.includes('ranking-snapshot')?{peak:{books:[]},fetched_at:'old'}:[],
   });
   vm.runInContext(source,ctx);
   vm.runInContext("renderRankings=()=>{}; fqRankRequest=async(action,payload)=>{ calls.push({action,payload}); return {books:[{book_id:'123',abstract:'safe'}],has_more:false,next_offset:1};};",Object.assign(ctx,{calls}));
