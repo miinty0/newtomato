@@ -227,7 +227,7 @@ async function fqLoadRankingFilters() {
   const [read, keywords, policy] = await Promise.all([
     ghRaw('data/read.json'),
     ensureCleanupKeywords(true).then(() => cleanupAbstractKeywords),
-    ghRaw('cleanup-policy.json')
+    ensureSharedCleanupPolicy(true)
   ]);
   if (![policy?.firstYear, policy?.lastYear].every(year => Number.isInteger(year) && year >= 1900 && year <= 2100)) throw new Error('cleanup-policy.json cần có firstYear và lastYear từ 1900 đến 2100.');
   fqRankingCleanupPolicy = policy;
