@@ -28,7 +28,7 @@ function bulkEnvironment({ tab='category', fail=false, gate=null }={}) {
     _catSelectValue:'1',rcSelectValue:'1',booksPage:{category:1,rankcat:1},
     document:{getElementById:id=>nodes[id],querySelectorAll:()=>[]},console:{warn(){}},
     synchronizeCategoryFileLists:async()=>{},ensureStatusOverrides:async()=>{},
-    ghRaw:async name=>{calls.push(name);return []},
+    ghRaw:async name=>{calls.push(name);return name==='cleanup-policy.json'?{firstYear:2023,lastYear:2025}:[]},
     ghRawLarge:async name=>{calls.push(name);if(gate)await gate;if(fail&&name.includes('_2.json'))throw Error('HTTP 503');return payloads[name.match(/_(\d+)\.json$/)[1]]},
     loadFetchHistory:()=>({'1':{},'2':{}}),loadRcHistory:()=>({'1':{},'2':{}}),
     registerBooks(){},renderCatPanels(){},renderRcPanels(){},flushStatusesAtViewBoundary(){},
