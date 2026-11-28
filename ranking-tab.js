@@ -2,7 +2,7 @@
 let fqRankingReadSet = new Set();
 let fqRankingKeywords = [];
 const fqRankingPendingOrigins = new Map();
-const FQ_RANK_LAST_UPDATE_CUTOFF = 2024;
+let fqRankingCleanupPolicy = null;
 const FQ_RANK_PAGE_SIZE = 500;
 const fqRankingState = { initialized: false, worker: null, pending: new Map(), books: [], entries: [], sections: [], section: 0, next: 0, more: false, version: '', session: '', generation: 0, busy: false, loaded: false, paused: false, signatures: new Set(), title: '', fetchedAt: '' };
 const FQ_RANK_ORIGIN = 'https://fanqienovel.com';
@@ -51,11 +51,31 @@ function fqRankingFirstTimeReport() {
   };
 }
 window.fqRankingFirstTimeReport = fqRankingFirstTimeReport;
+function fqRankingApplyCleanup(books) {
+  if (!fqRankingCleanupPolicy) return;
+  const ids = new Set();
+  for (const book of books || []) {
+    const id = String(book.book_id ?? book.bookId ?? '');
+    if (!id || fqRankingReadSet.has(id) || automaticReadHidden.has(id)) continue;
+    const first = FqRankings.updateYear(book.first_chapter_time);
+    const last = FqRankings.updateYear(book.last_chapter_time);
+    if ((first !== null && first <= fqRankingCleanupPolicy.firstYear) ||
+        (last !== null && last <= fqRankingCleanupPolicy.lastYear) ||
+        (book.abstract_verified && fqRankingKeywords.some(word => String(book.abstract ?? '').includes(word)))) ids.add(id);
+  }
+  if (ids.size) queueReadIds(ids);
+}
+function fqRankingSkipFirstTime(id) {
+  return fqRankingReadSet.has(id) || automaticReadHidden.has(id) || !!fqRankingValidFirstTime(fqRankingFirstTimeCache[id]);
+}
 function fqQueueRankingFirstTimes(books) {
+  for (const book of books || []) fqRankingApplyFirstTime(book);
+  fqRankingApplyCleanup(books);
+  for (const id of fqRankingFirstTimePending) if (fqRankingSkipFirstTime(id)) fqRankingFirstTimePending.delete(id);
   for (const book of books || []) {
     fqRankingApplyFirstTime(book);
     const id = String(book.book_id ?? book.bookId ?? '');
-    if (/^\d{10,}$/.test(id) && !fqRankingValidFirstTime(book.first_chapter_time)) {
+    if (/^\d{10,}$/.test(id) && !fqRankingSkipFirstTime(id) && !fqRankingValidFirstTime(book.first_chapter_time)) {
       fqRankingFirstTimePending.add(id);
     }
   }
@@ -71,6 +91,8 @@ function fqQueueRankingFirstTimes(books) {
     console.info('[Bảng Fanqie] Bắt đầu lấy ngày chương đầu, chờ:', fqRankingFirstTimePending.size);
     while (fqRankingFirstTimePending.size && !fqRankingBatch.running &&
       fqRankingState.worker && !fqRankingState.worker.closed) {
+      for (const id of fqRankingFirstTimePending) if (fqRankingSkipFirstTime(id)) fqRankingFirstTimePending.delete(id);
+      if (!fqRankingFirstTimePending.size) break;
       const batch = new Set();
       // Show dates on the current page before processing the rest of the rankings.
       for (const card of fqRankEl('rankings-books').querySelectorAll('.book-card[data-id]')) {
@@ -131,7 +153,7 @@ function fqQueueRankingFirstTimes(books) {
     console.error('[Bảng Fanqie] Không thể tiếp tục cập nhật ngày chương đầu:', error);
   }).finally(() => {
     for (const id of failedIds) {
-      if (!fqRankingValidFirstTime(fqRankingFirstTimeCache[id])) fqRankingFirstTimePending.add(id);
+      if (!fqRankingSkipFirstTime(id)) fqRankingFirstTimePending.add(id);
     }
     fqRankingFirstTimeWorker = null;
   });
@@ -202,10 +224,13 @@ async function fqConnectRankings() {
 }
 
 async function fqLoadRankingFilters() {
-  const [read, keywords] = await Promise.all([
+  const [read, keywords, policy] = await Promise.all([
     ghRaw('data/read.json'),
-    ensureCleanupKeywords(true).then(() => cleanupAbstractKeywords)
+    ensureCleanupKeywords(true).then(() => cleanupAbstractKeywords),
+    ghRaw('cleanup-policy.json')
   ]);
+  if (![policy?.firstYear, policy?.lastYear].every(year => Number.isInteger(year) && year >= 1900 && year <= 2100)) throw new Error('cleanup-policy.json cần có firstYear và lastYear từ 1900 đến 2100.');
+  fqRankingCleanupPolicy = policy;
   if (!Array.isArray(read) || !Array.isArray(keywords) || keywords.some(word => typeof word !== 'string')) throw new Error('Dữ liệu read/từ khóa dọn dẹp không hợp lệ');
   // Preserve in-flight local read updates while refreshing the data branch.
   fqRankingReadSet = new Set([...fqRankingReadSet, ...read.map(String)]);
@@ -539,7 +564,8 @@ function fqRankPendingReadHidden(bookId) {
 function fqRankingBookAllowed(book) {
   const id = String(book.book_id);
   return !fqRankingReadSet.has(id) && !automaticReadHidden.has(id) && !fqRankPendingReadHidden(id) &&
-    !FqRankings.cleanupReason(book, fqRankingKeywords, FQ_RANK_LAST_UPDATE_CUTOFF) &&
+    !FqRankings.cleanupReason(book, fqRankingKeywords, fqRankingCleanupPolicy?.lastYear ?? 2024) &&
+    !(fqRankingCleanupPolicy && FqRankings.updateYear(book.first_chapter_time) !== null && FqRankings.updateYear(book.first_chapter_time) <= fqRankingCleanupPolicy.firstYear) &&
     (!fqRankingKeywords.length || book.abstract_verified);
 }
 function fqFilteredRankingBooks() {
@@ -549,6 +575,7 @@ function renderRankings() {
   fqRenderRankingChecks();
   const root = fqRankEl('rankings-books');
   if (!root) return;
+  fqRankingApplyCleanup(fqRankingState.books);
   registerBooks(fqRankingState.books);
   syncCategoryScoreControl('rankings');
   if (!fqRankingState.entries.length && renderQualifiedScorePage('rankings')) {
